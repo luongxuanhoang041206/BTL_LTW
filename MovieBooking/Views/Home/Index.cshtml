@@ -1,0 +1,34 @@
+﻿@{
+    ViewData["Title"] = "Trang chủ";
+    var isLoggedIn = Context.Session.GetInt32("UserId") != null;
+    var role = Context.Session.GetString("Role");
+}
+
+<div class="py-4">
+    <h2>MovieBooking Test Page</h2>
+    <p class="text-muted mb-4">Trang test chức năng login, register và quản lý phim.</p>
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        @if (!isLoggedIn)
+        {
+            <a asp-controller="Auth" asp-action="Login" class="btn btn-primary">Đăng nhập</a>
+            <a asp-controller="Auth" asp-action="Register" class="btn btn-outline-primary">Đăng ký</a>
+        }
+        else
+        {
+            <a asp-controller="Movie" asp-action="Index" class="btn btn-primary">Xem phim</a>
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">Đăng xuất</button>
+            </form>
+        }
+
+        <a asp-controller="Movie" asp-action="Index" class="btn btn-secondary">Danh sách phim</a>
+    </div>
+
+    <div class="card p-3">
+        <p class="mb-1"><strong>Session:</strong> @(isLoggedIn ? "Đã đăng nhập" : "Chưa đăng nhập")</p>
+        <p class="mb-1"><strong>Role:</strong> @(!string.IsNullOrEmpty(role) ? role : "Không có")</p>
+        <p class="mb-0"><strong>Test account:</strong> admin@moviebooking.com / Admin@123</p>
+    </div>
+</div>

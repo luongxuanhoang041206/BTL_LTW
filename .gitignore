@@ -1,0 +1,25 @@
+# ========================
+# ASP.NET Core / C#
+# ========================
+**/bin/
+**/obj/
+**/.vs/
+*.user
+**/appsettings.Development.json
+
+# ========================
+# React / Node.js
+# ========================
+**/node_modules/
+**/dist/
+**/.env
+**/.env.local
+
+# ========================
+# Chung
+# ========================
+.vs/
+*.suo
+.DS_Store
+Thumbs.db
+

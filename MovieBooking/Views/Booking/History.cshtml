@@ -1,0 +1,184 @@
+@model List<MovieBooking.DTOs.BookingHistoryViewModel>
+@{
+    ViewData["Title"] = "Lịch sử đặt vé";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">📋 Lịch sử đặt vé</h4>
+        <a asp-controller="Movie" asp-action="Index" class="btn btn-primary btn-sm">
+            🎬 Đặt vé mới
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-4 text-center py-5">
+            <div class="display-1 mb-3">🎟️</div>
+            <h5 class="text-muted">Bạn chưa có lịch sử đặt vé nào.</h5>
+            <a asp-controller="Movie" asp-action="Index" class="btn btn-primary mt-3 px-4">
+                Khám phá phim ngay
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- Filter tabs -->
+        <ul class="nav nav-tabs mb-4" id="statusTabs">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" data-filter="all">
+                    Tất cả <span class="badge bg-secondary ms-1">@Model.Count</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-filter="Pending">
+                    Chờ thanh toán
+                    <span class="badge bg-warning text-dark ms-1">@Model.Count(b => b.Status == "Pending")</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-filter="Paid">
+                    Đã thanh toán
+                    <span class="badge bg-success ms-1">@Model.Count(b => b.Status == "Paid")</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-filter="Cancelled">
+                    Đã hủy
+                    <span class="badge bg-danger ms-1">@Model.Count(b => b.Status == "Cancelled")</span>
+                </a>
+            </li>
+        </ul>
+
+        <div id="bookingList">
+            @foreach (var booking in Model)
+            {
+                var statusBadge = booking.Status switch {
+                    "Paid"      => ("bg-success",       "✓ Đã thanh toán"),
+                    "Cancelled" => ("bg-danger",         "✕ Đã hủy"),
+                    _           => ("bg-warning text-dark", "⏳ Chờ thanh toán")
+                };
+                var payBadge = booking.PaymentStatus switch {
+                    "Success" => ("bg-success-subtle text-success border", "Đã thanh toán"),
+                    "Failed"  => ("bg-danger-subtle text-danger border",   "Thanh toán lỗi"),
+                    "Pending" => ("bg-warning-subtle text-warning border",  "Đang xử lý"),
+                    _         => ("bg-secondary-subtle text-secondary border", "Chưa thanh toán")
+                };
+
+                <div class="card border-0 shadow-sm rounded-4 mb-3 booking-item" data-status="@booking.Status">
+                    <div class="card-body p-0">
+                        <div class="row g-0 align-items-stretch">
+                            <!-- Poster -->
+                            <div class="col-auto" style="width: 80px;">
+                                @if (!string.IsNullOrEmpty(booking.PosterUrl))
+                                {
+                                    <img src="@booking.PosterUrl"
+                                         class="rounded-start-4"
+                                         style="width:80px;height:100%;object-fit:cover;min-height:100px;"
+                                         alt="@booking.MovieTitle" />
+                                }
+                                else
+                                {
+                                    <div class="rounded-start-4 bg-secondary d-flex align-items-center justify-content-center"
+                                         style="width:80px;min-height:100px;">
+                                        <span class="text-white fs-3">🎬</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Info -->
+                            <div class="col p-3">
+                                <div class="d-flex justify-content-between align-items-start mb-1 flex-wrap gap-2">
+                                    <h6 class="fw-bold mb-0">@booking.MovieTitle</h6>
+                                    <span class="badge @statusBadge.Item1">@statusBadge.Item2</span>
+                                </div>
+
+                                <div class="row g-1 text-muted small mb-2">
+                                    <div class="col-6 col-md-3">
+                                        📅 @booking.ShowDate.ToString("dd/MM/yyyy")
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        🕐 @booking.StartTime.ToString("HH:mm")
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        🏛️ @booking.CinemaName
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        💺 @booking.SeatCount ghế
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <div>
+                                        <span class="fw-bold text-primary">
+                                            @booking.TotalAmount.ToString("N0") ₫
+                                        </span>
+                                        @if (booking.PaymentStatus != null)
+                                        {
+                                            <span class="badge @payBadge.Item1 ms-2 small">
+                                                @payBadge.Item2
+                                            </span>
+                                        }
+                                        <span class="text-muted small ms-2">
+                                            #@booking.BookingId
+                                        </span>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        @if (booking.Status == "Pending")
+                                        {
+                                            <a asp-controller="Booking" asp-action="Payment"
+                                               asp-route-bookingId="@booking.BookingId"
+                                               class="btn btn-success btn-sm">
+                                                💳 Thanh toán
+                                            </a>
+                                        }
+                                        <a asp-controller="Booking" asp-action="Detail"
+                                           asp-route-bookingId="@booking.BookingId"
+                                           class="btn btn-outline-primary btn-sm">
+                                            Chi tiết →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    document.querySelectorAll('#statusTabs .nav-link').forEach(function (tab) {
+        tab.addEventListener('click', function (e) {
+            e.preventDefault();
+            document.querySelectorAll('#statusTabs .nav-link').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+
+            const filter = this.dataset.filter;
+            document.querySelectorAll('.booking-item').forEach(function (item) {
+                item.style.display =
+                    (filter === 'all' || item.dataset.status === filter) ? '' : 'none';
+            });
+        });
+    });
+})();
+</script>
+}

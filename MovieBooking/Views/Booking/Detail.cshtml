@@ -1,0 +1,266 @@
+@model MovieBooking.DTOs.BookingDetailViewModel
+@{
+    ViewData["Title"] = $"Chi tiết booking #{Model.BookingId}";
+
+    var statusBadge = Model.BookingStatus switch {
+        "Paid"      => ("bg-success",            "✓ Đã thanh toán"),
+        "Cancelled" => ("bg-danger",             "✕ Đã hủy"),
+        _           => ("bg-warning text-dark",  "⏳ Chờ thanh toán")
+    };
+    var payBadge = Model.PaymentStatus switch {
+        "Success" => ("bg-success", "Thành công"),
+        "Failed"  => ("bg-danger",  "Thất bại"),
+        "Pending" => ("bg-warning text-dark", "Đang xử lý"),
+        _         => ("bg-secondary", "Chưa thanh toán")
+    };
+}
+
+<div class="container py-4" style="max-width: 780px;">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <a asp-controller="Booking" asp-action="History"
+               class="btn btn-outline-secondary btn-sm me-2">⬅️ Lịch sử</a>
+            <h4 class="fw-bold d-inline-block mb-0">Chi tiết đặt vé #@Model.BookingId</h4>
+        </div>
+        <span class="badge @statusBadge.Item1 fs-6">@statusBadge.Item2</span>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- LEFT column -->
+        <div class="col-md-7">
+
+            <!-- Movie info -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3 overflow-hidden">
+                <div class="row g-0">
+                    @if (!string.IsNullOrEmpty(Model.PosterUrl))
+                    {
+                        <div class="col-auto">
+                            <img src="@Model.PosterUrl"
+                                 style="width:90px;height:100%;object-fit:cover;min-height:120px;"
+                                 alt="@Model.MovieTitle" />
+                        </div>
+                    }
+                    <div class="col p-3">
+                        <h5 class="fw-bold mb-1">@Model.MovieTitle</h5>
+                        <div class="text-muted small">⏱️ @Model.Duration phút</div>
+                        <div class="mt-2">
+                            <div class="small text-muted">📅 @Model.ShowDate.ToString("dddd, dd/MM/yyyy")</div>
+                            <div class="small text-muted">
+                                🕐 @Model.StartTime.ToString("HH:mm") – @Model.EndTime.ToString("HH:mm")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Venue info -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-light fw-semibold">🏛️ Thông tin rạp</div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted w-35">Rạp</td>
+                                <td class="fw-semibold">@Model.CinemaName</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Địa chỉ</td>
+                                <td>@Model.CinemaAddress</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Phòng</td>
+                                <td>
+                                    @Model.RoomName
+                                    <span class="badge bg-secondary ms-1">@Model.RoomType</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Seats -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-light fw-semibold">
+                    💺 Ghế (@Model.Seats.Count ghế)
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ghế</th>
+                                    <th>Loại</th>
+                                    <th class="text-end">Giá</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var seat in Model.Seats)
+                                {
+                                    var typeBadge = seat.SeatType switch {
+                                        "VIP"    => "bg-primary",
+                                        "Couple" => "bg-danger",
+                                        _        => "bg-success"
+                                    };
+                                    <tr>
+                                        <td><span class="badge @typeBadge">@seat.SeatLabel</span></td>
+                                        <td><small class="text-muted">@seat.SeatType</small></td>
+                                        <td class="text-end">@seat.Price.ToString("N0") ₫</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT column -->
+        <div class="col-md-5">
+
+            <!-- Price breakdown -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-light fw-semibold">💰 Chi tiết thanh toán</div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">Tạm tính</td>
+                                <td class="text-end">@Model.SubTotal.ToString("N0") ₫</td>
+                            </tr>
+                            @if (!string.IsNullOrEmpty(Model.PromoCode))
+                            {
+                                var discAmt = Math.Round(Model.SubTotal * Model.DiscountPercent / 100, 0);
+                                <tr>
+                                    <td class="text-muted text-success">
+                                        Mã <span class="badge bg-success">@Model.PromoCode</span>
+                                        (-@Model.DiscountPercent%)
+                                    </td>
+                                    <td class="text-end text-success fw-semibold">
+                                        -@discAmt.ToString("N0") ₫
+                                    </td>
+                                </tr>
+                            }
+                            <tr class="border-top">
+                                <td class="fw-bold pt-2">Tổng cộng</td>
+                                <td class="text-end fw-bold text-primary fs-5 pt-2">
+                                    @Model.TotalAmount.ToString("N0") ₫
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payment status -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-light fw-semibold">🧾 Trạng thái thanh toán</div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Trạng thái</span>
+                        <span class="badge @payBadge.Item1">@payBadge.Item2</span>
+                    </div>
+                    @if (Model.PaymentMethod != null)
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Phương thức</span>
+                            <span class="fw-semibold">@Model.PaymentMethod</span>
+                        </div>
+                    }
+                    @if (Model.PaidAt != null)
+                    {
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Thời gian</span>
+                            <span>@Model.PaidAt.Value.ToString("HH:mm dd/MM/yyyy")</span>
+                        </div>
+                    }
+                    <div class="d-flex justify-content-between mt-2">
+                        <span class="text-muted">Ngày đặt</span>
+                        <span>@Model.BookingDate.ToString("HH:mm dd/MM/yyyy")</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="d-flex flex-column gap-2">
+                @if (Model.CanRetryPayment)
+                {
+                    <a asp-controller="Booking" asp-action="Payment"
+                       asp-route-bookingId="@Model.BookingId"
+                       class="btn btn-success fw-semibold">
+                        💳 Thanh toán ngay
+                    </a>
+                }
+
+                @if (Model.CanCancel)
+                {
+                    <button type="button" class="btn btn-outline-danger"
+                            data-bs-toggle="modal" data-bs-target="#cancelModal">
+                        ✕ Hủy booking
+                    </button>
+                }
+
+                @if (Model.BookingStatus == "Paid")
+                {
+                    <a asp-controller="Booking" asp-action="BookingSuccess"
+                       asp-route-bookingId="@Model.BookingId"
+                       class="btn btn-outline-primary">
+                        🎟️ Xem vé
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel confirmation modal -->
+@if (Model.CanCancel)
+{
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-danger" id="cancelModalLabel">
+                        ⚠️ Xác nhận hủy booking
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc muốn hủy booking <strong>#@Model.BookingId</strong>?</p>
+                    <ul class="text-muted small">
+                        <li>Ghế sẽ được giải phóng và người khác có thể đặt.</li>
+                        <li>Chỉ hủy được khi chưa thanh toán.</li>
+                        <li>Hành động này <strong>không thể hoàn tác</strong>.</li>
+                    </ul>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Không, giữ lại
+                    </button>
+                    <form asp-controller="Booking" asp-action="Cancel"
+                          asp-route-bookingId="@Model.BookingId" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            Xác nhận hủy
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}

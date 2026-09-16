@@ -1,0 +1,278 @@
+@model MovieBooking.DTOs.SeatMapViewModel
+@{
+    ViewData["Title"] = $"Chọn ghế — {Model.MovieTitle}";
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-controller="Booking" asp-action="Showtimes" asp-route-movieId="0"
+           onclick="history.back();return false;" class="btn btn-outline-secondary btn-sm">
+            ⬅️ Quay lại chọn suất
+        </a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Showtime info bar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-body py-3">
+            <div class="row align-items-center g-2">
+                <div class="col-auto">
+                    @if (!string.IsNullOrEmpty(Model.PosterUrl))
+                    {
+                        <img src="@Model.PosterUrl" style="height:60px;width:45px;object-fit:cover;border-radius:4px;" alt="" />
+                    }
+                </div>
+                <div class="col">
+                    <h5 class="fw-bold mb-0">@Model.MovieTitle</h5>
+                    <small class="text-muted">
+                        @Model.ShowDate.ToString("dd/MM/yyyy") &bull;
+                        @Model.StartTime.ToString("HH:mm") – @Model.EndTime.ToString("HH:mm") &bull;
+                        @Model.CinemaName &bull; @Model.RoomName (@Model.RoomType)
+                    </small>
+                </div>
+                <div class="col-auto text-end">
+                    <div class="fw-bold fs-5 text-primary">@Model.PricePerSeat.ToString("N0") ₫/ghế</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" asp-action="HoldSeats" id="seatForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ShowtimeId" value="@Model.ShowtimeId" />
+
+        <!-- Legend -->
+        <div class="d-flex gap-3 justify-content-center flex-wrap mb-3">
+            <div class="d-flex align-items-center gap-1">
+                <div class="seat-legend available"></div><small>Trống</small>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="seat-legend selected"></div><small>Đang chọn</small>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="seat-legend holding"></div><small>Đang giữ</small>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="seat-legend booked"></div><small>Đã đặt</small>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="seat-legend vip"></div><small>VIP</small>
+            </div>
+            <div class="d-flex align-items-center gap-1">
+                <div class="seat-legend couple"></div><small>Đôi</small>
+            </div>
+        </div>
+
+        <!-- Screen indicator -->
+        <div class="screen-bar mx-auto mb-4">MÀN HÌNH</div>
+
+        <!-- Seat grid -->
+        <div class="seat-grid mb-4">
+            @foreach (var row in Model.Rows)
+            {
+                <div class="seat-row">
+                    <div class="row-label">@row.RowLabel</div>
+                    @foreach (var seat in row.Seats)
+                    {
+                        var cssClass = seat.Status switch {
+                            "Booked"  => "seat booked",
+                            "Holding" => seat.IsHeldByCurrentUser ? "seat held-mine" : "seat holding",
+                            _         => $"seat available {seat.SeatType.ToLower()}"
+                        };
+                        var disabled  = seat.Status is "Booked" or "Holding" && !seat.IsHeldByCurrentUser;
+                        var title     = $"{seat.SeatRow}{seat.SeatNumber} ({seat.SeatType})";
+                        <button type="button"
+                                class="@cssClass"
+                                data-seat-id="@seat.SeatId"
+                                data-seat-label="@seat.SeatRow@(seat.SeatNumber)"
+                                data-seat-type="@seat.SeatType"
+                                data-price="@Model.PricePerSeat"
+                                title="@title"
+                                @(disabled ? "disabled" : "")
+                                onclick="toggleSeat(this)">
+                            @seat.SeatNumber
+                        </button>
+                    }
+                    <div class="row-label">@row.RowLabel</div>
+                </div>
+            }
+        </div>
+
+        <!-- Hidden inputs for selected seats (populated by JS) -->
+        <div id="selectedInputs"></div>
+
+        <!-- Summary bar -->
+        <div class="card border-0 shadow rounded-3 sticky-bottom-bar">
+            <div class="card-body py-3">
+                <div class="row align-items-center g-2">
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex flex-wrap gap-1" id="selectedLabels">
+                            <span class="text-muted small" id="noSeatMsg">Chưa chọn ghế nào.</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-3 text-md-center">
+                        <span class="text-muted small">Tổng tạm tính:</span><br />
+                        <span class="fw-bold fs-5 text-primary" id="totalPrice">0 ₫</span>
+                    </div>
+                    <div class="col-12 col-md-3 text-md-end">
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="continueBtn" disabled>
+                            Tiếp tục →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Legend swatches */
+    .seat-legend {
+        width: 22px; height: 22px; border-radius: 4px; border: 1.5px solid #ccc;
+    }
+    .seat-legend.available  { background: #d4edda; border-color: #28a745; }
+    .seat-legend.selected   { background: #0d6efd; border-color: #0a58ca; }
+    .seat-legend.holding    { background: #fff3cd; border-color: #ffc107; }
+    .seat-legend.booked     { background: #f8d7da; border-color: #dc3545; }
+    .seat-legend.vip        { background: #cfe2ff; border-color: #0d6efd; }
+    .seat-legend.couple     { background: #f8d7da; border-color: #d63384; }
+
+    /* Screen */
+    .screen-bar {
+        max-width: 480px;
+        background: linear-gradient(to bottom, #aaa, #ddd);
+        color: #444;
+        text-align: center;
+        font-size: .75rem;
+        font-weight: 600;
+        letter-spacing: 4px;
+        padding: 6px 0;
+        border-radius: 4px 4px 30px 30px;
+    }
+
+    /* Grid */
+    .seat-grid { max-width: 620px; margin: 0 auto; }
+    .seat-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        margin-bottom: 6px;
+    }
+    .row-label {
+        width: 22px; text-align: center;
+        font-weight: 600; font-size: .8rem; color: #666;
+    }
+
+    /* Seat buttons */
+    .seat {
+        width: 34px; height: 34px;
+        border: none; border-radius: 5px 5px 0 0;
+        font-size: .72rem; font-weight: 600;
+        cursor: pointer; transition: transform .1s, opacity .1s;
+        outline: none;
+    }
+    .seat:hover:not(:disabled) { transform: scale(1.15); }
+    .seat.available  { background: #d4edda; color: #155724; }
+    .seat.vip        { background: #cfe2ff; color: #084298; }
+    .seat.couple     { background: #f3d0e0; color: #842029; }
+    .seat.selected   { background: #0d6efd !important; color: #fff !important; }
+    .seat.holding    { background: #fff3cd; color: #856404; cursor: not-allowed; }
+    .seat.held-mine  { background: #0dcaf0; color: #fff; }   /* held by current user */
+    .seat.booked     { background: #f8d7da; color: #842029; cursor: not-allowed; opacity: .65; }
+    .seat:disabled   { cursor: not-allowed; }
+
+    /* Sticky summary */
+    .sticky-bottom-bar {
+        position: sticky; bottom: 0;
+        background: #fff; z-index: 100;
+        border-top: 2px solid #e9ecef !important;
+    }
+
+    @@media (max-width: 480px) {
+        .seat { width: 28px; height: 28px; font-size: .65rem; }
+        .seat-row { gap: 2px; }
+    }
+</style>
+
+@section Scripts {
+<script>
+    const pricePerSeat = @Model.PricePerSeat;
+    const selectedSeats = {}; // seatId → { label, type }
+
+    function toggleSeat(btn) {
+        if (btn.disabled) return;
+        const seatId    = btn.dataset.seatId;
+        const seatLabel = btn.dataset.seatLabel;
+        const seatType  = btn.dataset.seatType;
+
+        if (selectedSeats[seatId]) {
+            // Deselect
+            delete selectedSeats[seatId];
+            btn.classList.remove('selected');
+            // Restore original type class
+            btn.classList.add(seatType.toLowerCase() === 'vip' ? 'vip'
+                            : seatType.toLowerCase() === 'couple' ? 'couple'
+                            : 'available');
+        } else {
+            // Guard: max 8 seats
+            if (Object.keys(selectedSeats).length >= 8) {
+                alert('Chỉ được chọn tối đa 8 ghế mỗi lần.');
+                return;
+            }
+            selectedSeats[seatId] = { label: seatLabel, type: seatType };
+            btn.classList.remove('available', 'vip', 'couple');
+            btn.classList.add('selected');
+        }
+        updateSummary();
+    }
+
+    function updateSummary() {
+        const ids    = Object.keys(selectedSeats);
+        const count  = ids.length;
+        const total  = count * pricePerSeat;
+
+        // Hidden inputs
+        const container = document.getElementById('selectedInputs');
+        container.innerHTML = '';
+        ids.forEach(id => {
+            const inp = document.createElement('input');
+            inp.type  = 'hidden';
+            inp.name  = 'SelectedSeatIds';
+            inp.value = id;
+            container.appendChild(inp);
+        });
+
+        // Labels
+        const labelsDiv  = document.getElementById('selectedLabels');
+        const noSeatMsg  = document.getElementById('noSeatMsg');
+        const totalEl    = document.getElementById('totalPrice');
+        const continueBtn = document.getElementById('continueBtn');
+
+        labelsDiv.innerHTML = '';
+        if (count === 0) {
+            noSeatMsg.style.display = '';
+            labelsDiv.appendChild(noSeatMsg);
+            continueBtn.disabled = true;
+        } else {
+            noSeatMsg.style.display = 'none';
+            ids.forEach(id => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary';
+                badge.textContent = selectedSeats[id].label;
+                labelsDiv.appendChild(badge);
+            });
+            continueBtn.disabled = false;
+        }
+
+        totalEl.textContent = total.toLocaleString('vi-VN') + ' ₫';
+    }
+</script>
+}

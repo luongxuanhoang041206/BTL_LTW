@@ -1,0 +1,271 @@
+@model MovieBooking.DTOs.BookingConfirmViewModel
+@{
+    ViewData["Title"] = "Xác nhận đặt vé";
+    var expiresIso = Model.HoldExpiresAt.ToString("o");
+}
+
+<div class="container py-4" style="max-width: 780px;">
+    <h4 class="fw-bold mb-4">🎟️ Xác nhận đặt vé</h4>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Countdown -->
+    <div class="alert alert-warning d-flex align-items-center gap-3 mb-4" id="countdownAlert">
+        <span class="fs-4">⏳</span>
+        <div>
+            <strong>Thời gian giữ ghế còn lại:</strong>
+            <span id="countdownDisplay" class="fs-5 fw-bold text-danger ms-2">--:--</span>
+            <div class="small text-muted">Vui lòng xác nhận trước khi hết giờ.</div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- LEFT: booking summary -->
+        <div class="col-md-7">
+            <!-- Showtime info -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-primary text-white fw-semibold rounded-top-3">
+                    📽️ Thông tin suất chiếu
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted w-40">Phim</td>
+                                <td class="fw-bold">@Model.MovieTitle</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Ngày chiếu</td>
+                                <td>@Model.ShowDate.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Giờ chiếu</td>
+                                <td>@Model.StartTime.ToString("HH:mm")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Rạp</td>
+                                <td>@Model.CinemaName</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Phòng</td>
+                                <td>@Model.RoomName <span class="badge bg-secondary ms-1">@Model.RoomType</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Seats -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-light fw-semibold">
+                    💺 Ghế đã chọn (@Model.HeldSeats.Count ghế)
+                </div>
+                <div class="card-body pb-2">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        @foreach (var seat in Model.HeldSeats)
+                        {
+                            var badgeColor = seat.SeatType switch {
+                                "VIP"    => "bg-primary",
+                                "Couple" => "bg-danger",
+                                _        => "bg-success"
+                            };
+                            <span class="badge @badgeColor fs-6 px-3 py-2">
+                                @seat.SeatLabel
+                                <small class="opacity-75 ms-1">@seat.SeatType</small>
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Promo code -->
+            <div class="card border-0 shadow-sm rounded-3 mb-3">
+                <div class="card-header bg-light fw-semibold">🏷️ Mã giảm giá</div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <input type="text" id="promoInput" class="form-control text-uppercase"
+                               placeholder="Nhập mã (VD: GIAM20)"
+                               value="@Model.AppliedPromoCode"
+                               maxlength="30" />
+                        <button class="btn btn-outline-primary" type="button" id="applyPromoBtn">
+                            Áp dụng
+                        </button>
+                    </div>
+                    <div id="promoMsg" class="mt-2 small"></div>
+                    <input type="hidden" id="appliedPromoCode" value="@Model.AppliedPromoCode" />
+                    <input type="hidden" id="discountPercent"  value="@Model.DiscountPercent" />
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: order total + confirm -->
+        <div class="col-md-5">
+            <div class="card border-0 shadow rounded-3 sticky-top" style="top: 80px;">
+                <div class="card-header bg-primary text-white fw-semibold rounded-top-3">
+                    💳 Tổng đơn hàng
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">Số ghế</td>
+                                <td class="text-end fw-semibold">@Model.HeldSeats.Count ghế</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Đơn giá</td>
+                                <td class="text-end">@Model.PricePerSeat.ToString("N0") ₫</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Tạm tính</td>
+                                <td class="text-end" id="displaySubtotal">
+                                    @Model.SubTotal.ToString("N0") ₫
+                                </td>
+                            </tr>
+                            <tr id="discountRow" style="@(Model.DiscountPercent > 0 ? "" : "display:none")">
+                                <td class="text-muted text-success">
+                                    Giảm giá (<span id="displayDiscPct">@Model.DiscountPercent</span>%)
+                                </td>
+                                <td class="text-end text-success fw-semibold" id="displayDiscAmt">
+                                    -@Model.DiscountAmount.ToString("N0") ₫
+                                </td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="fw-bold fs-6 pt-2">Tổng cộng</td>
+                                <td class="text-end fw-bold fs-5 text-primary pt-2" id="displayTotal">
+                                    @Model.TotalAmount.ToString("N0") ₫
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card-footer bg-white border-0 pb-3 px-3">
+                    <form method="post" asp-action="Confirm" id="confirmForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="ShowtimeId" value="@Model.ShowtimeId" />
+                        <input type="hidden" name="PromoCode"  id="formPromoCode"
+                               value="@Model.AppliedPromoCode" />
+                        <button type="submit" class="btn btn-primary btn-lg w-100" id="confirmBtn">
+                            ✅ Xác nhận đặt vé
+                        </button>
+                    </form>
+                    <a asp-controller="Booking" asp-action="SelectSeat"
+                       asp-route-showtimeId="@Model.ShowtimeId"
+                       class="btn btn-outline-secondary w-100 mt-2">
+                        ← Chọn lại ghế
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    // ── Countdown timer ──────────────────────────────────────────────
+    const expiresAt   = new Date('@expiresIso');
+    const displayEl   = document.getElementById('countdownDisplay');
+    const alertEl     = document.getElementById('countdownAlert');
+    const confirmBtn  = document.getElementById('confirmBtn');
+
+    function tick() {
+        const remaining = Math.floor((expiresAt - Date.now()) / 1000);
+        if (remaining <= 0) {
+            displayEl.textContent = '00:00';
+            alertEl.classList.remove('alert-warning');
+            alertEl.classList.add('alert-danger');
+            confirmBtn.disabled = true;
+            alert('⏰ Thời gian giữ ghế đã hết! Bạn sẽ được chuyển về trang chọn ghế.');
+            window.location.href = '@Url.Action("SelectSeat", "Booking", new { showtimeId = Model.ShowtimeId })';
+            return;
+        }
+        const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+        const s = String(remaining % 60).padStart(2, '0');
+        displayEl.textContent = `${m}:${s}`;
+        if (remaining <= 60) {
+            displayEl.classList.add('text-danger');
+            alertEl.classList.add('alert-danger');
+            alertEl.classList.remove('alert-warning');
+        }
+        setTimeout(tick, 1000);
+    }
+    tick();
+
+    // ── Price recalculation ──────────────────────────────────────────
+    const pricePerSeat  = @Model.PricePerSeat;
+    const seatCount     = @Model.HeldSeats.Count;
+    const subTotal      = pricePerSeat * seatCount;
+
+    function recalc(discPct) {
+        const disc  = Math.round(subTotal * discPct / 100);
+        const total = subTotal - disc;
+
+        document.getElementById('displaySubtotal').textContent =
+            subTotal.toLocaleString('vi-VN') + ' ₫';
+        document.getElementById('displayDiscPct').textContent  = discPct;
+        document.getElementById('displayDiscAmt').textContent  =
+            '-' + disc.toLocaleString('vi-VN') + ' ₫';
+        document.getElementById('displayTotal').textContent    =
+            total.toLocaleString('vi-VN') + ' ₫';
+
+        document.getElementById('discountRow').style.display = discPct > 0 ? '' : 'none';
+    }
+    recalc(parseFloat(document.getElementById('discountPercent').value) || 0);
+
+    // ── Apply promo via AJAX ─────────────────────────────────────────
+    document.getElementById('applyPromoBtn').addEventListener('click', async function () {
+        const code    = document.getElementById('promoInput').value.trim().toUpperCase();
+        const msgEl   = document.getElementById('promoMsg');
+        const token   = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        if (!code) {
+            msgEl.innerHTML = '<span class="text-danger">Vui lòng nhập mã giảm giá.</span>';
+            return;
+        }
+
+        msgEl.innerHTML = '<span class="text-muted">Đang kiểm tra...</span>';
+
+        try {
+            const res  = await fetch('@Url.Action("ApplyPromo", "Booking")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type':             'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': token
+                },
+                body: 'promoCode=' + encodeURIComponent(code)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                msgEl.innerHTML =
+                    `<span class="text-success">✔ ${data.description ?? ''} — Giảm ${data.discountPercent}%</span>`;
+                document.getElementById('appliedPromoCode').value = data.code;
+                document.getElementById('formPromoCode').value    = data.code;
+                document.getElementById('discountPercent').value  = data.discountPercent;
+                recalc(data.discountPercent);
+            } else {
+                msgEl.innerHTML = `<span class="text-danger">${data.error}</span>`;
+                document.getElementById('appliedPromoCode').value = '';
+                document.getElementById('formPromoCode').value    = '';
+                document.getElementById('discountPercent').value  = 0;
+                recalc(0);
+            }
+        } catch {
+            msgEl.innerHTML = '<span class="text-danger">Lỗi kết nối. Vui lòng thử lại.</span>';
+        }
+    });
+
+    // Allow Enter key in promo input
+    document.getElementById('promoInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('applyPromoBtn').click(); }
+    });
+})();
+</script>
+}
