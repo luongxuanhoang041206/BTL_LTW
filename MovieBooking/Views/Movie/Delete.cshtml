@@ -1,0 +1,25 @@
+@model MovieBooking.Models.Movie
+
+@{
+    ViewData["Title"] = "Xóa phim";
+}
+
+<div class="container py-4">
+    <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">⚠️ Xác nhận xóa phim</h4>
+        </div>
+        <div class="card-body">
+            <p>Bạn có chắc chắn muốn xóa phim <strong>@Model.Title</strong> không?</p>
+            <div class="mb-3">
+                <img src="@Model.PosterUrl" alt="@Model.Title" class="img-thumbnail" style="max-width: 220px;" />
+            </div>
+            <form asp-action="Delete" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.MovieId" />
+                <button type="submit" class="btn btn-danger">Xóa</button>
+                <a asp-action="Index" class="btn btn-outline-secondary ms-2">Hủy</a>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,16 @@
+className='fixed top-0 left-0 z-50 w-full flex items-center justify-between px-6 md:px-16 1g:px-36 py-5'›
+@lassName='w-36 h-auto'/›
+className='max-md:hidden w-6 h-6 cursor-pointer'/>
+className='px-4 py-1 sm:px-7 sm:py-2 bg-primary hover:bg-primary-dull transition rounded-full font-medium cursor-pointer'>Login‹/button>
+className='flex items-center gap-8'>
+className='md:hidden absolute top-6 right-6 w-6 h-6 cursor-pointer'/>
+className='max-md: absolute max-md:top-0 max-md:left-0 max-md: font-medium max-md: text-1g z-50 flex flex-col md:flex-row items-center max-md: justify-center gap-8 min-md:px-8 py-3 max-md:h-screen min-md:rounded-full backdrop-blur bg-black/70 md:bg-white/10 md:border border-gray-300/20 overflow-hidden transition-[width] duration-300'›
+className='group flex items-center gap-2 text-sm text-gray-300'›
+className='relative flex items-center justify-between pt-20 pb-10'›
+className='flex justify-center mt-20'>
+className=' px-10
+py-3 text-sm bg-primary hover:bg-primary-dull transition
+rounded-md font-medium cursor-pointer'>Show more‹/button>
+className='px-4 py-2 text-xs bg-primary hover:bg-primary-dull transition rounded-full font-medium cursor-pointer'>Buy
+className='flex items-center justify-between mt-4 pb-3'>
+className='flex items-center gap-1 text-sm text-gray-400 mt-1 pr-1'>

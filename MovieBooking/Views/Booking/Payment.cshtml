@@ -1,0 +1,216 @@
+@model MovieBooking.DTOs.PaymentViewModel
+@{
+    ViewData["Title"] = "Thanh toán";
+}
+
+<div class="container py-4" style="max-width: 760px;">
+    <h4 class="fw-bold mb-4">💳 Thanh toán</h4>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model.HasPreviousFailure)
+    {
+        <div class="alert alert-warning">
+            ⚠️ Lần thanh toán trước không thành công. Vui lòng thử lại.
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- LEFT: booking summary -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-light fw-semibold">📋 Thông tin đặt vé</div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">Mã booking</td>
+                                <td class="fw-bold">#@Model.BookingId</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Phim</td>
+                                <td class="fw-semibold">@Model.MovieTitle</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Ngày chiếu</td>
+                                <td>@Model.ShowDate.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Giờ chiếu</td>
+                                <td>@Model.StartTime.ToString("HH:mm")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Rạp</td>
+                                <td>@Model.CinemaName</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Phòng</td>
+                                <td>@Model.RoomName</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Ghế</td>
+                                <td>
+                                    @foreach (var lbl in Model.SeatLabels)
+                                    {
+                                        <span class="badge bg-primary me-1">@lbl</span>
+                                    }
+                                </td>
+                            </tr>
+                            @if (!string.IsNullOrEmpty(Model.PromoCode))
+                            {
+                                <tr>
+                                    <td class="text-muted">Mã giảm giá</td>
+                                    <td>
+                                        <span class="badge bg-success">@Model.PromoCode</span>
+                                        <small class="text-success ms-1">-@Model.DiscountPercent%</small>
+                                    </td>
+                                </tr>
+                            }
+                            <tr class="border-top">
+                                <td class="fw-bold pt-2">Tổng tiền</td>
+                                <td class="fw-bold fs-5 text-primary pt-2">
+                                    @Model.TotalAmount.ToString("N0") ₫
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: payment method selection -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    🏦 Chọn phương thức thanh toán
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-action="ProcessPayment" id="paymentForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="BookingId" value="@Model.BookingId" />
+
+                        <!-- Payment methods -->
+                        <div class="d-flex flex-column gap-2 mb-4">
+                            <label class="payment-option" data-method="COD">
+                                <input type="radio" name="Method" value="COD" class="d-none" />
+                                <div class="d-flex align-items-center gap-3 p-3 border rounded-3 cursor-pointer">
+                                    <span class="fs-3">💵</span>
+                                    <div>
+                                        <div class="fw-semibold">Tiền mặt tại quầy (COD)</div>
+                                        <div class="small text-muted">Thanh toán khi nhận vé tại rạp</div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="payment-option" data-method="VNPay">
+                                <input type="radio" name="Method" value="VNPay" class="d-none" />
+                                <div class="d-flex align-items-center gap-3 p-3 border rounded-3 cursor-pointer">
+                                    <span class="fs-3">🏧</span>
+                                    <div>
+                                        <div class="fw-semibold">VNPay</div>
+                                        <div class="small text-muted">Thanh toán qua VNPay <span class="badge bg-warning text-dark">Demo</span></div>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="payment-option" data-method="Momo">
+                                <input type="radio" name="Method" value="Momo" class="d-none" />
+                                <div class="d-flex align-items-center gap-3 p-3 border rounded-3 cursor-pointer">
+                                    <span class="fs-3">📱</span>
+                                    <div>
+                                        <div class="fw-semibold">MoMo</div>
+                                        <div class="small text-muted">Ví điện tử MoMo <span class="badge bg-warning text-dark">Demo</span></div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div id="methodError" class="text-danger small mb-2" style="display:none;">
+                            Vui lòng chọn phương thức thanh toán.
+                        </div>
+
+                        <!-- Dev mode: simulate failure -->
+                        @if (System.Diagnostics.Debugger.IsAttached || true)
+                        {
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox"
+                                       name="SimulateFailure" value="true" id="simFail" />
+                                <label class="form-check-label text-muted small" for="simFail">
+                                    [Dev] Giả lập thanh toán thất bại
+                                </label>
+                            </div>
+                        }
+
+                        <button type="submit" class="btn btn-success btn-lg w-100 fw-bold" id="payBtn">
+                            💳 Thanh toán @Model.TotalAmount.ToString("N0") ₫
+                        </button>
+
+                        <a asp-controller="Booking" asp-action="History"
+                           class="btn btn-outline-secondary w-100 mt-2">
+                            Thanh toán sau
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .payment-option input[type="radio"]:checked + div {
+        border-color: #0d6efd !important;
+        background-color: #e8f0fe;
+    }
+    .payment-option > div {
+        transition: border-color .15s, background-color .15s;
+    }
+    .payment-option:hover > div {
+        border-color: #0d6efd !important;
+        cursor: pointer;
+    }
+</style>
+
+@section Scripts {
+<script>
+(function () {
+    // Highlight selected payment option
+    document.querySelectorAll('.payment-option').forEach(function (label) {
+        label.addEventListener('click', function () {
+            const method = this.dataset.method;
+            // Check the hidden radio
+            document.querySelectorAll('input[name="Method"]').forEach(r => r.checked = false);
+            this.querySelector('input[type="radio"]').checked = true;
+
+            // Remove active style from all
+            document.querySelectorAll('.payment-option > div').forEach(d => {
+                d.style.borderColor  = '';
+                d.style.backgroundColor = '';
+            });
+            // Apply active style
+            this.querySelector('.payment-option > div, div').style.borderColor = '#0d6efd';
+        });
+    });
+
+    // Guard: require method before submit
+    document.getElementById('paymentForm').addEventListener('submit', function (e) {
+        const chosen = document.querySelector('input[name="Method"]:checked');
+        if (!chosen) {
+            e.preventDefault();
+            document.getElementById('methodError').style.display = '';
+            return;
+        }
+        document.getElementById('methodError').style.display = 'none';
+        // Disable button to prevent double-submit
+        const btn = document.getElementById('payBtn');
+        btn.disabled = true;
+        btn.textContent = 'Đang xử lý...';
+    });
+})();
+</script>
+}

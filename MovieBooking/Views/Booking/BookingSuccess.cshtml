@@ -1,0 +1,132 @@
+@model MovieBooking.DTOs.BookingSuccessViewModel
+@{
+    ViewData["Title"] = "Đặt vé thành công";
+}
+
+<div class="container py-5" style="max-width: 640px;">
+
+    <!-- Success banner -->
+    <div class="text-center mb-5">
+        <div class="success-icon mb-3">✅</div>
+        <h2 class="fw-bold text-success mb-1">Đặt vé thành công!</h2>
+        <p class="text-muted">Cảm ơn bạn đã đặt vé. Vui lòng đến rạp đúng giờ.</p>
+    </div>
+
+    <!-- Ticket card -->
+    <div class="card border-0 shadow rounded-4 overflow-hidden mb-4">
+        <!-- Ticket header -->
+        <div class="card-header bg-primary text-white py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="small opacity-75">Mã đặt vé</div>
+                    <div class="fw-bold fs-5">#@Model.BookingId</div>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-success-subtle text-success border fs-6">✓ Đã thanh toán</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket body -->
+        <div class="row g-0">
+            @if (!string.IsNullOrEmpty(Model.PosterUrl))
+            {
+                <div class="col-3" style="background:#111;">
+                    <img src="@Model.PosterUrl"
+                         style="width:100%;height:100%;object-fit:cover;min-height:160px;"
+                         alt="@Model.MovieTitle" />
+                </div>
+            }
+            <div class="col p-4">
+                <h5 class="fw-bold mb-3">@Model.MovieTitle</h5>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="small text-muted">📅 Ngày chiếu</div>
+                        <div class="fw-semibold">@Model.ShowDate.ToString("dd/MM/yyyy")</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted">🕐 Giờ chiếu</div>
+                        <div class="fw-semibold">@Model.StartTime.ToString("HH:mm")</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted">🏛️ Rạp</div>
+                        <div class="fw-semibold">@Model.CinemaName</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted">🚪 Phòng</div>
+                        <div class="fw-semibold">@Model.RoomName</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="small text-muted">💺 Ghế</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            @foreach (var lbl in Model.SeatLabels)
+                            {
+                                <span class="badge bg-primary fs-6 px-3">@lbl</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Divider with dashed cut line -->
+        <div class="ticket-divider"></div>
+
+        <!-- Ticket footer -->
+        <div class="card-footer bg-white px-4 py-3">
+            <div class="row align-items-center">
+                <div class="col">
+                    <div class="small text-muted">Phương thức thanh toán</div>
+                    <div class="fw-semibold">@Model.PaymentMethod</div>
+                    <div class="small text-muted mt-1">@Model.PaidAt.ToString("HH:mm dd/MM/yyyy")</div>
+                </div>
+                <div class="col-auto text-end">
+                    <div class="small text-muted">Tổng tiền</div>
+                    <div class="fw-bold fs-4 text-primary">@Model.TotalAmount.ToString("N0") ₫</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <a asp-controller="Booking" asp-action="Detail" asp-route-bookingId="@Model.BookingId"
+           class="btn btn-outline-primary px-4">
+            📄 Xem chi tiết booking
+        </a>
+        <a asp-controller="Booking" asp-action="History"
+           class="btn btn-outline-secondary px-4">
+            📋 Lịch sử đặt vé
+        </a>
+        <a asp-controller="Movie" asp-action="Index"
+           class="btn btn-primary px-4">
+            🎬 Đặt vé tiếp
+        </a>
+    </div>
+</div>
+
+<style>
+    .success-icon { font-size: 5rem; animation: popIn .4s ease; }
+    @@keyframes popIn {
+        0%   { transform: scale(0); opacity: 0; }
+        70%  { transform: scale(1.15); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .ticket-divider {
+        border-top: 2px dashed #dee2e6;
+        position: relative;
+    }
+    .ticket-divider::before,
+    .ticket-divider::after {
+        content: '';
+        position: absolute;
+        top: -12px;
+        width: 22px; height: 22px;
+        background: #f8f9fa;
+        border: 2px solid #dee2e6;
+        border-radius: 50%;
+    }
+    .ticket-divider::before { left: -12px; }
+    .ticket-divider::after  { right: -12px; }
+</style>

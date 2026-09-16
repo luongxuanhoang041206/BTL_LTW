@@ -1,0 +1,40 @@
+## .NET build output
+[Bb]in/
+[Oo]bj/
+
+## Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## NuGet
+packages/
+*.nupkg
+*.snupkg
+.nuget/
+
+## Test results and coverage
+TestResults/
+coverage/
+*.trx
+
+## ASP.NET Core local files
+wwwroot/lib/
+logs/
+*.log
+
+## Local configuration and secrets
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Publish output
+publish/
+"}]} રહી 񟿿 аҭагылазаашьа  code: 400: Bad Request, body: {

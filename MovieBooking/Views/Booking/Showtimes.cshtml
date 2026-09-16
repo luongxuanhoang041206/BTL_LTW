@@ -1,0 +1,103 @@
+@model MovieBooking.DTOs.ShowtimeSelectionViewModel
+@{
+    ViewData["Title"] = $"Chọn suất chiếu — {Model.MovieTitle}";
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-controller="Movie" asp-action="Details" asp-route-id="@Model.MovieId"
+           class="btn btn-outline-secondary btn-sm">⬅️ Quay lại phim</a>
+    </div>
+
+    <!-- Movie header -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div class="row g-0 align-items-center">
+            <div class="col-auto" style="width:110px;">
+                @if (!string.IsNullOrEmpty(Model.PosterUrl))
+                {
+                    <img src="@Model.PosterUrl" class="img-fluid" style="height:155px;object-fit:cover;width:110px;" alt="@Model.MovieTitle" />
+                }
+            </div>
+            <div class="col p-3 ps-4">
+                <h4 class="fw-bold mb-1">@Model.MovieTitle</h4>
+                <span class="text-muted">⏱️ @Model.Duration phút</span>
+                @if (!string.IsNullOrEmpty(Model.AgeRating))
+                {
+                    <span class="badge bg-danger ms-2">@Model.AgeRating</span>
+                }
+                <p class="text-muted mt-2 mb-0">Chọn suất chiếu phù hợp với bạn bên dưới.</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.DayGroups.Any())
+    {
+        <div class="alert alert-info">
+            Hiện chưa có suất chiếu nào cho phim này. Vui lòng quay lại sau.
+        </div>
+    }
+    else
+    {
+        @foreach (var day in Model.DayGroups)
+        {
+            <div class="mb-4">
+                <h5 class="fw-semibold text-dark border-bottom pb-2 mb-3">
+                    📅 @day.ShowDate.ToString("dddd, dd/MM/yyyy")
+                </h5>
+                <div class="row g-3">
+                    @foreach (var st in day.Showtimes)
+                    {
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <a asp-controller="Booking" asp-action="SelectSeat"
+                               asp-route-showtimeId="@st.ShowtimeId"
+                               class="card h-100 border text-decoration-none text-dark showtime-card @(st.AvailableSeats == 0 ? "opacity-50 pe-none" : "")">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fs-5 fw-bold text-primary">
+                                            @st.StartTime.ToString("HH:mm")
+                                        </span>
+                                        <span class="badge @(st.RoomType == "IMAX" ? "bg-dark" : st.RoomType == "3D" ? "bg-primary" : "bg-secondary")">
+                                            @st.RoomType
+                                        </span>
+                                    </div>
+                                    <p class="mb-1 small text-muted">🏛️ @st.CinemaName</p>
+                                    <p class="mb-1 small text-muted">🚪 @st.RoomName</p>
+                                    <p class="mb-2 small text-muted">🕐 Đến @st.EndTime.ToString("HH:mm")</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-semibold text-success">
+                                            @st.Price.ToString("N0") ₫
+                                        </span>
+                                        @if (st.AvailableSeats == 0)
+                                        {
+                                            <span class="badge bg-danger">Hết ghế</span>
+                                        }
+                                        else if (st.AvailableSeats <= 5)
+                                        {
+                                            <span class="badge bg-warning text-dark">Còn @st.AvailableSeats ghế</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success-subtle text-success border">@st.AvailableSeats ghế</span>
+                                        }
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .showtime-card {
+        transition: transform .15s, box-shadow .15s;
+        cursor: pointer;
+    }
+    .showtime-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,.12) !important;
+        border-color: #0d6efd !important;
+    }
+</style>

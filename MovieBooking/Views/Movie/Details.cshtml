@@ -1,0 +1,84 @@
+@model MovieBooking.Models.Movie
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container py-4">
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">⬅️ Quay lại danh sách phim</a>
+    </div>
+
+    <div class="card shadow border-0 rounded-4 overflow-hidden">
+        <div class="row g-0">
+            <div class="col-md-4" style="background-color: #1a1a1a; min-height: 450px;">
+                @if (!string.IsNullOrEmpty(Model.PosterUrl))
+                {
+                    <img src="@Model.PosterUrl" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="@Model.Title" />
+                }
+                else
+                {
+                    <div class="d-flex align-items-center justify-content-center h-100 text-white-50">
+                        <span>Chưa có poster</span>
+                    </div>
+                }
+            </div>
+            <div class="col-md-8">
+                <div class="card-body p-4 p-lg-5">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge @(Model.Status == "Showing" || Model.Status == "NowShowing" ? "bg-success" : "bg-warning text-dark")">
+                            @(Model.Status == "Showing" || Model.Status == "NowShowing" ? "Đang Chiếu" : "Sắp Chiếu")
+                        </span>
+                        <span class="badge bg-secondary">@Model.AgeRating</span>
+                    </div>
+
+                    <h2 class="fw-bold text-dark mb-3">@Model.Title</h2>
+
+                    <div class="mb-3">
+                        <strong>Thể loại:</strong>
+                        @foreach (var genre in Model.Genres)
+                        {
+                            <span class="badge bg-primary-subtle text-primary border me-1">@genre.GenreName</span>
+                        }
+                    </div>
+
+                    <ul class="list-unstyled text-muted mb-4">
+                        <li class="mb-2">⏱️ <strong>Thời lượng:</strong> @Model.Duration phút</li>
+                        <li class="mb-2">🎬 <strong>Đạo diễn:</strong> @(Model.Director ?? "Chưa rõ")</li>
+                        <li class="mb-2">🎭 <strong>Diễn viên:</strong> @(Model.Actors ?? "Chưa rõ")</li>
+                        <li class="mb-2">🌐 <strong>Ngôn ngữ:</strong> @(Model.Language ?? "Chưa rõ")</li>
+                        <li class="mb-2">📅 <strong>Khởi chiếu:</strong> @(Model.ReleaseDate?.ToString("dd/MM/yyyy") ?? "Chưa có")</li>
+                    </ul>
+
+                    <div class="mb-4">
+                        <h5 class="fw-bold">Nội dung phim:</h5>
+                        <p class="text-secondary" style="line-height: 1.7;">
+                            @(Model.Description ?? "Chưa có tóm tắt cho phim này.")
+                        </p>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.TrailerUrl))
+                    {
+                        <div class="mb-4">
+                            <a href="@Model.TrailerUrl" target="_blank" class="btn btn-outline-danger">
+                                ▶️ Xem Trailer
+                            </a>
+                        </div>
+                    }
+
+                    <div class="pt-3 border-top d-flex gap-2 flex-wrap">
+                        <a asp-controller="Booking" asp-action="Showtimes"
+                           asp-route-movieId="@Model.MovieId"
+                           class="btn btn-primary btn-lg px-4">🎟️ Đặt Vé Ngay</a>
+
+                        @if (Context.Session.GetString("Role") == "Admin")
+                        {
+                            <a asp-area="Admin" asp-controller="Movie" asp-action="Edit" asp-route-id="@Model.MovieId" class="btn btn-warning btn-lg">Sửa</a>
+                            <a asp-area="Admin" asp-controller="Movie" asp-action="Delete" asp-route-id="@Model.MovieId" class="btn btn-danger btn-lg">Xóa</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
