@@ -16,6 +16,12 @@ public class MovieController : Controller
         _movieService = movieService;
     }
 
+    [HttpGet]
+    public IActionResult Index()
+    {
+        return RedirectToAction("Index", "Movie", new { area = "" });
+    }
+
     [MovieBooking.Filters.SessionAuthorizeRole("Admin")]
     [HttpGet]
     public async Task<IActionResult> Create()

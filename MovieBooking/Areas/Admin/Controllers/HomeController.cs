@@ -8,6 +8,6 @@ public class HomeController : Controller
     [MovieBooking.Filters.SessionAuthorizeRole("Admin")]
     public IActionResult Index()
     {
-        return Content($"Admin Page - UserId: {HttpContext.Session.GetInt32("UserId")}, Role: {HttpContext.Session.GetString("Role")}");
+        return RedirectToAction("Index", "Movie", new { area = "" });
     }
 }
