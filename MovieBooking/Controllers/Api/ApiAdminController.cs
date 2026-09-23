@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Bogus.Extensions.UnitedKingdom;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Data;
+using MovieBooking.DTOs;
 using MovieBooking.Models;
+using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Api;
 
@@ -15,10 +18,12 @@ namespace MovieBooking.Controllers.Api;
 public class ApiAdminController : ControllerBase
 {
     private readonly MovieBookingContext _context;
+    private readonly IMovieService _movieService;
 
-    public ApiAdminController(MovieBookingContext context)
+    public ApiAdminController(MovieBookingContext context, IMovieService movieService)
     {
         _context = context;
+        _movieService = movieService;
     }
 
     private bool IsAdmin()
@@ -103,6 +108,18 @@ public class ApiAdminController : ControllerBase
         public decimal Price { get; set; }
     }
 
+    public class UpdateShowRequest
+    {
+        public int? MovieId { get; set; }
+        public int? RoomId { get; set; } 
+
+        public string? Date {get; set;} = string.Empty;
+        public string? StartTime { get; set; } = string.Empty;
+
+        public decimal? Price { get; set; }
+        public string? Status {get; set; } 
+    }
+
     [HttpPost("shows")]
     public async Task<IActionResult> AddShow([FromBody] AddShowRequest request)
     {
@@ -154,6 +171,133 @@ public class ApiAdminController : ControllerBase
         return Ok(new { success = true, message = "Thêm suất chiếu thành công!", showtimeId = showtime.ShowtimeId });
     }
 
+    [HttpPatch("shows/{id}")]
+    public async Task<IActionResult> UpdateShow(
+        int id,
+        [FromBody] UpdateShowRequest request
+    )
+    {
+        var showtime = await _context.Showtimes
+            .Include(s => s.Movie)
+            .FirstOrDefaultAsync(s => s.ShowtimeId == id);
+
+        if(showtime == null)
+        {
+            return NotFound(new
+            {
+                message = "Không tìm thấy suất chiếu."
+            });
+        }
+
+         // Sua phong 
+        if(request.RoomId.HasValue)
+        {
+            var room = await _context.Rooms.FirstOrDefaultAsync
+            (r => r.RoomId == request.RoomId.Value);
+
+            if(room == null)
+            {
+                return BadRequest(new
+                {
+                        message = "Không tìm thấy phòng chiếu."
+                });
+            }
+
+            showtime.RoomId = room.RoomId;
+        } 
+
+        // Sua ngay 
+        if(!string.IsNullOrEmpty(request.Date))
+        {
+            if(!DateOnly.TryParse(request.Date, out var showDate))
+            {
+                return BadRequest(new
+                {
+                    message = "Ngày không hợp lệ."
+                });
+            }
+
+            showtime.ShowDate = showDate;
+        }
+
+        // Sua gio bat dau 
+        if(!string.IsNullOrEmpty(request.StartTime))
+        {
+            if(!TimeOnly.TryParse(request.StartTime, out var startTime))
+            {
+                return BadRequest(new
+                    {
+                        message = "Giờ không hợp lệ."
+                    });
+            }
+            showtime.StartTime = startTime;
+            // Tinh lai gio ket thuc 
+            showtime.EndTime = startTime.AddMinutes(showtime.Movie.Duration + 15);
+        }
+
+        // Sua gia 
+        if(request.Price.HasValue)
+        {
+            if(request.Price.Value <= 0)
+            {
+                return BadRequest(new
+                {
+                    message = "Giá vé phải lớn hơn 0."
+                });
+            }
+            showtime.Price = request.Price.Value;
+        }
+
+        if(!string.IsNullOrEmpty(request.Status))
+        {
+            showtime.Status = request.Status;
+        }
+
+        // luu DB 
+        await _context.SaveChangesAsync();
+        return Ok(new
+        {
+            success = true,
+            message = "Cập nhật suất chiếu thành công!"
+        });
+    }
+
+    [HttpDelete("shows/{id}")]
+    public async Task<IActionResult> DeleteShow(int id)
+    {
+        var showtime = await _context.Showtimes.FirstOrDefaultAsync(s => s.ShowtimeId == id);
+
+        if(showtime == null)
+        {
+             return NotFound(new
+            {
+                message = "Không tìm thấy suất chiếu."
+            });
+        }
+
+        // Check da booking chua 
+        var hasBooking = await _context.Bookings.AnyAsync(b => b.ShowtimeId == id);
+        
+        if(hasBooking)
+        {
+            return BadRequest(new
+            {
+                message = "Không thể xóa suất chiếu vì đã có người đặt vé."
+            });
+        }
+
+        // Xoa showTimeSeat truoc 
+        var showTimeSeat = await _context.ShowtimeSeats.Where(s => s.ShowtimeId == id).ToListAsync();
+        _context.Showtimes.Remove(showtime);
+        await _context.SaveChangesAsync();
+        
+        return Ok(new
+        {
+           success = true,
+           message =  "Xóa suất chiếu thành công!"
+        });
+    }
+
     [HttpGet("bookings")]
     public async Task<IActionResult> GetAllBookings()
     {
@@ -184,5 +328,60 @@ public class ApiAdminController : ControllerBase
             .ToListAsync();
 
         return Ok(bookings);
+    }
+
+    [HttpPost("movies")]
+    public async Task<IActionResult> CreateMovie([FromBody] MovieFormDto model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var movie = await _movieService.CreateMovieAsync(model);
+        return Ok(new
+        {
+            success = true,
+            message = "Tạo phim mới thành công!",
+            movieId = movie.MovieId,
+            title = movie.Title
+        });
+    }
+
+    [HttpPut("movies/{id}")]
+    public async Task<IActionResult> UpdateMovie(int id, [FromBody] MovieFormDto model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var success = await _movieService.UpdateMovieAsync(id, model);
+        if (!success)
+        {
+            return NotFound(new { message = "Không tìm thấy phim cần cập nhật." });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            message = "Cập nhật thông tin phim thành công!"
+        });
+    }
+
+    [HttpDelete("movies/{id}")]
+    public async Task<IActionResult> DeleteMovie(int id)
+    {
+        var success = await _movieService.DeleteMovieAsync(id);
+        if (!success)
+        {
+            return NotFound(new { message = "Không tìm thấy phim hoặc không thể xóa." });
+        }
+
+        return Ok(new
+        {
+            success = true,
+            message = "Xóa phim thành công!"
+        });
     }
 }
