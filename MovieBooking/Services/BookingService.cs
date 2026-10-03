@@ -156,6 +156,7 @@ public class BookingService : IBookingService
             RoomName     = showtime.Room.RoomName,
             RoomType     = showtime.Room.RoomType,
             PricePerSeat = showtime.Price,
+            PricePerSeatVip=Math.Round(showtime.Price*(showtime.VipMultiplier>0?showtime.VipMultiplier:1.2m),0),
             Rows         = rows
         };
     }
@@ -235,8 +236,9 @@ public class BookingService : IBookingService
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 1. Re-read và lock ShowtimeSeats
+            // 1. Re-read và lock ShowtimeSeats — Include Seat để lấy SeatType tính giá VIP
             var seats = await _context.ShowtimeSeats
+                .Include(ss => ss.Seat)
                 .Where(ss => showtimeSeatIds.Contains(ss.ShowtimeSeatId))
                 .ToListAsync();
 
@@ -271,13 +273,25 @@ public class BookingService : IBookingService
                     promotionId     = promo.PromotionId;
                     discountPercent = promo.DiscountPercent;
                 }
-                // Nếu promo không hợp lệ thì bỏ qua (không block booking)
             }
 
-            // 4. Tính tổng tiền
-            var totalAmount = CalculateTotal(showtime.Price, seats.Count, discountPercent);
+            // 4. Tính tổng tiền theo loại ghế (Thường / VIP)
+            decimal totalRaw = 0;
+            var vipMultiplier = showtime.VipMultiplier > 0 ? showtime.VipMultiplier : 1.2m;
 
-            // 5. Tạo Booking
+            foreach (var ss in seats)
+            {
+                var seatPrice = (ss.Seat?.SeatType == "VIP")
+                    ? showtime.Price * vipMultiplier
+                    : showtime.Price;
+                totalRaw += seatPrice;
+            }
+
+            // Áp dụng khuyến mãi nếu có
+            var totalAmount = discountPercent > 0
+                ? totalRaw * (1 - discountPercent / 100m)
+                : totalRaw;
+                        // 5. Tạo Booking
             var booking = new Booking
             {
                 UserId      = userId,
