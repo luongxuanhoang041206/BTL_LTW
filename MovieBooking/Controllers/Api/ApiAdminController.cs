@@ -106,6 +106,7 @@ public class ApiAdminController : ControllerBase
         public string Date { get; set; } = string.Empty; // yyyy-MM-dd
         public string StartTime { get; set; } = string.Empty; // HH:mm
         public decimal Price { get; set; }
+        public decimal? VipMultiplier { get; set; }
     }
 
     public class UpdateShowRequest
@@ -149,6 +150,7 @@ public class ApiAdminController : ControllerBase
             StartTime = startTime,
             EndTime = endTime,
             Price = request.Price > 0 ? request.Price : 75000,
+            VipMultiplier = (request.VipMultiplier.HasValue && request.VipMultiplier.Value > 0) ? request.VipMultiplier.Value : 1.2m,
             Status = "Active"
         };
 
