@@ -11,6 +11,7 @@ import { DashBoard } from "./pages/admin/DashBoard.jsx";
 import { AddShows } from "./pages/admin/AddShows.jsx";
 import { ListShows } from "./pages/admin/ListShows.jsx";
 import { ListBookings } from "./pages/admin/ListBookings.jsx";
+import { ManageMovies } from "./pages/admin/ManageMovies.jsx";
 import { ErrorPage } from "./components/ErrorPage.jsx";
 
 export const route = createBrowserRouter([
@@ -66,6 +67,10 @@ export const route = createBrowserRouter([
           {
             path: "add-shows",
             element: <AddShows />,
+          },
+          {
+            path: "movies",
+            element: <ManageMovies />,
           },
           {
             path: "list-shows",

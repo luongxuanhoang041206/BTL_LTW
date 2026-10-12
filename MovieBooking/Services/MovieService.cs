@@ -13,6 +13,7 @@ namespace MovieBooking.Services;
 public class MovieService : IMovieService
 {
     private readonly MovieBookingContext _context;
+    private static DateOnly VietnamToday => DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
 
     public MovieService(MovieBookingContext context)
     {
@@ -52,6 +53,7 @@ public class MovieService : IMovieService
         var query = _context.Movies
             .Include(m => m.Genres)
             .AsNoTracking()
+            .Where(m => !m.EndDate.HasValue || m.EndDate.Value >= VietnamToday)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -94,7 +96,8 @@ public class MovieService : IMovieService
     {
         return await _context.Movies
             .Include(m => m.Genres)
-            .Where(m => m.Status == "Showing" || m.Status == "NowShowing")
+            .Where(m => (m.Status == "Showing" || m.Status == "NowShowing") &&
+                        (!m.EndDate.HasValue || m.EndDate.Value >= VietnamToday))
             .AsNoTracking()
             .OrderByDescending(m => m.ReleaseDate)
             .ToListAsync();
@@ -104,7 +107,8 @@ public class MovieService : IMovieService
     {
         return await _context.Movies
             .Include(m => m.Genres)
-            .Where(m => m.Status == "Coming Soon" || m.Status == "ComingSoon")
+            .Where(m => (m.Status == "Coming Soon" || m.Status == "ComingSoon") &&
+                        (!m.EndDate.HasValue || m.EndDate.Value >= VietnamToday))
             .AsNoTracking()
             .OrderByDescending(m => m.ReleaseDate)
             .ToListAsync();
@@ -118,12 +122,21 @@ public class MovieService : IMovieService
             .ToListAsync();
     }
 
-    public async Task<Movie?> GetMovieByIdAsync(int id)
+    public async Task<Movie?> GetMovieByIdAsync(int id, bool includeExpired = false)
     {
         return await _context.Movies
             .Include(m => m.Genres)
             .Include(m => m.Reviews)
-            .FirstOrDefaultAsync(m => m.MovieId == id);
+            .FirstOrDefaultAsync(m => m.MovieId == id &&
+                (includeExpired || !m.EndDate.HasValue || m.EndDate.Value >= VietnamToday));
+    }
+
+    public Task<bool> MovieTitleExistsAsync(string title, int? exceptMovieId = null)
+    {
+        var normalizedTitle = title.Trim().ToLower();
+        return _context.Movies.AnyAsync(m =>
+            m.Title.Trim().ToLower() == normalizedTitle &&
+            (!exceptMovieId.HasValue || m.MovieId != exceptMovieId.Value));
     }
 
     public async Task<Movie> CreateMovieAsync(MovieFormDto dto)
@@ -203,6 +216,12 @@ public class MovieService : IMovieService
 
     public async Task<bool> DeleteMovieAsync(int id)
     {
+        if (await _context.Showtimes.AnyAsync(s => s.MovieId == id) ||
+            await _context.Reviews.AnyAsync(r => r.MovieId == id))
+        {
+            return false;
+        }
+
         var movie = await _context.Movies
             .Include(m => m.Genres)
             .FirstOrDefaultAsync(m => m.MovieId == id);
