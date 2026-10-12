@@ -105,10 +105,20 @@ CREATE TABLE Showtimes (
     StartTime       TIME NOT NULL,
     EndTime         TIME NOT NULL,
     Price           DECIMAL(10,2) NOT NULL,
+    VipMultiplier   DECIMAL(5,2) NOT NULL CONSTRAINT DF_Showtimes_VipMultiplier DEFAULT (1.20),
     Status          VARCHAR(20) NOT NULL DEFAULT 'Active' CHECK (Status IN ('Active','Cancelled','Finished')),
     FOREIGN KEY (MovieId) REFERENCES Movies(MovieId),
     FOREIGN KEY (RoomId) REFERENCES Rooms(RoomId)
 );
+GO
+
+-- Bổ sung cột cho database đã được tạo từ phiên bản schema cũ.
+IF COL_LENGTH('dbo.Showtimes', 'VipMultiplier') IS NULL
+BEGIN
+    ALTER TABLE dbo.Showtimes
+        ADD VipMultiplier DECIMAL(5,2) NOT NULL
+            CONSTRAINT DF_Showtimes_VipMultiplier DEFAULT (1.20);
+END;
 GO
 
 -- Trạng thái từng ghế theo từng suất chiếu (giải quyết bài toán chống trùng ghế)
