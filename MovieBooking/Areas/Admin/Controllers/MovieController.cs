@@ -41,6 +41,13 @@ public class MovieController : Controller
             return View("~/Views/Movie/Create.cshtml", model);
         }
 
+        if (await _movieService.MovieTitleExistsAsync(model.Title))
+        {
+            ModelState.AddModelError(nameof(model.Title), "Tên phim này đã tồn tại.");
+            ViewBag.Genres = await _movieService.GetAllGenresAsync();
+            return View("~/Views/Movie/Create.cshtml", model);
+        }
+
         var movie = await _movieService.CreateMovieAsync(model);
         TempData["Success"] = "Tạo phim mới thành công.";
         return RedirectToAction("Details", "Movie", new { area = "", id = movie.MovieId });
@@ -50,7 +57,7 @@ public class MovieController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var movie = await _movieService.GetMovieByIdAsync(id);
+        var movie = await _movieService.GetMovieByIdAsync(id, includeExpired: true);
         if (movie == null)
         {
             return NotFound();
@@ -89,6 +96,13 @@ public class MovieController : Controller
             return View("~/Views/Movie/Edit.cshtml", model);
         }
 
+        if (await _movieService.MovieTitleExistsAsync(model.Title, id))
+        {
+            ModelState.AddModelError(nameof(model.Title), "Tên phim này đã được sử dụng bởi phim khác.");
+            ViewBag.Genres = await _movieService.GetAllGenresAsync();
+            return View("~/Views/Movie/Edit.cshtml", model);
+        }
+
         if (!await _movieService.UpdateMovieAsync(id, model))
         {
             return NotFound();
@@ -102,7 +116,7 @@ public class MovieController : Controller
     [HttpGet]
     public async Task<IActionResult> Delete(int id)
     {
-        var movie = await _movieService.GetMovieByIdAsync(id);
+        var movie = await _movieService.GetMovieByIdAsync(id, includeExpired: true);
         return movie == null
             ? NotFound()
             : View("~/Views/Movie/Delete.cshtml", movie);
