@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { dummyShowsData } from "../../assets/assets";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
-import { CheckIcon, Trash2Icon, StarIcon } from "lucide-react";
+import { CheckIcon, Trash2Icon, PlusIcon } from "lucide-react";
 import { api } from "../../lib/api";
 import toast from "react-hot-toast";
 
@@ -15,6 +15,14 @@ export function AddShows() {
   const [vipMultiplier, setVipMultiplier] = useState("1.25");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showCreateMovie, setShowCreateMovie] = useState(false);
+  const [genres, setGenres] = useState([]);
+  const [isCreatingMovie, setIsCreatingMovie] = useState(false);
+  const [movieForm, setMovieForm] = useState({
+    title: "", description: "", duration: "", releaseDate: "", endDate: "",
+    posterUrl: "", trailerUrl: "", director: "", actors: "", language: "",
+    ageRating: "", status: "Coming Soon", genreIds: [],
+  });
 
   const fetchMovies = async () => {
     try {
@@ -31,6 +39,35 @@ export function AddShows() {
       setSelectedMovieId(dummyShowsData[0]._id || dummyShowsData[0].id);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateMovie = async (event) => {
+    event.preventDefault();
+    if (!movieForm.title.trim() || Number(movieForm.duration) < 1) {
+      return toast.error("Vui lòng nhập tên phim và thời lượng hợp lệ.");
+    }
+
+    setIsCreatingMovie(true);
+    try {
+      const result = await api.post("/api/admin/movies", {
+        ...movieForm,
+        title: movieForm.title.trim(),
+        duration: Number(movieForm.duration),
+        releaseDate: movieForm.releaseDate || null,
+        endDate: movieForm.endDate || null,
+      });
+      const created = await api.get(`/api/movies/${result.movieId}`);
+      setMovies((current) => [created, ...current.filter((movie) => Number(movie.id || movie._id) !== Number(created.id))]);
+      setSelectedMovieId(created.id);
+      setShowCreateMovie(false);
+      setDateTimeSelection({});
+      toast.success("Đã tạo phim. Phim đã được thêm vào danh sách chọn phim chiếu.");
+      setMovieForm({ title: "", description: "", duration: "", releaseDate: "", endDate: "", posterUrl: "", trailerUrl: "", director: "", actors: "", language: "", ageRating: "", status: "Coming Soon", genreIds: [] });
+    } catch (err) {
+      toast.error(err.message || "Không thể tạo phim.");
+    } finally {
+      setIsCreatingMovie(false);
     }
   };
 
@@ -101,6 +138,7 @@ export function AddShows() {
 
   useEffect(() => {
     fetchMovies();
+    api.get("/api/movies/genres").then(setGenres).catch(() => setGenres([]));
   }, []);
 
   if (loading) return <Loading />;
@@ -111,6 +149,33 @@ export function AddShows() {
 
       {/* Select Movie */}
       <p className="mt-8 text-lg font-bold text-white">1. Chọn Phim Chiếu</p>
+      <div className="flex flex-wrap gap-3 mt-3 mb-4">
+        <button type="button" onClick={() => setShowCreateMovie(false)} className={`px-4 py-2 rounded-lg text-sm font-semibold ${!showCreateMovie ? "bg-primary text-white" : "bg-gray-900 text-gray-300 border border-gray-700"}`}>
+          Chọn phim có sẵn
+        </button>
+        <button type="button" onClick={() => setShowCreateMovie(true)} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold ${showCreateMovie ? "bg-primary text-white" : "bg-gray-900 text-gray-300 border border-gray-700"}`}>
+          <PlusIcon className="w-4 h-4" /> Tạo phim mới
+        </button>
+      </div>
+
+      {showCreateMovie ? (
+        <form onSubmit={handleCreateMovie} className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl rounded-xl border border-gray-800 bg-gray-900/70 p-5">
+          <label className="text-sm text-gray-300">Tên phim *<input required maxLength={200} value={movieForm.title} onChange={(e) => setMovieForm({ ...movieForm, title: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Thời lượng (phút) *<input required type="number" min="1" max="500" value={movieForm.duration} onChange={(e) => setMovieForm({ ...movieForm, duration: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300 md:col-span-2">Mô tả<textarea rows={3} value={movieForm.description} onChange={(e) => setMovieForm({ ...movieForm, description: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">URL ảnh poster<input type="url" value={movieForm.posterUrl} onChange={(e) => setMovieForm({ ...movieForm, posterUrl: e.target.value })} placeholder="https://..." className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">URL trailer<input type="url" value={movieForm.trailerUrl} onChange={(e) => setMovieForm({ ...movieForm, trailerUrl: e.target.value })} placeholder="https://..." className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Đạo diễn<input value={movieForm.director} onChange={(e) => setMovieForm({ ...movieForm, director: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Diễn viên<input value={movieForm.actors} onChange={(e) => setMovieForm({ ...movieForm, actors: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Ngôn ngữ<input value={movieForm.language} onChange={(e) => setMovieForm({ ...movieForm, language: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Phân loại độ tuổi<input value={movieForm.ageRating} onChange={(e) => setMovieForm({ ...movieForm, ageRating: e.target.value })} placeholder="P, C13, C16, C18" className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Ngày khởi chiếu<input type="date" value={movieForm.releaseDate} onChange={(e) => setMovieForm({ ...movieForm, releaseDate: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Ngày kết thúc<input type="date" value={movieForm.endDate} onChange={(e) => setMovieForm({ ...movieForm, endDate: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white" /></label>
+          <label className="text-sm text-gray-300">Trạng thái<select value={movieForm.status} onChange={(e) => setMovieForm({ ...movieForm, status: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white"><option value="Coming Soon">Sắp chiếu</option><option value="Showing">Đang chiếu</option></select></label>
+          <fieldset className="md:col-span-2"><legend className="text-sm text-gray-300 mb-2">Thể loại</legend><div className="flex flex-wrap gap-3">{genres.map((genre) => <label key={genre.id} className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={movieForm.genreIds.includes(genre.id)} onChange={(e) => setMovieForm({ ...movieForm, genreIds: e.target.checked ? [...movieForm.genreIds, genre.id] : movieForm.genreIds.filter((id) => id !== genre.id) })} />{genre.name}</label>)}</div></fieldset>
+          <div className="md:col-span-2 flex gap-3"><button disabled={isCreatingMovie} className="rounded-lg bg-primary px-5 py-2 font-semibold text-white disabled:opacity-50">{isCreatingMovie ? "Đang tạo phim..." : "Tạo phim và thêm vào danh sách"}</button><button type="button" onClick={() => setShowCreateMovie(false)} className="rounded-lg border border-gray-700 px-5 py-2 text-gray-300">Hủy</button></div>
+        </form>
+      ) : (
       <div className="overflow-x-auto pb-4 mt-3">
         <div className="flex gap-4 w-max">
           {movies.map((movie) => {
@@ -152,7 +217,9 @@ export function AddShows() {
           })}
         </div>
       </div>
+      )}
 
+      {!showCreateMovie && <>
       {/* 2. Thiết lập giá vé thường & Hệ số VIP */}
       <div className="mt-8">
         <p className="text-lg font-bold text-white mb-3">2. Thiết Lập Giá Vé</p>
@@ -262,6 +329,7 @@ export function AddShows() {
           {isSubmitting ? "Đang lưu suất chiếu..." : "Xác Nhận Tạo Suất Chiếu"}
         </button>
       </div>
+      </>}
     </>
   );
 }
