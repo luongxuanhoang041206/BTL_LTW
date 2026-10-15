@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 using System;
+=======
+﻿using System;
+>>>>>>> main
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Models;
@@ -42,11 +46,27 @@ public partial class MovieBookingContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+<<<<<<< HEAD
+=======
+    public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
+
+
+>>>>>>> main
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
         {
+<<<<<<< HEAD
             optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=MovieBookingDB;Trusted_Connection=True;TrustServerCertificate=True");
+=======
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .Build();
+
+            optionsBuilder.UseSqlServer(config.GetConnectionString("DefaultConnection"));
+>>>>>>> main
         }
     }
 
@@ -330,6 +350,16 @@ public partial class MovieBookingContext : DbContext
             entity.Property(e => e.Status).HasDefaultValue(true);
         });
 
+<<<<<<< HEAD
+=======
+        modelBuilder.Entity<BankTransaction>(entity =>
+        {
+            entity.HasIndex(x => x.ProviderTransactionId).IsUnique();
+            entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.Result).HasMaxLength(50);
+        });
+
+>>>>>>> main
         OnModelCreatingPartial(modelBuilder);
     }
 

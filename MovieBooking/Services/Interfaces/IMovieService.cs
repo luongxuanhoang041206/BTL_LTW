@@ -15,9 +15,13 @@ public interface IMovieService
 
     Task<IEnumerable<Genre>> GetAllGenresAsync();
 
+<<<<<<< HEAD
     Task<Movie?> GetMovieByIdAsync(int id, bool includeExpired = false);
 
     Task<bool> MovieTitleExistsAsync(string title, int? exceptMovieId = null);
+=======
+    Task<Movie?> GetMovieByIdAsync(int id);
+>>>>>>> main
 
     Task<Movie> CreateMovieAsync(MovieFormDto dto);
 

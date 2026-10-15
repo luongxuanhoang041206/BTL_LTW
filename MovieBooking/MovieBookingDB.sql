@@ -105,13 +105,17 @@ CREATE TABLE Showtimes (
     StartTime       TIME NOT NULL,
     EndTime         TIME NOT NULL,
     Price           DECIMAL(10,2) NOT NULL,
+<<<<<<< HEAD
     VipMultiplier   DECIMAL(5,2) NOT NULL CONSTRAINT DF_Showtimes_VipMultiplier DEFAULT (1.20),
+=======
+>>>>>>> main
     Status          VARCHAR(20) NOT NULL DEFAULT 'Active' CHECK (Status IN ('Active','Cancelled','Finished')),
     FOREIGN KEY (MovieId) REFERENCES Movies(MovieId),
     FOREIGN KEY (RoomId) REFERENCES Rooms(RoomId)
 );
 GO
 
+<<<<<<< HEAD
 -- Bổ sung cột cho database đã được tạo từ phiên bản schema cũ.
 IF COL_LENGTH('dbo.Showtimes', 'VipMultiplier') IS NULL
 BEGIN
@@ -121,6 +125,8 @@ BEGIN
 END;
 GO
 
+=======
+>>>>>>> main
 -- Trạng thái từng ghế theo từng suất chiếu (giải quyết bài toán chống trùng ghế)
 CREATE TABLE ShowtimeSeats (
     ShowtimeSeatId  INT IDENTITY(1,1) PRIMARY KEY,
@@ -208,10 +214,33 @@ CREATE TABLE Reviews (
 );
 GO
 
+<<<<<<< HEAD
+=======
+CREATE TABLE BankTransactions (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    ProviderTransactionId BIGINT NOT NULL,
+    ReferenceCode NVARCHAR(100) NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    Content NVARCHAR(500) NULL,
+    PaymentId INT NULL,
+    Result NVARCHAR(50) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL
+);
+
+CREATE UNIQUE INDEX IX_BankTransactions_ProviderTransactionId
+ON BankTransactions (ProviderTransactionId);
+
+GO
+
+>>>>>>> main
 -- =========================================================
 -- INDEX gợi ý (tối ưu truy vấn hay dùng)
 -- =========================================================
 CREATE INDEX IX_Showtimes_MovieId_ShowDate ON Showtimes(MovieId, ShowDate);
 CREATE INDEX IX_ShowtimeSeats_ShowtimeId ON ShowtimeSeats(ShowtimeId);
 CREATE INDEX IX_Bookings_UserId ON Bookings(UserId);
+<<<<<<< HEAD
 GO
+=======
+GO
+>>>>>>> main
