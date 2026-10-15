@@ -14,8 +14,6 @@ namespace MovieBooking.Controllers;
 public class BookingController : Controller
 {
     private readonly IBookingService _bookingService;
-    private readonly IPaymentService _paymentService;
-
     // Session keys
     private const string SessionHeldSeatIds  = "HeldSeatIds";      // JSON list<int> ShowtimeSeatId
     private const string SessionHeldShowtime = "HeldShowtimeId";   // int
@@ -24,9 +22,7 @@ public class BookingController : Controller
 
     public BookingController(IBookingService bookingService, IPaymentService paymentService)
     {
-        _bookingService = bookingService;
-        _paymentService = paymentService;
-    }
+        _bookingService = bookingService;    }
 
     private int GetCurrentUserId() => HttpContext.Session.GetInt32("UserId")!.Value;
 
@@ -280,7 +276,7 @@ public class BookingController : Controller
         }
 
         ClearHoldSession();
-        return RedirectToAction(nameof(Payment), new { bookingId = bookingId!.Value });
+        return RedirectToAction("Payment", "Payment",  new { bookingId = bookingId!.Value }); // tro sang controller Payment
     }
 
     // -----------------------------------------------------------------------
@@ -288,48 +284,14 @@ public class BookingController : Controller
     // GET /Booking/Payment/{bookingId}
     // -----------------------------------------------------------------------
 
-    public async Task<IActionResult> Payment(int bookingId)
-    {
-        var userId = GetCurrentUserId();
-        var vm = await _bookingService.GetPaymentViewModelAsync(bookingId, userId);
-
-        if (vm == null)
-        {
-            TempData["Error"] = "Booking không hợp lệ hoặc đã được xử lý.";
-            return RedirectToAction(nameof(History));
-        }
-
-        return View(vm);
-    }
+    //Da tach controller rieng
 
     // -----------------------------------------------------------------------
     // PROCESS PAYMENT — POST
     // POST /Booking/ProcessPayment
     // -----------------------------------------------------------------------
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ProcessPayment(PaymentRequest request)
-    {
-        if (!ModelState.IsValid)
-        {
-            TempData["Error"] = "Vui lòng chọn phương thức thanh toán.";
-            return RedirectToAction(nameof(Payment), new { bookingId = request.BookingId });
-        }
-
-        var userId = GetCurrentUserId();
-        var (success, _, error) = await _paymentService.ProcessPaymentAsync(
-            request.BookingId, userId, request.Method, request.SimulateFailure);
-
-        if (!success)
-        {
-            TempData["Error"] = error ?? "Thanh toán thất bại. Vui lòng thử lại.";
-            return RedirectToAction(nameof(Payment), new { bookingId = request.BookingId });
-        }
-
-        TempData["Success"] = "Đặt vé thành công!";
-        return RedirectToAction(nameof(BookingSuccess), new { bookingId = request.BookingId });
-    }
+    //Da tach controller rieng
 
     // -----------------------------------------------------------------------
     // SUCCESS

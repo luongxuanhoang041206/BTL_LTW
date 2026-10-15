@@ -42,9 +42,22 @@ public partial class MovieBookingContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=MovieBookingDB;Trusted_Connection=True;TrustServerCertificate=True");
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .Build();
+
+            optionsBuilder.UseSqlServer(config.GetConnectionString("DefaultConnection"));
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -324,6 +337,13 @@ public partial class MovieBookingContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue("Customer");
             entity.Property(e => e.Status).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<BankTransaction>(entity =>
+        {
+            entity.HasIndex(x => x.ProviderTransactionId).IsUnique();
+            entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.Result).HasMaxLength(50);
         });
 
         OnModelCreatingPartial(modelBuilder);

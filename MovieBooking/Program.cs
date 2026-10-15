@@ -5,6 +5,10 @@ using MovieBooking.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var currentConn = builder.Configuration.GetConnectionString("DefaultConnection");
+Console.WriteLine($"CONN STRING: {currentConn}");
+
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
