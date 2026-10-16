@@ -14,7 +14,6 @@ namespace MovieBooking.Controllers;
 public class BookingController : Controller
 {
     private readonly IBookingService _bookingService;
-    private readonly IPaymentService _paymentService;
     private readonly IFoodService _foodService;
     private readonly MovieBooking.Data.MovieBookingContext _context;
 
@@ -26,12 +25,10 @@ public class BookingController : Controller
 
     public BookingController(
         IBookingService bookingService,
-        IPaymentService paymentService,
         IFoodService foodService,
         MovieBooking.Data.MovieBookingContext context)
     {
         _bookingService = bookingService;
-        _paymentService = paymentService;
         _foodService = foodService;
         _context = context;
     }
@@ -170,7 +167,9 @@ public class BookingController : Controller
                         ShowtimeSeatId = seat.ShowtimeSeatId,
                         SeatLabel      = $"{seat.SeatRow}{seat.SeatNumber}",
                         SeatType       = seat.SeatType,
-                        Price          = seatMap.PricePerSeat
+                        Price          = seat.SeatType == "VIP"
+                            ? seatMap.PricePerSeatVip
+                            : seatMap.PricePerSeat
                     });
                 }
             }
@@ -324,56 +323,13 @@ public class BookingController : Controller
         }
 
         ClearHoldSession();
-        return RedirectToAction(nameof(Payment), new { bookingId = bookingId!.Value });
+        return RedirectToAction("Payment", "Payment", new { bookingId = bookingId!.Value });
     }
 
     // -----------------------------------------------------------------------
     // PAYMENT — GET
     // GET /Booking/Payment/{bookingId}
     // -----------------------------------------------------------------------
-
-    public async Task<IActionResult> Payment(int bookingId)
-    {
-        var userId = GetCurrentUserId();
-        var vm = await _bookingService.GetPaymentViewModelAsync(bookingId, userId);
-
-        if (vm == null)
-        {
-            TempData["Error"] = "Booking không hợp lệ hoặc đã được xử lý.";
-            return RedirectToAction(nameof(History));
-        }
-
-        return View(vm);
-    }
-
-    // -----------------------------------------------------------------------
-    // PROCESS PAYMENT — POST
-    // POST /Booking/ProcessPayment
-    // -----------------------------------------------------------------------
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ProcessPayment(PaymentRequest request)
-    {
-        if (!ModelState.IsValid)
-        {
-            TempData["Error"] = "Vui lòng chọn phương thức thanh toán.";
-            return RedirectToAction(nameof(Payment), new { bookingId = request.BookingId });
-        }
-
-        var userId = GetCurrentUserId();
-        var (success, _, error) = await _paymentService.ProcessPaymentAsync(
-            request.BookingId, userId, request.Method, request.SimulateFailure);
-
-        if (!success)
-        {
-            TempData["Error"] = error ?? "Thanh toán thất bại. Vui lòng thử lại.";
-            return RedirectToAction(nameof(Payment), new { bookingId = request.BookingId });
-        }
-
-        TempData["Success"] = "Đặt vé thành công!";
-        return RedirectToAction(nameof(BookingSuccess), new { bookingId = request.BookingId });
-    }
 
     // -----------------------------------------------------------------------
     // SUCCESS

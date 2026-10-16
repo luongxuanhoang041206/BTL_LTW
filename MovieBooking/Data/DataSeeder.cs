@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Bogus;
 using MovieBooking.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MovieBooking.Data;
 
@@ -15,6 +16,8 @@ public static class DataSeeder
         {
             SeedFoodAndCombos(context);
         }
+
+        // (removed duplicate quick-initialization) The main seeding below will create Cinemas/Rooms/Seats/Showtimes
 
         // Kiểm tra nếu đã có dữ liệu phim/user thì không seed lại phần core
         if (context.Users.Any() || context.Movies.Any())
@@ -36,6 +39,53 @@ public static class DataSeeder
         };
         context.Genres.AddRange(genres);
         context.SaveChanges();
+
+        // 6. Optionally seed a demo pending booking (only when necessary). We'll create a Pending booking
+        // that holds a seat but does NOT create a payment record to avoid faking transactions.
+        if (!context.Bookings.Any())
+        {
+            var customer = context.Users.FirstOrDefault(u => u.Role == "Customer");
+            var showtime = context.Showtimes.Include(s => s.Room).FirstOrDefault(s => s.Status == "Active");
+
+            if (customer != null && showtime != null)
+            {
+                var availableShowtimeSeat = context.ShowtimeSeats
+                    .Where(ss => ss.ShowtimeId == showtime.ShowtimeId && ss.Status == "Available")
+                    .FirstOrDefault();
+
+                if (availableShowtimeSeat != null)
+                {
+                    var booking = new Booking
+                    {
+                        UserId = customer.UserId,
+                        ShowtimeId = showtime.ShowtimeId,
+                        BookingDate = DateTime.Now,
+                        Status = "Pending",
+                        TotalAmount = showtime.Price,
+                    };
+                    context.Bookings.Add(booking);
+                    context.SaveChanges();
+
+                    // create BookingDetail
+                    var bookingDetail = new BookingDetail
+                    {
+                        BookingId = booking.BookingId,
+                        ShowtimeSeatId = availableShowtimeSeat.ShowtimeSeatId,
+                        Price = showtime.Price
+                    };
+                    context.BookingDetails.Add(bookingDetail);
+
+                    // mark seat as Holding (not Booked) and lock to the user for a short time
+                    availableShowtimeSeat.Status = "Holding";
+                    availableShowtimeSeat.LockedByUserId = customer.UserId;
+                    availableShowtimeSeat.HoldExpiresAt = DateTime.Now.AddMinutes(30);
+                    context.ShowtimeSeats.Update(availableShowtimeSeat);
+
+                    context.SaveChanges();
+                    // Do NOT create Payment here to avoid inserting fake paid transactions.
+                }
+            }
+        }
 
         // 2. Seed Users
         var users = new List<User>

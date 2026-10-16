@@ -196,7 +196,6 @@ public class ApiBookingController : ControllerBase
             message = "Đặt vé và thanh toán thành công!"
         });
     }
-
     [HttpGet("details/{bookingId}")]
     public async Task<IActionResult> GetBookingDetails(int bookingId)
     {

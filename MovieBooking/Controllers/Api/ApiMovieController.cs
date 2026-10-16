@@ -1,6 +1,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using MovieBooking.Data;
+using Microsoft.EntityFrameworkCore;
 using MovieBooking.Models;
 using MovieBooking.Services.Interfaces;
 
@@ -12,11 +14,13 @@ public class ApiMovieController : ControllerBase
 {
     private readonly IMovieService _movieService;
     private readonly IBookingService _bookingService;
+    private readonly MovieBookingContext _context;
 
-    public ApiMovieController(IMovieService movieService, IBookingService bookingService)
+    public ApiMovieController(IMovieService movieService, IBookingService bookingService, MovieBookingContext context)
     {
         _movieService = movieService;
         _bookingService = bookingService;
+        _context = context;
     }
 
     private static object MapMovie(Movie m) => new
@@ -81,15 +85,42 @@ public class ApiMovieController : ControllerBase
         return Ok(MapMovie(movie));
     }
 
-    [HttpGet("{id}/showtimes")]
-    public async Task<IActionResult> GetShowtimes(int id)
+    [HttpGet("{id}/cinemas")]
+    public async Task<IActionResult> GetCinemasForMovie(int id)
     {
-        var selection = await _bookingService.GetShowtimeSelectionAsync(id);
+        var cinemas = await _bookingService.GetCinemasForMovieAsync(id);
+        return Ok(cinemas);
+    }
+
+    [HttpGet("{id}/showtimes")]
+    public async Task<IActionResult> GetShowtimes(int id, [FromQuery] int? cinemaId, [FromQuery] DateOnly? date, [FromQuery] string? city, [FromQuery] string? roomType)
+    {
+        var selection = await _bookingService.GetShowtimeSelectionAsync(id, cinemaId, date, city, roomType);
         if (selection == null)
         {
             return NotFound(new { message = "Không tìm thấy lịch chiếu cho phim này." });
         }
 
         return Ok(selection);
+    }
+
+    [HttpGet("{id}/showtimes/dates")]
+    public async Task<IActionResult> GetShowtimeDates(int id)
+    {
+        var movieExists = await _context.Movies.AsNoTracking().AnyAsync(m => m.MovieId == id);
+        if (!movieExists) return NotFound(new { message = "Không tìm thấy phim." });
+
+        var now = DateTime.Now;
+        var today = DateOnly.FromDateTime(now);
+        var currentTime = TimeOnly.FromDateTime(now);
+        var dates = await _context.Showtimes.AsNoTracking()
+            .Where(s => s.MovieId == id && s.Status == "Active"
+                && (s.ShowDate > today || (s.ShowDate == today && s.EndTime > currentTime)))
+            .Select(s => s.ShowDate)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToListAsync();
+
+        return Ok(new { movieId = id, dates = dates.Select(d => new { date = d.ToString("yyyy-MM-dd"), hasShowtimes = true }) });
     }
 }

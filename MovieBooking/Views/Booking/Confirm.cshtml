@@ -242,9 +242,7 @@
     tick();
 
     // ── Price recalculation ──────────────────────────────────────────
-    const pricePerSeat  = @Model.PricePerSeat;
-    const seatCount     = @Model.HeldSeats.Count;
-    const seatSubTotal  = pricePerSeat * seatCount;
+    const seatSubTotal  = @Model.HeldSeats.Sum(seat => seat.Price);
 
     function getCombosTotal() {
         let sum = 0;

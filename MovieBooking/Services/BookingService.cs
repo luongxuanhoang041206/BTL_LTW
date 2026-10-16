@@ -24,7 +24,7 @@ public class BookingService : IBookingService
     // SHOWTIME SELECTION
     // -----------------------------------------------------------------------
 
-    public async Task<ShowtimeSelectionViewModel?> GetShowtimeSelectionAsync(int movieId)
+    public async Task<ShowtimeSelectionViewModel?> GetShowtimeSelectionAsync(int movieId, int? cinemaId = null, DateOnly? date = null, string? city = null, string? roomType = null)
     {
         var movie = await _context.Movies
             .AsNoTracking()
@@ -32,17 +32,40 @@ public class BookingService : IBookingService
 
         if (movie == null) return null;
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var now = DateTime.Now;
+        var today = DateOnly.FromDateTime(now);
+        var currentTime = TimeOnly.FromDateTime(now);
 
-        var showtimes = await _context.Showtimes
+        var roomTypes = await _context.Showtimes.AsNoTracking()
+            .Where(s => s.MovieId == movieId && s.Status == "Active"
+                && (s.ShowDate > today || (s.ShowDate == today && s.EndTime > currentTime)))
+            .Select(s => s.Room.RoomType)
+            .Distinct()
+            .OrderBy(type => type)
+            .ToListAsync();
+
+        var query = _context.Showtimes
             .Include(s => s.Room)
                 .ThenInclude(r => r.Cinema)
             .Include(s => s.ShowtimeSeats)
             .Where(s => s.MovieId == movieId
-                     && s.ShowDate >= today
-                     && s.Status == "Active")
+                       && (s.ShowDate > today || (s.ShowDate == today && s.EndTime > currentTime))
+                     && s.Status == "Active");
+
+        // Lọc theo rạp nếu được chỉ định
+        if (cinemaId.HasValue)
+        {
+            query = query.Where(s => s.Room.CinemaId == cinemaId.Value);
+        }
+
+        if (date.HasValue) query = query.Where(s => s.ShowDate == date.Value);
+        if (!string.IsNullOrWhiteSpace(city)) query = query.Where(s => s.Room.Cinema.City == city);
+        if (!string.IsNullOrWhiteSpace(roomType)) query = query.Where(s => s.Room.RoomType == roomType);
+
+        var showtimes = await query
             .AsNoTracking()
             .OrderBy(s => s.ShowDate)
+            .ThenBy(s => s.Room.Cinema.Name)
             .ThenBy(s => s.StartTime)
             .ToListAsync();
 
@@ -54,13 +77,18 @@ public class BookingService : IBookingService
                 Showtimes = g.Select(s => new ShowtimeItemViewModel
                 {
                     ShowtimeId    = s.ShowtimeId,
+                      RoomId        = s.RoomId,
+                      CinemaId      = s.Room.CinemaId,
                     StartTime     = s.StartTime,
                     EndTime       = s.EndTime,
                     CinemaName    = s.Room.Cinema.Name,
+                      CinemaAddress = s.Room.Cinema.Address ?? string.Empty,
+                      City          = s.Room.Cinema.City ?? string.Empty,
                     RoomName      = s.Room.RoomName,
                     RoomType      = s.Room.RoomType,
                     Price         = s.Price,
-                    AvailableSeats = s.ShowtimeSeats.Count(ss => ss.Status == "Available")
+                      AvailableSeats = s.ShowtimeSeats.Count(ss => ss.Status == "Available"
+                          || (ss.Status == "Holding" && ss.HoldExpiresAt != null && ss.HoldExpiresAt < now))
                 }).ToList()
             })
             .ToList();
@@ -72,8 +100,37 @@ public class BookingService : IBookingService
             PosterUrl  = movie.PosterUrl,
             Duration   = movie.Duration,
             AgeRating  = movie.AgeRating,
+            RoomTypes  = roomTypes,
             DayGroups  = dayGroups
         };
+    }
+
+    public async Task<List<CinemaItemViewModel>> GetCinemasForMovieAsync(int movieId)
+    {
+        var now = DateTime.Now;
+        var today = DateOnly.FromDateTime(now);
+        var currentTime = TimeOnly.FromDateTime(now);
+
+        var cinemas = await _context.Showtimes
+            .Include(s => s.Room)
+                .ThenInclude(r => r.Cinema)
+            .Where(s => s.MovieId == movieId
+                       && (s.ShowDate > today || (s.ShowDate == today && s.EndTime > currentTime))
+                     && s.Status == "Active")
+            .GroupBy(s => s.Room.Cinema)
+            .Select(g => new CinemaItemViewModel
+            {
+                CinemaId = g.Key.CinemaId,
+                Name = g.Key.Name,
+                Address = g.Key.Address ?? string.Empty,
+                  City = g.Key.City ?? string.Empty,
+                ShowtimeCount = g.Count()
+            })
+            .OrderBy(c => c.Name)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return cinemas;
     }
 
     // -----------------------------------------------------------------------
@@ -154,9 +211,9 @@ public class BookingService : IBookingService
             EndTime      = showtime.EndTime,
             CinemaName   = showtime.Room.Cinema.Name,
             RoomName     = showtime.Room.RoomName,
-            RoomType     = showtime.Room.RoomType,
+            RoomType      = showtime.Room.RoomType,
             PricePerSeat = showtime.Price,
-            PricePerSeatVip=Math.Round(showtime.Price*(showtime.VipMultiplier>0?showtime.VipMultiplier:1.2m),0),
+            PricePerSeatVip = Math.Round(showtime.Price * (showtime.VipMultiplier > 0 ? showtime.VipMultiplier : 1.2m), 0),
             Rows         = rows
         };
     }
@@ -282,16 +339,16 @@ public class BookingService : IBookingService
             foreach (var ss in seats)
             {
                 var seatPrice = (ss.Seat?.SeatType == "VIP")
-                    ? showtime.Price * vipMultiplier
+                    ? Math.Round(showtime.Price * vipMultiplier, 0)
                     : showtime.Price;
                 totalRaw += seatPrice;
             }
 
             // Áp dụng khuyến mãi nếu có
             var totalAmount = discountPercent > 0
-                ? totalRaw * (1 - discountPercent / 100m)
+                ? totalRaw - Math.Round(totalRaw * discountPercent / 100m, 0)
                 : totalRaw;
-                        // 5. Tạo Booking
+            // 5. Tạo Booking
             var booking = new Booking
             {
                 UserId      = userId,
@@ -311,7 +368,9 @@ public class BookingService : IBookingService
                 {
                     BookingId      = booking.BookingId,
                     ShowtimeSeatId = seat.ShowtimeSeatId,
-                    Price          = showtime.Price
+                    Price          = seat.Seat?.SeatType == "VIP"
+                        ? Math.Round(showtime.Price * vipMultiplier, 0)
+                        : showtime.Price
                 });
                 seat.Status = "Booked";
             }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { dummyShowsData } from "../../assets/assets";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
-import { CheckIcon, Trash2Icon, PlusIcon } from "lucide-react";
+import { CheckIcon, Trash2Icon, StarIcon } from "lucide-react";
 import { api } from "../../lib/api";
 import toast from "react-hot-toast";
 
@@ -219,58 +219,28 @@ export function AddShows() {
       </div>
       )}
 
-      {!showCreateMovie && <>
-      {/* 2. Thiết lập giá vé thường & Hệ số VIP */}
+      {/* Show Price */}
       <div className="mt-8">
-        <p className="text-lg font-bold text-white mb-3">2. Thiết Lập Giá Vé</p>
-        <div className="flex flex-wrap items-center gap-6 bg-gray-900/60 p-4 rounded-xl border border-gray-800">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">
-              Giá vé thường (₫)
-            </label>
-            <div className="inline-flex items-center gap-2 bg-black/60 border border-gray-700 px-3 py-2 rounded-lg">
-              <input
-                min={0}
-                step={5000}
-                type="number"
-                value={showPrice}
-                onChange={(e) => setShowPrice(e.target.value)}
-                placeholder="75000"
-                className="outline-none bg-transparent text-white font-bold w-32 text-sm"
-              />
-              <span className="text-primary font-bold text-xs">₫</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-amber-300 mb-1.5">
-              Hệ số ghế VIP (ví dụ: 1.25)
-            </label>
-            <div className="inline-flex items-center gap-2 bg-black/60 border border-amber-500/40 px-3 py-2 rounded-lg">
-              <input
-                type="number"
-                step="0.05"
-                min="1.0"
-                value={vipMultiplier}
-                onChange={(e) => setVipMultiplier(e.target.value)}
-                className="outline-none bg-transparent text-amber-300 font-bold w-24 text-sm"
-              />
-              <span className="text-amber-400 font-bold text-xs">x</span>
-            </div>
-          </div>
-
-          <div className="self-end pb-1 text-xs text-gray-400">
-            Giá VIP tính tự động:{" "}
-            <b className="text-amber-400 text-sm">
-              {Math.round(Number(showPrice || 0) * Number(vipMultiplier || 1.2)).toLocaleString("vi-VN")} ₫
-            </b>
-          </div>
+        <label className="block text-sm font-semibold text-white mb-2">
+          2. Giá Vé Mặc Định (VNĐ)
+        </label>
+        <div className="inline-flex items-center gap-2 bg-gray-900 border border-gray-700 px-4 py-2.5 rounded-xl">
+          <input
+            min={0}
+            step={5000}
+            type="number"
+            value={showPrice}
+            onChange={(e) => setShowPrice(e.target.value)}
+            placeholder="75000"
+            className="outline-none bg-transparent text-white font-bold w-40 text-sm"
+          />
+          <span className="text-primary font-bold text-sm">₫</span>
         </div>
       </div>
 
-      {/* 3. Chọn Date & Time */}
+      {/* Select Date & Time */}
       <div className="mt-8">
-        <label className="block text-lg font-bold text-white mb-3">
+        <label className="block text-sm font-semibold text-white mb-2">
           3. Chọn Ngày & Giờ Chiếu
         </label>
         <div className="inline-flex flex-wrap gap-3 bg-gray-900 border border-gray-700 p-2 rounded-xl">
@@ -329,7 +299,6 @@ export function AddShows() {
           {isSubmitting ? "Đang lưu suất chiếu..." : "Xác Nhận Tạo Suất Chiếu"}
         </button>
       </div>
-      </>}
     </>
   );
 }

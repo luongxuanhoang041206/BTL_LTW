@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
 
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>5f0a7710-d19b-43b8-a023-5038069caa86</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,5 +21,4 @@
     </PackageReference>
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
   </ItemGroup>
-
 </Project>

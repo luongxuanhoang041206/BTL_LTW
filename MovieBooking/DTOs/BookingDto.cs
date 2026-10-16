@@ -22,7 +22,7 @@ public class SeatMapViewModel
     public string RoomName { get; set; } = string.Empty;
     public string RoomType { get; set; } = string.Empty;
     public decimal PricePerSeat { get; set; }
-    public decimal PricePerSeatVip{get;set;}
+    public decimal PricePerSeatVip { get; set; }
 
     /// <summary>Danh sách ghế, đã nhóm theo hàng (SeatRow).</summary>
     public List<SeatRowViewModel> Rows { get; set; } = new();
@@ -87,8 +87,8 @@ public class BookingConfirmViewModel
     public decimal CombosTotal => SelectedCombos.Sum(c => c.SubTotal);
 
     // Totals
-    public decimal SubTotal => (PricePerSeat * HeldSeats.Count) + CombosTotal;
-    public decimal DiscountAmount => Math.Round((PricePerSeat * HeldSeats.Count) * DiscountPercent / 100, 0);
+    public decimal SubTotal => HeldSeats.Sum(seat => seat.Price) + CombosTotal;
+    public decimal DiscountAmount => Math.Round(HeldSeats.Sum(seat => seat.Price) * DiscountPercent / 100, 0);
     public decimal TotalAmount => SubTotal - DiscountAmount;
 }
 
@@ -247,6 +247,7 @@ public class ShowtimeSelectionViewModel
     public string? PosterUrl { get; set; }
     public int Duration { get; set; }
     public string? AgeRating { get; set; }
+    public List<string> RoomTypes { get; set; } = new();
 
     /// <summary>Suất chiếu nhóm theo ngày.</summary>
     public List<ShowtimeDayGroup> DayGroups { get; set; } = new();
@@ -263,11 +264,29 @@ public class ShowtimeDayGroup
 public class ShowtimeItemViewModel
 {
     public int ShowtimeId { get; set; }
+    public int RoomId { get; set; }
+    public int CinemaId { get; set; }
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
     public string CinemaName { get; set; } = string.Empty;
+    public string CinemaAddress { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
     public string RoomName { get; set; } = string.Empty;
     public string RoomType { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int AvailableSeats { get; set; }
+}
+
+// ---------------------------------------------------------------------------
+// CINEMA SELECTION (chọn rạp trước khi xem lịch chiếu)
+// ---------------------------------------------------------------------------
+
+/// <summary>Thông tin một rạp đang chiếu bộ phim được chọn.</summary>
+public class CinemaItemViewModel
+{
+    public int CinemaId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public int ShowtimeCount { get; set; }   // Số suất chiếu còn lại (>= hôm nay)
 }

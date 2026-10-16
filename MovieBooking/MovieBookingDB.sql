@@ -208,6 +208,22 @@ CREATE TABLE Reviews (
 );
 GO
 
+CREATE TABLE BankTransactions (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    ProviderTransactionId BIGINT NOT NULL,
+    ReferenceCode NVARCHAR(100) NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    Content NVARCHAR(500) NULL,
+    PaymentId INT NULL,
+    Result NVARCHAR(50) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL
+);
+
+CREATE UNIQUE INDEX IX_BankTransactions_ProviderTransactionId
+ON BankTransactions (ProviderTransactionId);
+
+GO
+
 -- =========================================================
 -- INDEX gợi ý (tối ưu truy vấn hay dùng)
 -- =========================================================

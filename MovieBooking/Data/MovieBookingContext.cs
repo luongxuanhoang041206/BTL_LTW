@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Models;
+using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace MovieBooking.Data;
 
@@ -49,13 +51,20 @@ public partial class MovieBookingContext : DbContext
     public virtual DbSet<ComboDetail> ComboDetails { get; set; }
 
     public virtual DbSet<BookingCombo> BookingCombos { get; set; }
-
+    public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=MovieBookingDB;Trusted_Connection=True;TrustServerCertificate=True");
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .Build();
+
+            optionsBuilder.UseSqlServer(
+                config.GetConnectionString("DefaultConnection"));
         }
     }
 
@@ -269,6 +278,9 @@ public partial class MovieBookingContext : DbContext
             entity.HasIndex(e => new { e.MovieId, e.ShowDate }, "IX_Showtimes_MovieId_ShowDate");
 
             entity.Property(e => e.Price).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.VipMultiplier)
+                .HasPrecision(5, 2)
+                .HasDefaultValue(1.20m);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
@@ -398,7 +410,12 @@ public partial class MovieBookingContext : DbContext
                 .HasForeignKey(e => e.ComboId);
         });
 
-
+        modelBuilder.Entity<BankTransaction>(entity =>
+        {
+            entity.HasIndex(x => x.ProviderTransactionId).IsUnique();
+            entity.Property(x => x.Amount).HasPrecision(18, 2);
+            entity.Property(x => x.Result).HasMaxLength(50);
+        });
         OnModelCreatingPartial(modelBuilder);
     }
 
