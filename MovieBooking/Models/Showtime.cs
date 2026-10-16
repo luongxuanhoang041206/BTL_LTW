@@ -28,5 +28,8 @@ public partial class Showtime
     public virtual Room Room { get; set; } = null!;
 
     public virtual ICollection<ShowtimeSeat> ShowtimeSeats { get; set; } = new List<ShowtimeSeat>();
+<<<<<<< HEAD
     public decimal VipMultiplier{get;set;}=1.2m;
+=======
+>>>>>>> main
 }

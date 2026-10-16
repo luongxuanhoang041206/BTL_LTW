@@ -156,7 +156,10 @@ public class BookingService : IBookingService
             RoomName     = showtime.Room.RoomName,
             RoomType     = showtime.Room.RoomType,
             PricePerSeat = showtime.Price,
+<<<<<<< HEAD
             PricePerSeatVip=Math.Round(showtime.Price*(showtime.VipMultiplier>0?showtime.VipMultiplier:1.2m),0),
+=======
+>>>>>>> main
             Rows         = rows
         };
     }
@@ -236,9 +239,14 @@ public class BookingService : IBookingService
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
+<<<<<<< HEAD
             // 1. Re-read và lock ShowtimeSeats — Include Seat để lấy SeatType tính giá VIP
             var seats = await _context.ShowtimeSeats
                 .Include(ss => ss.Seat)
+=======
+            // 1. Re-read và lock ShowtimeSeats
+            var seats = await _context.ShowtimeSeats
+>>>>>>> main
                 .Where(ss => showtimeSeatIds.Contains(ss.ShowtimeSeatId))
                 .ToListAsync();
 
@@ -273,6 +281,7 @@ public class BookingService : IBookingService
                     promotionId     = promo.PromotionId;
                     discountPercent = promo.DiscountPercent;
                 }
+<<<<<<< HEAD
             }
 
             // 4. Tính tổng tiền theo loại ghế (Thường / VIP)
@@ -292,6 +301,15 @@ public class BookingService : IBookingService
                 ? totalRaw * (1 - discountPercent / 100m)
                 : totalRaw;
                         // 5. Tạo Booking
+=======
+                // Nếu promo không hợp lệ thì bỏ qua (không block booking)
+            }
+
+            // 4. Tính tổng tiền
+            var totalAmount = CalculateTotal(showtime.Price, seats.Count, discountPercent);
+
+            // 5. Tạo Booking
+>>>>>>> main
             var booking = new Booking
             {
                 UserId      = userId,

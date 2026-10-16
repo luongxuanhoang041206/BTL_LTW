@@ -74,6 +74,7 @@ public class ApiBookingController : ControllerBase
         });
     }
 
+<<<<<<< HEAD
     public class ApiCheckoutRequest
     {
         public int ShowtimeId { get; set; }
@@ -158,6 +159,8 @@ public class ApiBookingController : ControllerBase
             message = "Đặt vé và thanh toán thành công!"
         });
     }
+=======
+>>>>>>> main
 
     [HttpGet("my-bookings")]
     public async Task<IActionResult> GetMyBookings()

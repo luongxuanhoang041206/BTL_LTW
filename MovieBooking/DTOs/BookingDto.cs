@@ -22,7 +22,10 @@ public class SeatMapViewModel
     public string RoomName { get; set; } = string.Empty;
     public string RoomType { get; set; } = string.Empty;
     public decimal PricePerSeat { get; set; }
+<<<<<<< HEAD
     public decimal PricePerSeatVip{get;set;}
+=======
+>>>>>>> main
 
     /// <summary>Danh sách ghế, đã nhóm theo hàng (SeatRow).</summary>
     public List<SeatRowViewModel> Rows { get; set; } = new();

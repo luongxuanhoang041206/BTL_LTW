@@ -14,8 +14,11 @@ namespace MovieBooking.Controllers;
 public class BookingController : Controller
 {
     private readonly IBookingService _bookingService;
+<<<<<<< HEAD
     private readonly IPaymentService _paymentService;
 
+=======
+>>>>>>> main
     // Session keys
     private const string SessionHeldSeatIds  = "HeldSeatIds";      // JSON list<int> ShowtimeSeatId
     private const string SessionHeldShowtime = "HeldShowtimeId";   // int
@@ -24,9 +27,13 @@ public class BookingController : Controller
 
     public BookingController(IBookingService bookingService, IPaymentService paymentService)
     {
+<<<<<<< HEAD
         _bookingService = bookingService;
         _paymentService = paymentService;
     }
+=======
+        _bookingService = bookingService;    }
+>>>>>>> main
 
     private int GetCurrentUserId() => HttpContext.Session.GetInt32("UserId")!.Value;
 
@@ -280,7 +287,11 @@ public class BookingController : Controller
         }
 
         ClearHoldSession();
+<<<<<<< HEAD
         return RedirectToAction(nameof(Payment), new { bookingId = bookingId!.Value });
+=======
+        return RedirectToAction("Payment", "Payment",  new { bookingId = bookingId!.Value }); // tro sang controller Payment
+>>>>>>> main
     }
 
     // -----------------------------------------------------------------------
@@ -288,6 +299,7 @@ public class BookingController : Controller
     // GET /Booking/Payment/{bookingId}
     // -----------------------------------------------------------------------
 
+<<<<<<< HEAD
     public async Task<IActionResult> Payment(int bookingId)
     {
         var userId = GetCurrentUserId();
@@ -301,12 +313,16 @@ public class BookingController : Controller
 
         return View(vm);
     }
+=======
+    //Da tach controller rieng
+>>>>>>> main
 
     // -----------------------------------------------------------------------
     // PROCESS PAYMENT — POST
     // POST /Booking/ProcessPayment
     // -----------------------------------------------------------------------
 
+<<<<<<< HEAD
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ProcessPayment(PaymentRequest request)
@@ -330,6 +346,9 @@ public class BookingController : Controller
         TempData["Success"] = "Đặt vé thành công!";
         return RedirectToAction(nameof(BookingSuccess), new { bookingId = request.BookingId });
     }
+=======
+    //Da tach controller rieng
+>>>>>>> main
 
     // -----------------------------------------------------------------------
     // SUCCESS
