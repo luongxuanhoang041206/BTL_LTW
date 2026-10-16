@@ -42,6 +42,15 @@ public partial class MovieBookingContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<FoodItem> FoodItems { get; set; }
+
+    public virtual DbSet<Combo> Combos { get; set; }
+
+    public virtual DbSet<ComboDetail> ComboDetails { get; set; }
+
+    public virtual DbSet<BookingCombo> BookingCombos { get; set; }
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -329,6 +338,66 @@ public partial class MovieBookingContext : DbContext
                 .HasDefaultValue("Customer");
             entity.Property(e => e.Status).HasDefaultValue(true);
         });
+
+
+        modelBuilder.Entity<FoodItem>(entity =>
+        {
+            entity.HasKey(e => e.FoodItemId);
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.Category).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<Combo>(entity =>
+        {
+            entity.HasKey(e => e.ComboId);
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<ComboDetail>(entity =>
+        {
+            entity.HasKey(e => new { e.ComboId, e.FoodItemId });
+
+            entity.HasOne(e => e.Combo)
+                .WithMany(e => e.ComboDetails)
+                .HasForeignKey(e => e.ComboId);
+
+            entity.HasOne(e => e.FoodItem)
+                .WithMany(e => e.ComboDetails)
+                .HasForeignKey(e => e.FoodItemId);
+        });
+
+        modelBuilder.Entity<BookingCombo>(entity =>
+        {
+            entity.HasKey(e => e.BookingComboId);
+
+            entity.Property(e => e.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Booking)
+                .WithMany(b => b.BookingCombos)
+                .HasForeignKey(e => e.BookingId);
+
+            entity.HasOne(e => e.Combo)
+                .WithMany(e => e.BookingCombos)
+                .HasForeignKey(e => e.ComboId);
+        });
+
 
         OnModelCreatingPartial(modelBuilder);
     }

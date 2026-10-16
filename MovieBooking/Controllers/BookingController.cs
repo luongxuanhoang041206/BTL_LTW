@@ -15,6 +15,8 @@ public class BookingController : Controller
 {
     private readonly IBookingService _bookingService;
     private readonly IPaymentService _paymentService;
+    private readonly IFoodService _foodService;
+    private readonly MovieBooking.Data.MovieBookingContext _context;
 
     // Session keys
     private const string SessionHeldSeatIds  = "HeldSeatIds";      // JSON list<int> ShowtimeSeatId
@@ -22,10 +24,16 @@ public class BookingController : Controller
     private const string SessionHoldExpires  = "HoldExpiresAt";    // ISO8601 string
     private const string SessionPromoCode    = "HeldPromoCode";    // string
 
-    public BookingController(IBookingService bookingService, IPaymentService paymentService)
+    public BookingController(
+        IBookingService bookingService,
+        IPaymentService paymentService,
+        IFoodService foodService,
+        MovieBooking.Data.MovieBookingContext context)
     {
         _bookingService = bookingService;
         _paymentService = paymentService;
+        _foodService = foodService;
+        _context = context;
     }
 
     private int GetCurrentUserId() => HttpContext.Session.GetInt32("UserId")!.Value;
@@ -202,6 +210,7 @@ public class BookingController : Controller
             DiscountPercent  = discountPercent
         };
 
+        ViewBag.AvailableCombos = await _foodService.GetActiveCombosAsync();
         return View(vm);
     }
 
@@ -259,6 +268,22 @@ public class BookingController : Controller
             return RedirectToAction(nameof(SelectSeat), new { showtimeId = showtimeId.Value });
         }
 
+        // Lọc các combo có Quantity > 0
+        var validComboRequests = request.Combos?.Where(c => c.ComboId > 0 && c.Quantity > 0).ToList();
+
+        // 1. Validate combos trước nếu có chọn
+        decimal comboTotalAmount = 0m;
+        if (validComboRequests != null && validComboRequests.Count > 0)
+        {
+            var (comboValid, comboTotal, _, comboError) = await _foodService.ValidateAndCalculateCombosAsync(validComboRequests);
+            if (!comboValid)
+            {
+                TempData["Error"] = comboError ?? "Combo không hợp lệ.";
+                return RedirectToAction(nameof(Confirm));
+            }
+            comboTotalAmount = comboTotal;
+        }
+
         var userId    = GetCurrentUserId();
         var promoCode = !string.IsNullOrWhiteSpace(request.PromoCode)
             ? request.PromoCode
@@ -277,6 +302,25 @@ public class BookingController : Controller
                 return RedirectToAction(nameof(SelectSeat), new { showtimeId = showtimeId.Value });
             }
             return RedirectToAction(nameof(Confirm));
+        }
+
+        // 2. Lưu combo vào BookingCombos nếu có chọn
+        if (validComboRequests != null && validComboRequests.Count > 0)
+        {
+            var (saveComboSuccess, saveComboError) = await _foodService.SaveBookingCombosAsync(bookingId!.Value, validComboRequests);
+            if (!saveComboSuccess)
+            {
+                TempData["Error"] = saveComboError;
+            }
+            else
+            {
+                var bookingRecord = await _context.Bookings.FindAsync(bookingId.Value);
+                if (bookingRecord != null)
+                {
+                    bookingRecord.TotalAmount += comboTotalAmount;
+                    await _context.SaveChangesAsync();
+                }
+            }
         }
 
         ClearHoldSession();

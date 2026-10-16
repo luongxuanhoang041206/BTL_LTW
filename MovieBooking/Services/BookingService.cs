@@ -420,6 +420,8 @@ public class BookingService : IBookingService
             .Include(b => b.BookingDetails)
                 .ThenInclude(bd => bd.ShowtimeSeat)
                     .ThenInclude(ss => ss.Seat)
+            .Include(b => b.BookingCombos)
+                .ThenInclude(bc => bc.Combo)
             .Include(b => b.Payments)
             .Include(b => b.Promotion)
             .AsNoTracking()
@@ -457,6 +459,15 @@ public class BookingService : IBookingService
             RoomName       = booking.Showtime.Room.RoomName,
             RoomType       = booking.Showtime.Room.RoomType,
             Seats          = seats,
+            Combos         = booking.BookingCombos.Select(bc => new BookingComboDetailDto
+            {
+                BookingComboId = bc.BookingComboId,
+                ComboId        = bc.ComboId,
+                ComboName      = bc.Combo.Name,
+                ImageUrl       = bc.Combo.ImageUrl,
+                Quantity       = bc.Quantity,
+                UnitPrice      = bc.UnitPrice
+            }).ToList(),
             SubTotal       = subTotal,
             PromoCode      = booking.Promotion?.Code,
             DiscountPercent = booking.Promotion?.DiscountPercent ?? 0,

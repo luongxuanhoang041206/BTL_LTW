@@ -82,9 +82,13 @@ public class BookingConfirmViewModel
     public string? AppliedPromoCode { get; set; }
     public decimal DiscountPercent { get; set; }
 
+    // Combos
+    public List<BookingComboDetailDto> SelectedCombos { get; set; } = new();
+    public decimal CombosTotal => SelectedCombos.Sum(c => c.SubTotal);
+
     // Totals
-    public decimal SubTotal => PricePerSeat * HeldSeats.Count;
-    public decimal DiscountAmount => Math.Round(SubTotal * DiscountPercent / 100, 0);
+    public decimal SubTotal => (PricePerSeat * HeldSeats.Count) + CombosTotal;
+    public decimal DiscountAmount => Math.Round((PricePerSeat * HeldSeats.Count) * DiscountPercent / 100, 0);
     public decimal TotalAmount => SubTotal - DiscountAmount;
 }
 
@@ -104,6 +108,8 @@ public class BookingConfirmRequest
 
     [StringLength(30)]
     public string? PromoCode { get; set; }
+
+    public List<BookingComboItemRequest> Combos { get; set; } = new();
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +206,7 @@ public class BookingDetailViewModel
     public string RoomType { get; set; } = string.Empty;
 
     public List<BookingDetailSeatInfo> Seats { get; set; } = new();
+    public List<BookingComboDetailDto> Combos { get; set; } = new();
     public decimal SubTotal { get; set; }
     public string? PromoCode { get; set; }
     public decimal DiscountPercent { get; set; }

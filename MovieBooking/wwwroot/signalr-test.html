@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>SignalR Test</title>
+</head>
+<body>
+    <h2>SignalR Real-time Test</h2>
+
+    <input id="messageInput" placeholder="Nhập thông điệp..." />
+    <button id="sendButton">Gửi</button>
+
+    <h3>Thông điệp nhận được:</h3>
+    <ul id="messages"></ul>
+
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@10.0.0/dist/browser/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/seatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveTestMessage", (message) => {
+            const li = document.createElement("li");
+            li.textContent = message;
+            document.getElementById("messages").appendChild(li);
+        });
+
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("SignalR connected");
+            } catch (err) {
+                console.error(err);
+                setTimeout(startConnection, 3000);
+            }
+        }
+
+        document.getElementById("sendButton").onclick = async () => {
+            const input = document.getElementById("messageInput");
+
+            if (!input.value.trim()) return;
+
+            try {
+                await connection.invoke("SendTestMessage", input.value);
+                input.value = "";
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        startConnection();
+    </script>
+</body>
+</html>

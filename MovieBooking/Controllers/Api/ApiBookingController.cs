@@ -15,11 +15,19 @@ public class ApiBookingController : ControllerBase
 {
     private readonly IBookingService _bookingService;
     private readonly IPaymentService _paymentService;
+    private readonly IFoodService _foodService;
+    private readonly MovieBooking.Data.MovieBookingContext _context;
 
-    public ApiBookingController(IBookingService bookingService, IPaymentService paymentService)
+    public ApiBookingController(
+        IBookingService bookingService,
+        IPaymentService paymentService,
+        IFoodService foodService,
+        MovieBooking.Data.MovieBookingContext context)
     {
         _bookingService = bookingService;
         _paymentService = paymentService;
+        _foodService = foodService;
+        _context = context;
     }
 
     private int? GetCurrentUserId() => HttpContext.Session.GetInt32("UserId");
@@ -80,6 +88,7 @@ public class ApiBookingController : ControllerBase
         public List<int> SeatIds { get; set; } = new();
         public string? PromoCode { get; set; }
         public string PaymentMethod { get; set; } = "VNPay";
+        public List<BookingComboItemRequest>? Combos { get; set; }
     }
 
     [HttpPost("checkout")]
@@ -94,6 +103,18 @@ public class ApiBookingController : ControllerBase
         if (request.SeatIds == null || request.SeatIds.Count == 0)
         {
             return BadRequest(new { message = "Vui lòng chọn ghế trước khi thanh toán." });
+        }
+
+        // 1. Validate Combos trước (nếu có gửi kèm) để không lưu dữ liệu dở dang
+        decimal totalComboPrice = 0m;
+        if (request.Combos != null && request.Combos.Count > 0)
+        {
+            var (comboValid, comboTotal, _, comboError) = await _foodService.ValidateAndCalculateCombosAsync(request.Combos);
+            if (!comboValid)
+            {
+                return BadRequest(new { success = false, message = comboError ?? "Combo bắp nước không hợp lệ." });
+            }
+            totalComboPrice = comboTotal;
         }
 
         // Lấy thông tin sơ đồ ghế để tìm ShowtimeSeatId
@@ -125,13 +146,30 @@ public class ApiBookingController : ControllerBase
             return BadRequest(new { message = "Không tìm thấy thông tin ghế đã chọn." });
         }
 
-        // Xác nhận tạo Booking
+        // Xác nhận tạo Booking (vé)
         var (confirmSuccess, bookingId, confirmError) = await _bookingService.ConfirmBookingAsync(
             request.ShowtimeId, showtimeSeatIds, userId.Value, request.PromoCode);
 
         if (!confirmSuccess || bookingId == null)
         {
             return BadRequest(new { success = false, message = confirmError ?? "Đặt vé thất bại." });
+        }
+
+        // 2. Lưu combo vào BookingCombos và cập nhật tổng tiền đơn hàng nếu có chọn combo
+        if (request.Combos != null && request.Combos.Count > 0)
+        {
+            var (saveComboSuccess, saveComboError) = await _foodService.SaveBookingCombosAsync(bookingId.Value, request.Combos);
+            if (!saveComboSuccess)
+            {
+                return BadRequest(new { success = false, message = saveComboError ?? "Lỗi lưu thông tin combo." });
+            }
+
+            var bookingRecord = await _context.Bookings.FindAsync(bookingId.Value);
+            if (bookingRecord != null)
+            {
+                bookingRecord.TotalAmount += totalComboPrice;
+                await _context.SaveChangesAsync();
+            }
         }
 
         // Xử lý thanh toán thành công
@@ -157,6 +195,24 @@ public class ApiBookingController : ControllerBase
             isPaid = true,
             message = "Đặt vé và thanh toán thành công!"
         });
+    }
+
+    [HttpGet("details/{bookingId}")]
+    public async Task<IActionResult> GetBookingDetails(int bookingId)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null)
+        {
+            return Unauthorized(new { message = "Vui lòng đăng nhập." });
+        }
+
+        var detail = await _bookingService.GetBookingDetailAsync(bookingId, userId.Value);
+        if (detail == null)
+        {
+            return NotFound(new { message = "Không tìm thấy đơn đặt vé." });
+        }
+
+        return Ok(detail);
     }
 
     [HttpGet("my-bookings")]
