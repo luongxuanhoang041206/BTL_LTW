@@ -19,4 +19,7 @@ public class FoodItem
 
     public virtual ICollection<ComboDetail> ComboDetails { get; set; }
         = new List<ComboDetail>();
+
+    public virtual ICollection<BookingFood> BookingFoods { get; set; }
+        = new List<BookingFood>();
 }

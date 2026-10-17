@@ -258,20 +258,16 @@ export function SeatLayout() {
         return;
       }
 
-      // Bước 2: Xác nhận và thanh toán
-      const res = await api.post("/api/booking/checkout", {
+      const draft = {
         showtimeId: seatMap.showtimeId,
+        movieId: Number(id),
         seatIds: selectedSeatIds,
-        paymentMethod: "VNPay",
-      });
-
-      if (res?.success) {
-        saveLocalSelection([]);
-        toast.success("🎉 Đặt vé và thanh toán thành công!");
-        navigate("/booking");
-      } else {
-        toast.error(res?.message || "Đặt vé thất bại, vui lòng thử lại.");
-      }
+        seatLabels: selectedSeatLabels,
+        expiresAt: holdRes.expiresAt,
+      };
+      sessionStorage.setItem(`booking:draft:${seatMap.showtimeId}`, JSON.stringify(draft));
+      toast.success("Đã giữ ghế. Chọn đồ ăn và combo trước khi hết giờ giữ ghế.");
+      navigate(`/foods/${seatMap.showtimeId}`, { state: draft });
     } catch (err) {
       toast.error(err.message || "Đặt vé thất bại.");
     } finally {
@@ -478,7 +474,7 @@ export function SeatLayout() {
             disabled={isBooking || selectedSeatIds.length === 0}
             className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary-dull disabled:opacity-50 text-white font-bold rounded-xl transition cursor-pointer shadow-lg shadow-primary/30 active:scale-95 flex items-center justify-center gap-2"
           >
-            {isBooking ? "Đang xử lý..." : "Xác nhận & Thanh toán"}
+            {isBooking ? "Đang giữ ghế..." : "Tiếp tục chọn đồ ăn & combo"}
             <ArrowRightIcon className="w-4 h-4" />
           </button>
         </div>

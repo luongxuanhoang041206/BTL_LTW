@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MovieBooking.DTOs;
 using MovieBooking.Services.Interfaces;
 
@@ -14,18 +15,15 @@ namespace MovieBooking.Controllers.Api;
 public class ApiBookingController : ControllerBase
 {
     private readonly IBookingService _bookingService;
-    private readonly IPaymentService _paymentService;
     private readonly IFoodService _foodService;
     private readonly MovieBooking.Data.MovieBookingContext _context;
 
     public ApiBookingController(
         IBookingService bookingService,
-        IPaymentService paymentService,
         IFoodService foodService,
         MovieBooking.Data.MovieBookingContext context)
     {
         _bookingService = bookingService;
-        _paymentService = paymentService;
         _foodService = foodService;
         _context = context;
     }
@@ -89,6 +87,7 @@ public class ApiBookingController : ControllerBase
         public string? PromoCode { get; set; }
         public string PaymentMethod { get; set; } = "VNPay";
         public List<BookingComboItemRequest>? Combos { get; set; }
+        public List<BookingFoodItemRequest>? Foods { get; set; }
     }
 
     [HttpPost("checkout")]
@@ -115,6 +114,35 @@ public class ApiBookingController : ControllerBase
                 return BadRequest(new { success = false, message = comboError ?? "Combo bắp nước không hợp lệ." });
             }
             totalComboPrice = comboTotal;
+        }
+
+        decimal totalFoodPrice = 0m;
+        var foodsToSave = new List<MovieBooking.Models.BookingFood>();
+        if (request.Foods != null && request.Foods.Count > 0)
+        {
+            if (request.Foods.Any(x => x.Quantity <= 0 || x.Quantity > 50) ||
+                request.Foods.GroupBy(x => x.FoodItemId).Any(g => g.Count() > 1))
+                return BadRequest(new { success = false, message = "Số lượng món không hợp lệ." });
+
+            var foodIds = request.Foods.Select(x => x.FoodItemId).ToList();
+            var activeFoods = await _context.FoodItems
+                .Where(f => foodIds.Contains(f.FoodItemId) && f.IsActive)
+                .ToDictionaryAsync(f => f.FoodItemId);
+            if (activeFoods.Count != foodIds.Count)
+                return BadRequest(new { success = false, message = "Một hoặc nhiều món đã ngừng kinh doanh." });
+
+            foreach (var item in request.Foods)
+            {
+                var food = activeFoods[item.FoodItemId];
+                totalFoodPrice += food.Price * item.Quantity;
+                foodsToSave.Add(new MovieBooking.Models.BookingFood
+                {
+                    FoodItemId = food.FoodItemId,
+                    FoodName = food.Name,
+                    Quantity = item.Quantity,
+                    UnitPrice = food.Price
+                });
+            }
         }
 
         // Lấy thông tin sơ đồ ghế để tìm ShowtimeSeatId
@@ -155,7 +183,7 @@ public class ApiBookingController : ControllerBase
             return BadRequest(new { success = false, message = confirmError ?? "Đặt vé thất bại." });
         }
 
-        // 2. Lưu combo vào BookingCombos và cập nhật tổng tiền đơn hàng nếu có chọn combo
+        // Save selected extras using current server prices.
         if (request.Combos != null && request.Combos.Count > 0)
         {
             var (saveComboSuccess, saveComboError) = await _foodService.SaveBookingCombosAsync(bookingId.Value, request.Combos);
@@ -164,36 +192,23 @@ public class ApiBookingController : ControllerBase
                 return BadRequest(new { success = false, message = saveComboError ?? "Lỗi lưu thông tin combo." });
             }
 
-            var bookingRecord = await _context.Bookings.FindAsync(bookingId.Value);
-            if (bookingRecord != null)
-            {
-                bookingRecord.TotalAmount += totalComboPrice;
-                await _context.SaveChangesAsync();
-            }
         }
 
-        // Xử lý thanh toán thành công
-        var (paySuccess, paymentId, payError) = await _paymentService.ProcessPaymentAsync(
-            bookingId.Value, userId.Value, request.PaymentMethod);
-
-        if (!paySuccess)
+        var bookingRecord = await _context.Bookings.FindAsync(bookingId.Value);
+        if (bookingRecord != null)
         {
-            return Ok(new
-            {
-                success = true,
-                bookingId = bookingId.Value,
-                isPaid = false,
-                message = "Đặt vé thành công, đang chờ thanh toán: " + payError
-            });
+            bookingRecord.TotalAmount += totalComboPrice + totalFoodPrice;
+            foreach (var food in foodsToSave) food.BookingId = bookingId.Value;
+            _context.BookingFoods.AddRange(foodsToSave);
+            await _context.SaveChangesAsync();
         }
 
         return Ok(new
         {
             success = true,
             bookingId = bookingId.Value,
-            paymentId,
-            isPaid = true,
-            message = "Đặt vé và thanh toán thành công!"
+            isPaid = false,
+            message = "Đã tạo đơn đặt vé. Vui lòng hoàn tất thanh toán."
         });
     }
     [HttpGet("details/{bookingId}")]

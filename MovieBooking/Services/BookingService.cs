@@ -242,8 +242,11 @@ public class BookingService : IBookingService
         if (seats.Count != seatIds.Count)
             return (false, "Một hoặc nhiều ghế không hợp lệ.");
 
-        // 3. Kiểm tra tất cả còn Available
-        var unavailable = seats.Where(s => s.Status != "Available").ToList();
+        // Allow the same user to resume the food step without losing their hold.
+        var unavailable = seats.Where(s =>
+            s.Status != "Available" &&
+            !(s.Status == "Holding" && s.LockedByUserId == userId &&
+              s.HoldExpiresAt != null && s.HoldExpiresAt >= DateTime.Now)).ToList();
         if (unavailable.Count > 0)
             return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.");
 
@@ -372,7 +375,8 @@ public class BookingService : IBookingService
                         ? Math.Round(showtime.Price * vipMultiplier, 0)
                         : showtime.Price
                 });
-                seat.Status = "Booked";
+                // Keep the seat held while payment is pending. The payment webhook
+                // converts it to Booked after confirming the exact transfer.
             }
 
             await _context.SaveChangesAsync();

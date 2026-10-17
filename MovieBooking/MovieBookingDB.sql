@@ -225,6 +225,78 @@ ON BankTransactions (ProviderTransactionId);
 GO
 
 -- =========================================================
+-- 7. CLIENT FOOD / COMBO ORDERS
+-- =========================================================
+IF OBJECT_ID('dbo.FoodItems', 'U') IS NULL
+BEGIN
+    CREATE TABLE FoodItems (
+        FoodItemId INT IDENTITY(1,1) PRIMARY KEY,
+        Name NVARCHAR(150) NOT NULL,
+        Description NVARCHAR(500) NULL,
+        ImageUrl NVARCHAR(500) NULL,
+        Price DECIMAL(18,2) NOT NULL,
+        Category NVARCHAR(50) NOT NULL,
+        IsActive BIT NOT NULL DEFAULT 1
+    );
+END;
+GO
+
+IF OBJECT_ID('dbo.Combos', 'U') IS NULL
+BEGIN
+    CREATE TABLE Combos (
+        ComboId INT IDENTITY(1,1) PRIMARY KEY,
+        Name NVARCHAR(150) NOT NULL,
+        Description NVARCHAR(500) NULL,
+        ImageUrl NVARCHAR(500) NULL,
+        Price DECIMAL(18,2) NOT NULL,
+        IsActive BIT NOT NULL DEFAULT 1
+    );
+END;
+GO
+
+IF OBJECT_ID('dbo.ComboDetails', 'U') IS NULL
+BEGIN
+    CREATE TABLE ComboDetails (
+        ComboId INT NOT NULL,
+        FoodItemId INT NOT NULL,
+        Quantity INT NOT NULL,
+        CONSTRAINT PK_ComboDetails PRIMARY KEY (ComboId, FoodItemId),
+        FOREIGN KEY (ComboId) REFERENCES Combos(ComboId) ON DELETE CASCADE,
+        FOREIGN KEY (FoodItemId) REFERENCES FoodItems(FoodItemId)
+    );
+END;
+GO
+
+IF OBJECT_ID('dbo.BookingCombos', 'U') IS NULL
+BEGIN
+    CREATE TABLE BookingCombos (
+        BookingComboId INT IDENTITY(1,1) PRIMARY KEY,
+        BookingId INT NOT NULL,
+        ComboId INT NOT NULL,
+        Quantity INT NOT NULL,
+        UnitPrice DECIMAL(18,2) NOT NULL,
+        FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE,
+        FOREIGN KEY (ComboId) REFERENCES Combos(ComboId)
+    );
+END;
+GO
+
+IF OBJECT_ID('dbo.BookingFoods', 'U') IS NULL
+BEGIN
+    CREATE TABLE BookingFoods (
+        BookingFoodId INT IDENTITY(1,1) PRIMARY KEY,
+        BookingId INT NOT NULL,
+        FoodItemId INT NOT NULL,
+        FoodName NVARCHAR(150) NOT NULL,
+        Quantity INT NOT NULL,
+        UnitPrice DECIMAL(18,2) NOT NULL,
+        FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE,
+        FOREIGN KEY (FoodItemId) REFERENCES FoodItems(FoodItemId)
+    );
+END;
+GO
+
+-- =========================================================
 -- INDEX gợi ý (tối ưu truy vấn hay dùng)
 -- =========================================================
 CREATE INDEX IX_Showtimes_MovieId_ShowDate ON Showtimes(MovieId, ShowDate);

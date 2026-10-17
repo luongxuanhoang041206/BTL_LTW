@@ -127,6 +127,15 @@ public class BookingComboItemRequest
     public int Quantity { get; set; }
 }
 
+public class BookingFoodItemRequest
+{
+    [Required]
+    public int FoodItemId { get; set; }
+
+    [Range(1, 50)]
+    public int Quantity { get; set; }
+}
+
 public class BookingComboDetailDto
 {
     public int BookingComboId { get; set; }

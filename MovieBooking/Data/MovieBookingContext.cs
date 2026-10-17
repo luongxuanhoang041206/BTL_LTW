@@ -51,6 +51,7 @@ public partial class MovieBookingContext : DbContext
     public virtual DbSet<ComboDetail> ComboDetails { get; set; }
 
     public virtual DbSet<BookingCombo> BookingCombos { get; set; }
+    public virtual DbSet<BookingFood> BookingFoods { get; set; }
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -408,6 +409,19 @@ public partial class MovieBookingContext : DbContext
             entity.HasOne(e => e.Combo)
                 .WithMany(e => e.BookingCombos)
                 .HasForeignKey(e => e.ComboId);
+        });
+
+        modelBuilder.Entity<BookingFood>(entity =>
+        {
+            entity.HasKey(e => e.BookingFoodId);
+            entity.Property(e => e.FoodName).HasMaxLength(150).IsRequired();
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+            entity.HasOne(e => e.Booking)
+                .WithMany(b => b.BookingFoods)
+                .HasForeignKey(e => e.BookingId);
+            entity.HasOne(e => e.FoodItem)
+                .WithMany(f => f.BookingFoods)
+                .HasForeignKey(e => e.FoodItemId);
         });
 
         modelBuilder.Entity<BankTransaction>(entity =>

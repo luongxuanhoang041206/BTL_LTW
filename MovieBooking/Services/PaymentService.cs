@@ -297,7 +297,7 @@ public class PaymentService : IPaymentService
             return (false, null, "Ghế đã hết thời gian giữ, vui lòng đặt lại.");
 
         var payment = await _context.Payments.FirstOrDefaultAsync(p =>
-            p.BookingId == bookingId && p.Method == "BANK" && p.PaymentStatus == "Pending");
+            p.BookingId == bookingId && p.Method == "SePay" && p.PaymentStatus == "Pending");
 
         if (payment == null)
         {
@@ -305,7 +305,7 @@ public class PaymentService : IPaymentService
             {
                 BookingId = booking.BookingId,
                 Amount = booking.TotalAmount,
-                Method = "BANK",
+                Method = "SePay",
                 PaymentStatus = "Pending"
             };
             _context.Payments.Add(payment);

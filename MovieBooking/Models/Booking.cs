@@ -30,4 +30,6 @@ public partial class Booking
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<BookingCombo> BookingCombos { get; set; } = new List<BookingCombo>();
+
+    public virtual ICollection<BookingFood> BookingFoods { get; set; } = new List<BookingFood>();
 }
