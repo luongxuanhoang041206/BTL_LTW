@@ -128,6 +128,41 @@
                     </div>
                 </div>
             </div>
+
+            @if (Model.Combos != null && Model.Combos.Any())
+            {
+                <!-- Combos info -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                    <div class="card-header bg-light fw-semibold">
+                        🍱 Combo Bắp Nước (@Model.Combos.Count gói)
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tên combo</th>
+                                        <th>Đơn giá</th>
+                                        <th>Số lượng</th>
+                                        <th class="text-end">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var combo in Model.Combos)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold">@combo.ComboName</td>
+                                            <td>@combo.UnitPrice.ToString("N0") ₫</td>
+                                            <td><span class="badge bg-secondary">x @combo.Quantity</span></td>
+                                            <td class="text-end fw-semibold text-danger">@combo.SubTotal.ToString("N0") ₫</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
 
         <!-- RIGHT column -->

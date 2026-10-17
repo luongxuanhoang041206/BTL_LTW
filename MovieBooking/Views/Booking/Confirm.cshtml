@@ -84,6 +84,49 @@
                 </div>
             </div>
 
+            @{
+                var availableCombos = ViewBag.AvailableCombos as List<MovieBooking.DTOs.ComboDto> ?? new List<MovieBooking.DTOs.ComboDto>();
+            }
+            @if (availableCombos.Any())
+            {
+                <!-- Combos selection -->
+                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                    <div class="card-header bg-light fw-semibold d-flex justify-content-between align-items-center">
+                        <span>🍿 Chọn thêm Bắp Nước & Combo</span>
+                        <span class="badge bg-danger">Ưu đãi kèm vé</span>
+                    </div>
+                    <div class="card-body p-2">
+                        @foreach (var c in availableCombos)
+                        {
+                            <div class="d-flex align-items-center justify-content-between border-bottom py-2 px-2 combo-row" data-id="@c.ComboId" data-price="@c.Price">
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (!string.IsNullOrWhiteSpace(c.ImageUrl))
+                                    {
+                                        <img src="@c.ImageUrl" class="rounded object-fit-cover" style="width: 48px; height: 48px;" onerror="this.src='/images/placeholder-combo.png';" />
+                                    }
+                                    else
+                                    {
+                                        <span class="fs-4">🍱</span>
+                                    }
+                                    <div>
+                                        <div class="fw-bold small">@c.Name</div>
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                            @string.Join(", ", c.Items.Select(i => $"{i.Quantity}x {i.FoodItemName}"))
+                                        </small>
+                                        <div class="text-danger small fw-bold">@c.Price.ToString("N0") ₫</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary btn-combo-minus" style="width: 28px; height: 28px; padding: 0;">-</button>
+                                    <input type="number" class="form-control form-control-sm text-center combo-qty" style="width: 42px;" value="0" min="0" max="20" readonly />
+                                    <button type="button" class="btn btn-sm btn-outline-secondary btn-combo-plus" style="width: 28px; height: 28px; padding: 0;">+</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
             <!-- Promo code -->
             <div class="card border-0 shadow-sm rounded-3 mb-3">
                 <div class="card-header bg-light fw-semibold">🏷️ Mã giảm giá</div>
@@ -199,13 +242,23 @@
     tick();
 
     // ── Price recalculation ──────────────────────────────────────────
-    const pricePerSeat  = @Model.PricePerSeat;
-    const seatCount     = @Model.HeldSeats.Count;
-    const subTotal      = pricePerSeat * seatCount;
+    const seatSubTotal  = @Model.HeldSeats.Sum(seat => seat.Price);
+
+    function getCombosTotal() {
+        let sum = 0;
+        document.querySelectorAll('.combo-row').forEach(row => {
+            const price = parseFloat(row.getAttribute('data-price')) || 0;
+            const qty = parseInt(row.querySelector('.combo-qty').value, 10) || 0;
+            sum += price * qty;
+        });
+        return sum;
+    }
 
     function recalc(discPct) {
-        const disc  = Math.round(subTotal * discPct / 100);
-        const total = subTotal - disc;
+        const comboTotal = getCombosTotal();
+        const subTotal   = seatSubTotal + comboTotal;
+        const disc       = Math.round(seatSubTotal * discPct / 100);
+        const total      = subTotal - disc;
 
         document.getElementById('displaySubtotal').textContent =
             subTotal.toLocaleString('vi-VN') + ' ₫';
@@ -217,6 +270,61 @@
 
         document.getElementById('discountRow').style.display = discPct > 0 ? '' : 'none';
     }
+
+    // Event listeners cho các nút tăng giảm combo
+    document.querySelectorAll('.btn-combo-plus').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const row = this.closest('.combo-row');
+            const input = row.querySelector('.combo-qty');
+            let val = parseInt(input.value, 10) || 0;
+            if (val < 20) {
+                input.value = val + 1;
+                recalc(parseFloat(document.getElementById('discountPercent').value) || 0);
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-combo-minus').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const row = this.closest('.combo-row');
+            const input = row.querySelector('.combo-qty');
+            let val = parseInt(input.value, 10) || 0;
+            if (val > 0) {
+                input.value = val - 1;
+                recalc(parseFloat(document.getElementById('discountPercent').value) || 0);
+            }
+        });
+    });
+
+    // Khi submit form confirm, đính kèm các combo đã chọn
+    document.getElementById('confirmForm').addEventListener('submit', function () {
+        // Xóa hidden inputs cũ nếu có
+        this.querySelectorAll('.dynamic-combo-input').forEach(el => el.remove());
+
+        let idx = 0;
+        document.querySelectorAll('.combo-row').forEach(row => {
+            const id = row.getAttribute('data-id');
+            const qty = parseInt(row.querySelector('.combo-qty').value, 10) || 0;
+            if (qty > 0) {
+                const inputId = document.createElement('input');
+                inputId.type = 'hidden';
+                inputId.name = `Combos[${idx}].ComboId`;
+                inputId.value = id;
+                inputId.className = 'dynamic-combo-input';
+                this.appendChild(inputId);
+
+                const inputQty = document.createElement('input');
+                inputQty.type = 'hidden';
+                inputQty.name = `Combos[${idx}].Quantity`;
+                inputQty.value = qty;
+                inputQty.className = 'dynamic-combo-input';
+                this.appendChild(inputQty);
+
+                idx++;
+            }
+        });
+    });
+
     recalc(parseFloat(document.getElementById('discountPercent').value) || 0);
 
     // ── Apply promo via AJAX ─────────────────────────────────────────

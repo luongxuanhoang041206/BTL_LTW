@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { dummyDateTimeData, dummyShowsData } from "../assets/assets";
+import { dummyShowsData } from "../assets/assets";
 import { BlurCicle } from "../components/BlurCircle";
 import { Heart, PlayCircleIcon, StarIcon, ClockIcon, CalendarIcon, FilmIcon, XIcon } from "lucide-react";
 import timeFormat from "../lib/timeFormat";
@@ -13,7 +13,6 @@ import toast from "react-hot-toast";
 export function MovieDetails() {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
-  const [showtimesData, setShowtimesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const navigate = useNavigate();
@@ -22,14 +21,12 @@ export function MovieDetails() {
     const fetchMovieData = async () => {
       setLoading(true);
       try {
-        const [movieRes, showtimesRes] = await Promise.all([
+        const [movieRes] = await Promise.all([
           api.get(`/api/movies/${id}`).catch(() => null),
-          api.get(`/api/movies/${id}/showtimes`).catch(() => null),
         ]);
 
         if (movieRes) {
           setMovie(movieRes);
-          setShowtimesData(showtimesRes);
         } else {
           // Fallback dummy
           const dummy = dummyShowsData.find((s) => s._id === id || s.id === Number(id));
@@ -187,8 +184,6 @@ export function MovieDetails() {
 
       {/* Date & Showtime Selector */}
       <DateSelect
-        dayGroups={showtimesData?.dayGroups || []}
-        dateTime={dummyDateTimeData}
         id={id}
       />
 

@@ -6,6 +6,8 @@ import { Favourite } from "./pages/Favourites.jsx";
 import App from "./App.jsx";
 import { createBrowserRouter } from "react-router";
 import { SeatLayout } from "./pages/SeatLayout.jsx";
+import { Payment } from "./pages/Payment.jsx";
+import { FoodSelection } from "./pages/FoodSelection.jsx";
 import { Layout } from "./pages/admin/Layout.jsx";
 import { DashBoard } from "./pages/admin/DashBoard.jsx";
 import { AddShows } from "./pages/admin/AddShows.jsx";
@@ -47,6 +49,14 @@ export const route = createBrowserRouter([
       {
         path: "booking",
         element: <Bookings />,
+      },
+      {
+        path: "payment/:bookingId",
+        element: <Payment />,
+      },
+      {
+        path: "foods/:showtimeId",
+        element: <FoodSelection />,
       },
       {
         path: "favourite",

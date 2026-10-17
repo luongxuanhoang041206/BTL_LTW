@@ -1,11 +1,9 @@
-<<<<<<< HEAD
 using System;
-=======
-﻿using System;
->>>>>>> main
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Models;
+using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace MovieBooking.Data;
 
@@ -46,27 +44,28 @@ public partial class MovieBookingContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-<<<<<<< HEAD
-=======
+    public virtual DbSet<FoodItem> FoodItems { get; set; }
+
+    public virtual DbSet<Combo> Combos { get; set; }
+
+    public virtual DbSet<ComboDetail> ComboDetails { get; set; }
+
+    public virtual DbSet<BookingCombo> BookingCombos { get; set; }
+    public virtual DbSet<BookingFood> BookingFoods { get; set; }
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
 
-
->>>>>>> main
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
         {
-<<<<<<< HEAD
-            optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=MovieBookingDB;Trusted_Connection=True;TrustServerCertificate=True");
-=======
             var config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false)
                 .AddJsonFile("appsettings.Development.json", optional: true)
                 .Build();
 
-            optionsBuilder.UseSqlServer(config.GetConnectionString("DefaultConnection"));
->>>>>>> main
+            optionsBuilder.UseSqlServer(
+                config.GetConnectionString("DefaultConnection"));
         }
     }
 
@@ -280,6 +279,9 @@ public partial class MovieBookingContext : DbContext
             entity.HasIndex(e => new { e.MovieId, e.ShowDate }, "IX_Showtimes_MovieId_ShowDate");
 
             entity.Property(e => e.Price).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.VipMultiplier)
+                .HasPrecision(5, 2)
+                .HasDefaultValue(1.20m);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
@@ -350,16 +352,84 @@ public partial class MovieBookingContext : DbContext
             entity.Property(e => e.Status).HasDefaultValue(true);
         });
 
-<<<<<<< HEAD
-=======
+
+        modelBuilder.Entity<FoodItem>(entity =>
+        {
+            entity.HasKey(e => e.FoodItemId);
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.Category).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<Combo>(entity =>
+        {
+            entity.HasKey(e => e.ComboId);
+
+            entity.Property(e => e.Name)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+        });
+
+        modelBuilder.Entity<ComboDetail>(entity =>
+        {
+            entity.HasKey(e => new { e.ComboId, e.FoodItemId });
+
+            entity.HasOne(e => e.Combo)
+                .WithMany(e => e.ComboDetails)
+                .HasForeignKey(e => e.ComboId);
+
+            entity.HasOne(e => e.FoodItem)
+                .WithMany(e => e.ComboDetails)
+                .HasForeignKey(e => e.FoodItemId);
+        });
+
+        modelBuilder.Entity<BookingCombo>(entity =>
+        {
+            entity.HasKey(e => e.BookingComboId);
+
+            entity.Property(e => e.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            entity.HasOne(e => e.Booking)
+                .WithMany(b => b.BookingCombos)
+                .HasForeignKey(e => e.BookingId);
+
+            entity.HasOne(e => e.Combo)
+                .WithMany(e => e.BookingCombos)
+                .HasForeignKey(e => e.ComboId);
+        });
+
+        modelBuilder.Entity<BookingFood>(entity =>
+        {
+            entity.HasKey(e => e.BookingFoodId);
+            entity.Property(e => e.FoodName).HasMaxLength(150).IsRequired();
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+            entity.HasOne(e => e.Booking)
+                .WithMany(b => b.BookingFoods)
+                .HasForeignKey(e => e.BookingId);
+            entity.HasOne(e => e.FoodItem)
+                .WithMany(f => f.BookingFoods)
+                .HasForeignKey(e => e.FoodItemId);
+        });
+
         modelBuilder.Entity<BankTransaction>(entity =>
         {
             entity.HasIndex(x => x.ProviderTransactionId).IsUnique();
             entity.Property(x => x.Amount).HasPrecision(18, 2);
             entity.Property(x => x.Result).HasMaxLength(50);
         });
-
->>>>>>> main
         OnModelCreatingPartial(modelBuilder);
     }
 

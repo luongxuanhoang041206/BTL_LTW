@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Bogus;
 using MovieBooking.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MovieBooking.Data;
 
@@ -10,7 +11,15 @@ public static class DataSeeder
 {
     public static void Seed(MovieBookingContext context)
     {
-        // Kiểm tra nếu đã có dữ liệu thì không seed lại
+        // Kiểm tra nếu chưa có FoodItems thì seed F&B và Combos
+        if (!context.FoodItems.Any())
+        {
+            SeedFoodAndCombos(context);
+        }
+
+        // (removed duplicate quick-initialization) The main seeding below will create Cinemas/Rooms/Seats/Showtimes
+
+        // Kiểm tra nếu đã có dữ liệu phim/user thì không seed lại phần core
         if (context.Users.Any() || context.Movies.Any())
         {
             return;
@@ -30,6 +39,53 @@ public static class DataSeeder
         };
         context.Genres.AddRange(genres);
         context.SaveChanges();
+
+        // 6. Optionally seed a demo pending booking (only when necessary). We'll create a Pending booking
+        // that holds a seat but does NOT create a payment record to avoid faking transactions.
+        if (!context.Bookings.Any())
+        {
+            var customer = context.Users.FirstOrDefault(u => u.Role == "Customer");
+            var showtime = context.Showtimes.Include(s => s.Room).FirstOrDefault(s => s.Status == "Active");
+
+            if (customer != null && showtime != null)
+            {
+                var availableShowtimeSeat = context.ShowtimeSeats
+                    .Where(ss => ss.ShowtimeId == showtime.ShowtimeId && ss.Status == "Available")
+                    .FirstOrDefault();
+
+                if (availableShowtimeSeat != null)
+                {
+                    var booking = new Booking
+                    {
+                        UserId = customer.UserId,
+                        ShowtimeId = showtime.ShowtimeId,
+                        BookingDate = DateTime.Now,
+                        Status = "Pending",
+                        TotalAmount = showtime.Price,
+                    };
+                    context.Bookings.Add(booking);
+                    context.SaveChanges();
+
+                    // create BookingDetail
+                    var bookingDetail = new BookingDetail
+                    {
+                        BookingId = booking.BookingId,
+                        ShowtimeSeatId = availableShowtimeSeat.ShowtimeSeatId,
+                        Price = showtime.Price
+                    };
+                    context.BookingDetails.Add(bookingDetail);
+
+                    // mark seat as Holding (not Booked) and lock to the user for a short time
+                    availableShowtimeSeat.Status = "Holding";
+                    availableShowtimeSeat.LockedByUserId = customer.UserId;
+                    availableShowtimeSeat.HoldExpiresAt = DateTime.Now.AddMinutes(30);
+                    context.ShowtimeSeats.Update(availableShowtimeSeat);
+
+                    context.SaveChanges();
+                    // Do NOT create Payment here to avoid inserting fake paid transactions.
+                }
+            }
+        }
 
         // 2. Seed Users
         var users = new List<User>
@@ -327,6 +383,129 @@ public static class DataSeeder
             }
         };
         context.Promotions.AddRange(promotions);
+        context.SaveChanges();
+    }
+
+    private static void SeedFoodAndCombos(MovieBookingContext context)
+    {
+        var foods = new List<FoodItem>
+        {
+            new FoodItem
+            {
+                Name = "Bắp rang ngọt (Vừa)",
+                Description = "Bắp rang vị ngọt truyền thống giòn tan thơm lừng",
+                Category = "Bắp rang",
+                Price = 45000,
+                ImageUrl = "https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=500&q=80",
+                IsActive = true
+            },
+            new FoodItem
+            {
+                Name = "Bắp rang phô mai (Lớn)",
+                Description = "Bắp rang lắc bột phô mai béo ngậy thơm ngon",
+                Category = "Bắp rang",
+                Price = 65000,
+                ImageUrl = "https://images.unsplash.com/photo-1585647347483-22b66260dfff?auto=format&fit=crop&w=500&q=80",
+                IsActive = true
+            },
+            new FoodItem
+            {
+                Name = "Bắp rang caramel (Lớn)",
+                Description = "Bắp rang phủ caramel đậm đà ngọt ngào",
+                Category = "Bắp rang",
+                Price = 65000,
+                ImageUrl = "https://images.unsplash.com/photo-1505686994434-e3cc5abf1330?auto=format&fit=crop&w=500&q=80",
+                IsActive = true
+            },
+            new FoodItem
+            {
+                Name = "Coca-Cola (Lớn)",
+                Description = "Nước ngọt Coca-Cola có ga mát lạnh 32oz",
+                Category = "Nước ngọt",
+                Price = 35000,
+                ImageUrl = "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=500&q=80",
+                IsActive = true
+            },
+            new FoodItem
+            {
+                Name = "Sprite (Lớn)",
+                Description = "Nước giải khát vị chanh thơm sảng khoái 32oz",
+                Category = "Nước ngọt",
+                Price = 35000,
+                ImageUrl = "https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?auto=format&fit=crop&w=500&q=80",
+                IsActive = true
+            },
+            new FoodItem
+            {
+                Name = "Nước khoáng Dasani (500ml)",
+                Description = "Nước khoáng tinh khiết thanh mát",
+                Category = "Nước ngọt",
+                Price = 20000,
+                ImageUrl = "https://images.unsplash.com/photo-1559839914-17aae19cec71?auto=format&fit=crop&w=500&q=80",
+                IsActive = true
+            },
+            new FoodItem
+            {
+                Name = "Xúc xích nướng phô mai",
+                Description = "Xúc xích Đức nướng phô mai thơm nóng hổi",
+                Category = "Đồ ăn vặt",
+                Price = 40000,
+                ImageUrl = "https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&w=500&q=80",
+                IsActive = true
+            }
+        };
+
+        context.FoodItems.AddRange(foods);
+        context.SaveChanges();
+
+        // Seed Combos
+        var combo1 = new Combo
+        {
+            Name = "Combo Solo (1 Bắp ngọt + 1 Coca)",
+            Description = "Dành riêng cho 1 người: 1 bắp rang ngọt vừa và 1 ly Coca-Cola lớn",
+            Price = 69000,
+            ImageUrl = "https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?auto=format&fit=crop&w=500&q=80",
+            IsActive = true
+        };
+
+        var combo2 = new Combo
+        {
+            Name = "Combo Couple (1 Bắp phô mai + 2 Nước ngọt)",
+            Description = "Gói đôi tiết kiệm: 1 bắp rang phô mai lớn và 2 ly nước ngọt lớn tự chọn",
+            Price = 119000,
+            ImageUrl = "https://images.unsplash.com/photo-1572177812156-58036aae439c?auto=format&fit=crop&w=500&q=80",
+            IsActive = true
+        };
+
+        var combo3 = new Combo
+        {
+            Name = "Combo Party (2 Bắp lớn + 3 Nước ngọt + 1 Xúc xích)",
+            Description = "Trọn vẹn xem phim cùng nhóm bạn: 2 bắp lớn, 3 ly nước ngọt và 1 phần xúc xích",
+            Price = 229000,
+            ImageUrl = "https://images.unsplash.com/photo-1585647347483-22b66260dfff?auto=format&fit=crop&w=500&q=80",
+            IsActive = true
+        };
+
+        context.Combos.AddRange(combo1, combo2, combo3);
+        context.SaveChanges();
+
+        // Seed Combo Details
+        context.ComboDetails.AddRange(
+            // Combo Solo
+            new ComboDetail { ComboId = combo1.ComboId, FoodItemId = foods[0].FoodItemId, Quantity = 1 },
+            new ComboDetail { ComboId = combo1.ComboId, FoodItemId = foods[3].FoodItemId, Quantity = 1 },
+
+            // Combo Couple
+            new ComboDetail { ComboId = combo2.ComboId, FoodItemId = foods[1].FoodItemId, Quantity = 1 },
+            new ComboDetail { ComboId = combo2.ComboId, FoodItemId = foods[3].FoodItemId, Quantity = 2 },
+
+            // Combo Party
+            new ComboDetail { ComboId = combo3.ComboId, FoodItemId = foods[1].FoodItemId, Quantity = 1 },
+            new ComboDetail { ComboId = combo3.ComboId, FoodItemId = foods[2].FoodItemId, Quantity = 1 },
+            new ComboDetail { ComboId = combo3.ComboId, FoodItemId = foods[3].FoodItemId, Quantity = 2 },
+            new ComboDetail { ComboId = combo3.ComboId, FoodItemId = foods[4].FoodItemId, Quantity = 1 },
+            new ComboDetail { ComboId = combo3.ComboId, FoodItemId = foods[6].FoodItemId, Quantity = 1 }
+        );
         context.SaveChanges();
     }
 }

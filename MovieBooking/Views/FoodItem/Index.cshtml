@@ -1,0 +1,164 @@
+@model IEnumerable<MovieBooking.Models.FoodItem>
+
+@{
+    ViewData["Title"] = "Quản lý món ăn & đồ uống";
+    var categories = ViewBag.Categories as List<string> ?? new List<string>();
+    var selectedCategory = ViewBag.SelectedCategory as string;
+    var selectedIsActive = ViewBag.SelectedIsActive as bool?;
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">🍿 Quản lý Món ăn & Đồ uống</h2>
+            <p class="text-muted mb-0">Danh sách các món ăn, đồ uống dùng phục vụ tại rạp</p>
+        </div>
+        <div>
+            <a asp-area="Admin" asp-controller="FoodItem" asp-action="Create" class="btn btn-primary">
+                ➕ Thêm món mới
+            </a>
+            <a asp-area="Admin" asp-controller="Combo" asp-action="Index" class="btn btn-outline-dark ms-2">
+                🍱 Quản lý Combo
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <span>✅ @TempData["Success"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span>⚠️ @TempData["Error"]</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Bộ lọc -->
+    <div class="card mb-4 shadow-sm border-0 bg-light">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Danh mục</label>
+                    <select name="category" class="form-select">
+                        <option value="">-- Tất cả danh mục --</option>
+                        @foreach (var cat in categories)
+                        {
+                            <option value="@cat" selected="@(selectedCategory == cat ? "selected" : null)">@cat</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Trạng thái kinh doanh</label>
+                    <select name="isActive" class="form-select">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="true" selected="@(selectedIsActive == true ? "selected" : null)">Đang kinh doanh</option>
+                        <option value="false" selected="@(selectedIsActive == false ? "selected" : null)">Ngừng kinh doanh</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark w-50">Lọc dữ liệu</button>
+                    <a asp-area="Admin" asp-controller="FoodItem" asp-action="Index" class="btn btn-outline-secondary w-50">Xóa lọc</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bảng danh sách -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 70px;">Ảnh</th>
+                            <th>Tên món</th>
+                            <th>Danh mục</th>
+                            <th>Giá bán</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end" style="width: 220px;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    Không có món ăn nào phù hợp với điều kiện tìm kiếm.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                        {
+                                            <img src="@item.ImageUrl" alt="@item.Name" class="rounded object-fit-cover" style="width: 50px; height: 50px;" onerror="this.src='/images/placeholder-food.png';" />
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                                                🍿
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">@item.Name</div>
+                                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                                        {
+                                            <small class="text-muted text-truncate d-block" style="max-width: 300px;">@item.Description</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@item.Category</span>
+                                    </td>
+                                    <td class="fw-bold text-success">
+                                        @item.Price.ToString("N0") đ
+                                    </td>
+                                    <td>
+                                        @if (item.IsActive)
+                                        {
+                                            <span class="badge bg-success">Đang bán</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Ngừng bán</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <form asp-area="Admin" asp-controller="FoodItem" asp-action="ToggleStatus" asp-route-id="@item.FoodItemId" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm @(item.IsActive ? "btn-outline-warning" : "btn-outline-success")" title="@(item.IsActive ? "Tạm dừng kinh doanh" : "Kích hoạt kinh doanh")">
+                                                @(item.IsActive ? "Tắt" : "Bật")
+                                            </button>
+                                        </form>
+
+                                        <a asp-area="Admin" asp-controller="FoodItem" asp-action="Details" asp-route-id="@item.FoodItemId" class="btn btn-sm btn-outline-info" title="Xem chi tiết">
+                                            Chi tiết
+                                        </a>
+
+                                        <a asp-area="Admin" asp-controller="FoodItem" asp-action="Edit" asp-route-id="@item.FoodItemId" class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
+                                            Sửa
+                                        </a>
+
+                                        <a asp-area="Admin" asp-controller="FoodItem" asp-action="Delete" asp-route-id="@item.FoodItemId" class="btn btn-sm btn-outline-danger" title="Xóa món">
+                                            Xóa
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

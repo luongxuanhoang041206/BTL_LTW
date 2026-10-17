@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace MovieBooking.Models;
@@ -28,4 +28,8 @@ public partial class Booking
     public virtual Showtime Showtime { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<BookingCombo> BookingCombos { get; set; } = new List<BookingCombo>();
+
+    public virtual ICollection<BookingFood> BookingFoods { get; set; } = new List<BookingFood>();
 }

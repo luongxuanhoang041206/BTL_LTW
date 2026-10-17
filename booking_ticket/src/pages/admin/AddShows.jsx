@@ -299,7 +299,6 @@ export function AddShows() {
           {isSubmitting ? "Đang lưu suất chiếu..." : "Xác Nhận Tạo Suất Chiếu"}
         </button>
       </div>
-      </>}
     </>
   );
 }

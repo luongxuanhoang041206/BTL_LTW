@@ -41,7 +41,6 @@ public class MovieController : Controller
             return View("~/Views/Movie/Create.cshtml", model);
         }
 
-<<<<<<< HEAD
         if (await _movieService.MovieTitleExistsAsync(model.Title))
         {
             ModelState.AddModelError(nameof(model.Title), "Tên phim này đã tồn tại.");
@@ -49,8 +48,6 @@ public class MovieController : Controller
             return View("~/Views/Movie/Create.cshtml", model);
         }
 
-=======
->>>>>>> main
         var movie = await _movieService.CreateMovieAsync(model);
         TempData["Success"] = "Tạo phim mới thành công.";
         return RedirectToAction("Details", "Movie", new { area = "", id = movie.MovieId });
@@ -60,11 +57,7 @@ public class MovieController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-<<<<<<< HEAD
         var movie = await _movieService.GetMovieByIdAsync(id, includeExpired: true);
-=======
-        var movie = await _movieService.GetMovieByIdAsync(id);
->>>>>>> main
         if (movie == null)
         {
             return NotFound();
@@ -103,7 +96,6 @@ public class MovieController : Controller
             return View("~/Views/Movie/Edit.cshtml", model);
         }
 
-<<<<<<< HEAD
         if (await _movieService.MovieTitleExistsAsync(model.Title, id))
         {
             ModelState.AddModelError(nameof(model.Title), "Tên phim này đã được sử dụng bởi phim khác.");
@@ -111,8 +103,6 @@ public class MovieController : Controller
             return View("~/Views/Movie/Edit.cshtml", model);
         }
 
-=======
->>>>>>> main
         if (!await _movieService.UpdateMovieAsync(id, model))
         {
             return NotFound();
@@ -126,11 +116,7 @@ public class MovieController : Controller
     [HttpGet]
     public async Task<IActionResult> Delete(int id)
     {
-<<<<<<< HEAD
         var movie = await _movieService.GetMovieByIdAsync(id, includeExpired: true);
-=======
-        var movie = await _movieService.GetMovieByIdAsync(id);
->>>>>>> main
         return movie == null
             ? NotFound()
             : View("~/Views/Movie/Delete.cshtml", movie);
@@ -149,8 +135,4 @@ public class MovieController : Controller
         TempData["Success"] = "Xóa phim thành công.";
         return RedirectToAction("Index", "Movie", new { area = "" });
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> main

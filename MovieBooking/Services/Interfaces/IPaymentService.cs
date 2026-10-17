@@ -5,6 +5,12 @@ namespace MovieBooking.Services.Interfaces;
 
 public interface IPaymentService
 {
+    Task<(bool Success, int? PaymentId, string? Error)> ProcessPaymentAsync(
+        int bookingId,
+        int userId,
+        string method,
+        bool simulateFailure = false);
+
     /// <summary>
     /// Xử lý thanh toán cho một booking.
     /// Tạo Payment record, cập nhật trạng thái Booking.

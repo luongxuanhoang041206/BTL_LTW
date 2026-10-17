@@ -1,0 +1,73 @@
+@model MovieBooking.Models.FoodItem
+
+@{
+    ViewData["Title"] = "Xóa món ăn - " + Model.Name;
+    bool canDelete = ViewBag.CanDelete as bool? ?? false;
+    string? reason = ViewBag.Reason as string;
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-danger mb-1">🗑️ Xóa Món Ăn / Đồ Uống</h2>
+            <p class="text-muted mb-0">Xác nhận thao tác xóa món khỏi cơ sở dữ liệu</p>
+        </div>
+        <a asp-area="Admin" asp-controller="FoodItem" asp-action="Index" class="btn btn-outline-secondary">
+            Quay lại
+        </a>
+    </div>
+
+    @if (!canDelete)
+    {
+        <div class="alert alert-warning shadow-sm border-0" role="alert">
+            <h5 class="alert-heading fw-bold">⚠️ Không thể xóa món ăn này!</h5>
+            <p class="mb-2">@reason</p>
+            <hr>
+            <div class="d-flex gap-2">
+                <form asp-area="Admin" asp-controller="FoodItem" asp-action="ToggleStatus" asp-route-id="@Model.FoodItemId" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-warning">
+                        ⏸️ @(Model.IsActive ? "Ngừng kinh doanh món này (Tắt IsActive)" : "Kích hoạt lại")
+                    </button>
+                </form>
+                <a asp-area="Admin" asp-controller="FoodItem" asp-action="Index" class="btn btn-secondary">Về danh sách</a>
+            </div>
+        </div>
+    }
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">Thông tin món cần xóa:</h5>
+            <dl class="row mb-4">
+                <dt class="col-sm-3 text-muted">Tên món:</dt>
+                <dd class="col-sm-9 fw-bold">@Model.Name</dd>
+
+                <dt class="col-sm-3 text-muted">Danh mục:</dt>
+                <dd class="col-sm-9"><span class="badge bg-secondary">@Model.Category</span></dd>
+
+                <dt class="col-sm-3 text-muted">Giá bán:</dt>
+                <dd class="col-sm-9 text-success fw-bold">@Model.Price.ToString("N0") đ</dd>
+
+                <dt class="col-sm-3 text-muted">Trạng thái:</dt>
+                <dd class="col-sm-9">@(Model.IsActive ? "Đang bán" : "Ngừng bán")</dd>
+
+                <dt class="col-sm-3 text-muted">Mô tả:</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Description) ? "Không có" : Model.Description)</dd>
+            </dl>
+
+            @if (canDelete)
+            {
+                <div class="alert alert-danger py-2 mb-3">
+                    Bạn có chắc chắn muốn xóa vĩnh viễn món này? Hành động này không thể hoàn tác!
+                </div>
+
+                <form asp-area="Admin" asp-controller="FoodItem" asp-action="Delete" asp-route-id="@Model.FoodItemId" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="FoodItemId" />
+                    <button type="submit" class="btn btn-danger px-4">Xác nhận xóa</button>
+                    <a asp-area="Admin" asp-controller="FoodItem" asp-action="Index" class="btn btn-outline-secondary ms-2 px-4">Hủy</a>
+                </form>
+            }
+        </div>
+    </div>
+</div>

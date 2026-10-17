@@ -9,8 +9,11 @@ public interface IBookingService
 {
     // --- Showtime selection (entry point) ---
 
-    /// <summary>Lấy danh sách suất chiếu của một phim, nhóm theo ngày.</summary>
-    Task<ShowtimeSelectionViewModel?> GetShowtimeSelectionAsync(int movieId);
+    /// <summary>Lấy danh sách suất chiếu của một phim, nhóm theo ngày. Nếu cinemaId != null thì lọc theo rạp.</summary>
+    Task<ShowtimeSelectionViewModel?> GetShowtimeSelectionAsync(int movieId, int? cinemaId = null, DateOnly? date = null, string? city = null, string? roomType = null);
+
+    /// <summary>Lấy danh sách rạp đang chiếu một phim cụ thể.</summary>
+    Task<List<CinemaItemViewModel>> GetCinemasForMovieAsync(int movieId);
 
     // --- Seat map ---
 

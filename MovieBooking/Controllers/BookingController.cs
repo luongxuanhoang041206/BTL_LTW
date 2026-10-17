@@ -14,26 +14,24 @@ namespace MovieBooking.Controllers;
 public class BookingController : Controller
 {
     private readonly IBookingService _bookingService;
-<<<<<<< HEAD
-    private readonly IPaymentService _paymentService;
+    private readonly IFoodService _foodService;
+    private readonly MovieBooking.Data.MovieBookingContext _context;
 
-=======
->>>>>>> main
     // Session keys
     private const string SessionHeldSeatIds  = "HeldSeatIds";      // JSON list<int> ShowtimeSeatId
     private const string SessionHeldShowtime = "HeldShowtimeId";   // int
     private const string SessionHoldExpires  = "HoldExpiresAt";    // ISO8601 string
     private const string SessionPromoCode    = "HeldPromoCode";    // string
 
-    public BookingController(IBookingService bookingService, IPaymentService paymentService)
+    public BookingController(
+        IBookingService bookingService,
+        IFoodService foodService,
+        MovieBooking.Data.MovieBookingContext context)
     {
-<<<<<<< HEAD
         _bookingService = bookingService;
-        _paymentService = paymentService;
+        _foodService = foodService;
+        _context = context;
     }
-=======
-        _bookingService = bookingService;    }
->>>>>>> main
 
     private int GetCurrentUserId() => HttpContext.Session.GetInt32("UserId")!.Value;
 
@@ -169,7 +167,9 @@ public class BookingController : Controller
                         ShowtimeSeatId = seat.ShowtimeSeatId,
                         SeatLabel      = $"{seat.SeatRow}{seat.SeatNumber}",
                         SeatType       = seat.SeatType,
-                        Price          = seatMap.PricePerSeat
+                        Price          = seat.SeatType == "VIP"
+                            ? seatMap.PricePerSeatVip
+                            : seatMap.PricePerSeat
                     });
                 }
             }
@@ -209,6 +209,7 @@ public class BookingController : Controller
             DiscountPercent  = discountPercent
         };
 
+        ViewBag.AvailableCombos = await _foodService.GetActiveCombosAsync();
         return View(vm);
     }
 
@@ -266,6 +267,22 @@ public class BookingController : Controller
             return RedirectToAction(nameof(SelectSeat), new { showtimeId = showtimeId.Value });
         }
 
+        // Lọc các combo có Quantity > 0
+        var validComboRequests = request.Combos?.Where(c => c.ComboId > 0 && c.Quantity > 0).ToList();
+
+        // 1. Validate combos trước nếu có chọn
+        decimal comboTotalAmount = 0m;
+        if (validComboRequests != null && validComboRequests.Count > 0)
+        {
+            var (comboValid, comboTotal, _, comboError) = await _foodService.ValidateAndCalculateCombosAsync(validComboRequests);
+            if (!comboValid)
+            {
+                TempData["Error"] = comboError ?? "Combo không hợp lệ.";
+                return RedirectToAction(nameof(Confirm));
+            }
+            comboTotalAmount = comboTotal;
+        }
+
         var userId    = GetCurrentUserId();
         var promoCode = !string.IsNullOrWhiteSpace(request.PromoCode)
             ? request.PromoCode
@@ -286,69 +303,33 @@ public class BookingController : Controller
             return RedirectToAction(nameof(Confirm));
         }
 
+        // 2. Lưu combo vào BookingCombos nếu có chọn
+        if (validComboRequests != null && validComboRequests.Count > 0)
+        {
+            var (saveComboSuccess, saveComboError) = await _foodService.SaveBookingCombosAsync(bookingId!.Value, validComboRequests);
+            if (!saveComboSuccess)
+            {
+                TempData["Error"] = saveComboError;
+            }
+            else
+            {
+                var bookingRecord = await _context.Bookings.FindAsync(bookingId.Value);
+                if (bookingRecord != null)
+                {
+                    bookingRecord.TotalAmount += comboTotalAmount;
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
+
         ClearHoldSession();
-<<<<<<< HEAD
-        return RedirectToAction(nameof(Payment), new { bookingId = bookingId!.Value });
-=======
-        return RedirectToAction("Payment", "Payment",  new { bookingId = bookingId!.Value }); // tro sang controller Payment
->>>>>>> main
+        return RedirectToAction("Payment", "Payment", new { bookingId = bookingId!.Value });
     }
 
     // -----------------------------------------------------------------------
     // PAYMENT — GET
     // GET /Booking/Payment/{bookingId}
     // -----------------------------------------------------------------------
-
-<<<<<<< HEAD
-    public async Task<IActionResult> Payment(int bookingId)
-    {
-        var userId = GetCurrentUserId();
-        var vm = await _bookingService.GetPaymentViewModelAsync(bookingId, userId);
-
-        if (vm == null)
-        {
-            TempData["Error"] = "Booking không hợp lệ hoặc đã được xử lý.";
-            return RedirectToAction(nameof(History));
-        }
-
-        return View(vm);
-    }
-=======
-    //Da tach controller rieng
->>>>>>> main
-
-    // -----------------------------------------------------------------------
-    // PROCESS PAYMENT — POST
-    // POST /Booking/ProcessPayment
-    // -----------------------------------------------------------------------
-
-<<<<<<< HEAD
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ProcessPayment(PaymentRequest request)
-    {
-        if (!ModelState.IsValid)
-        {
-            TempData["Error"] = "Vui lòng chọn phương thức thanh toán.";
-            return RedirectToAction(nameof(Payment), new { bookingId = request.BookingId });
-        }
-
-        var userId = GetCurrentUserId();
-        var (success, _, error) = await _paymentService.ProcessPaymentAsync(
-            request.BookingId, userId, request.Method, request.SimulateFailure);
-
-        if (!success)
-        {
-            TempData["Error"] = error ?? "Thanh toán thất bại. Vui lòng thử lại.";
-            return RedirectToAction(nameof(Payment), new { bookingId = request.BookingId });
-        }
-
-        TempData["Success"] = "Đặt vé thành công!";
-        return RedirectToAction(nameof(BookingSuccess), new { bookingId = request.BookingId });
-    }
-=======
-    //Da tach controller rieng
->>>>>>> main
 
     // -----------------------------------------------------------------------
     // SUCCESS

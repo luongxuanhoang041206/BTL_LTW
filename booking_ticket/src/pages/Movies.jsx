@@ -10,6 +10,7 @@ export function Movies() {
   const [movies, setMovies] = useState([]);
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState("all");
+  const [movieStatus, setMovieStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +51,11 @@ export function Movies() {
         : m.genres?.some((g) =>
             (typeof g === "string" ? g : g.name).toLowerCase() === selectedGenre.toLowerCase()
           );
-    return matchSearch && matchGenre;
+    const normalizedStatus = (m.status || "").toLowerCase().replace(/[ _-]/g, "");
+    const matchStatus = movieStatus === "all" ||
+      (movieStatus === "now" && ["showing", "nowshowing"].includes(normalizedStatus)) ||
+      (movieStatus === "coming" && normalizedStatus === "comingsoon");
+    return matchSearch && matchGenre && matchStatus;
   });
 
   return (
@@ -76,6 +81,22 @@ export function Movies() {
             className="w-full bg-gray-900 border border-gray-700 rounded-full pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-primary transition"
           />
         </div>
+      </div>
+
+      <div className="mb-5 flex flex-wrap gap-2" aria-label="Lọc trạng thái phim">
+        {[
+          ["all", "Tất cả phim"],
+          ["now", "Đang chiếu"],
+          ["coming", "Sắp chiếu"],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            onClick={() => setMovieStatus(value)}
+            className={`rounded-full px-4 py-2 text-sm transition ${movieStatus === value ? "bg-primary font-semibold text-white" : "border border-white/10 bg-gray-800 text-gray-300 hover:text-white"}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Genre Filter Pills */}
@@ -118,7 +139,7 @@ export function Movies() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <p className="text-xl text-gray-400">Không tìm thấy phim phù hợp.</p>
           <button
-            onClick={() => { setSelectedGenre("all"); setSearchTerm(""); }}
+            onClick={() => { setSelectedGenre("all"); setMovieStatus("all"); setSearchTerm(""); }}
             className="mt-4 px-4 py-2 text-sm text-primary hover:underline cursor-pointer"
           >
             Đặt lại bộ lọc

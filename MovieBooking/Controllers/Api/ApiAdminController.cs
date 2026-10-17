@@ -33,7 +33,6 @@ public class ApiAdminController : ControllerBase
         return role == "Admin";
     }
 
-<<<<<<< HEAD
     private static DateOnly VietnamToday => DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
 
     [HttpGet("movies")]
@@ -104,8 +103,6 @@ public class ApiAdminController : ControllerBase
         });
     }
 
-=======
->>>>>>> main
     [HttpGet("dashboard")]
     public async Task<IActionResult> GetDashboard()
     {
@@ -179,10 +176,7 @@ public class ApiAdminController : ControllerBase
         public string Date { get; set; } = string.Empty; // yyyy-MM-dd
         public string StartTime { get; set; } = string.Empty; // HH:mm
         public decimal Price { get; set; }
-<<<<<<< HEAD
         public decimal? VipMultiplier { get; set; }
-=======
->>>>>>> main
     }
 
     public class UpdateShowRequest
@@ -226,10 +220,7 @@ public class ApiAdminController : ControllerBase
             StartTime = startTime,
             EndTime = endTime,
             Price = request.Price > 0 ? request.Price : 75000,
-<<<<<<< HEAD
             VipMultiplier = (request.VipMultiplier.HasValue && request.VipMultiplier.Value > 0) ? request.VipMultiplier.Value : 1.2m,
-=======
->>>>>>> main
             Status = "Active"
         };
 
@@ -414,27 +405,21 @@ public class ApiAdminController : ControllerBase
     [HttpPost("movies")]
     public async Task<IActionResult> CreateMovie([FromBody] MovieFormDto model)
     {
-<<<<<<< HEAD
         if (!IsAdmin())
         {
             return Unauthorized(new { message = "Bạn cần đăng nhập bằng tài khoản Admin." });
         }
 
-=======
->>>>>>> main
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-<<<<<<< HEAD
         if (await _movieService.MovieTitleExistsAsync(model.Title))
         {
             return Conflict(new { message = "Tên phim này đã tồn tại." });
         }
 
-=======
->>>>>>> main
         var movie = await _movieService.CreateMovieAsync(model);
         return Ok(new
         {
@@ -448,27 +433,21 @@ public class ApiAdminController : ControllerBase
     [HttpPut("movies/{id}")]
     public async Task<IActionResult> UpdateMovie(int id, [FromBody] MovieFormDto model)
     {
-<<<<<<< HEAD
         if (!IsAdmin())
         {
             return Unauthorized(new { message = "Bạn cần đăng nhập bằng tài khoản Admin." });
         }
 
-=======
->>>>>>> main
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-<<<<<<< HEAD
         if (await _movieService.MovieTitleExistsAsync(model.Title, id))
         {
             return Conflict(new { message = "Tên phim này đã được sử dụng bởi phim khác." });
         }
 
-=======
->>>>>>> main
         var success = await _movieService.UpdateMovieAsync(id, model);
         if (!success)
         {
@@ -485,7 +464,6 @@ public class ApiAdminController : ControllerBase
     [HttpDelete("movies/{id}")]
     public async Task<IActionResult> DeleteMovie(int id)
     {
-<<<<<<< HEAD
         if (!IsAdmin())
         {
             return Unauthorized(new { message = "Bạn cần đăng nhập bằng tài khoản Admin." });
@@ -502,8 +480,6 @@ public class ApiAdminController : ControllerBase
             return Conflict(new { message = "Không thể xóa phim đã có suất chiếu hoặc đánh giá." });
         }
 
-=======
->>>>>>> main
         var success = await _movieService.DeleteMovieAsync(id);
         if (!success)
         {

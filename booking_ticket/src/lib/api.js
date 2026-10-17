@@ -32,8 +32,8 @@ export const api = {
     }
   },
 
-  get(path) {
-    return this.request(path, { method: "GET" });
+  get(path, options = {}) {
+    return this.request(path, { ...options, method: "GET" });
   },
 
   post(path, body) {

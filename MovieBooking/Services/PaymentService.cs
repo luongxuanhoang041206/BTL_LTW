@@ -1,31 +1,24 @@
-<<<<<<< HEAD
 using System;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
-using MovieBooking.Models;
-using MovieBooking.Services.Interfaces;
-=======
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Data;
 using MovieBooking.DTOs;
 using MovieBooking.Models;
 using MovieBooking.Services.Interfaces;
-using System;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
->>>>>>> main
+using Microsoft.Extensions.Configuration;
 
 namespace MovieBooking.Services;
 
 public class PaymentService : IPaymentService
 {
     private readonly MovieBookingContext _context;
-<<<<<<< HEAD
+    private readonly IConfiguration _config;
 
-    public PaymentService(MovieBookingContext context)
+    public PaymentService(MovieBookingContext context, IConfiguration config)
     {
         _context = context;
+        _config = config;
     }
 
     public async Task<(bool Success, int? PaymentId, string? Error)> ProcessPaymentAsync(
@@ -43,45 +36,31 @@ public class PaymentService : IPaymentService
         if (booking.Status != "Pending")
             return (false, null, "Booking này không ở trạng thái chờ thanh toán.");
 
-        var now = DateTime.Now;
-
-        // Tạo Payment record mới cho mỗi lần thử
         var payment = new Payment
         {
-            BookingId       = bookingId,
-            Amount          = booking.TotalAmount,
-            Method          = method,
+            BookingId = bookingId,
+            Amount = booking.TotalAmount,
+            Method = method,
             TransactionCode = GenerateTransactionCode(method),
-            PaymentStatus   = "Pending",
-            PaidAt          = null
+            PaymentStatus = "Pending",
+            PaidAt = null
         };
         _context.Payments.Add(payment);
-        await _context.SaveChangesAsync(); // Lấy PaymentId
+        await _context.SaveChangesAsync();
 
         if (simulateFailure)
         {
-            // Giả lập thất bại (dev mode)
             payment.PaymentStatus = "Failed";
             await _context.SaveChangesAsync();
             return (false, payment.PaymentId, "Thanh toán thất bại (giả lập). Vui lòng thử lại.");
         }
 
-        // Tất cả method (COD, VNPay stub, Momo stub) → simulated success
         payment.PaymentStatus = "Success";
-        payment.PaidAt        = now;
-
+        payment.PaidAt = DateTime.Now;
         booking.Status = "Paid";
 
         await _context.SaveChangesAsync();
         return (true, payment.PaymentId, null);
-=======
-    private readonly IConfiguration _config;
-
-    public PaymentService(MovieBookingContext context , IConfiguration config)
-    {
-        _context = context;
-        _config = config;
->>>>>>> main
     }
 
     private static string GenerateTransactionCode(string method)
@@ -89,13 +68,6 @@ public class PaymentService : IPaymentService
         var prefix = method.ToUpper() switch
         {
             "VNPAY" => "VNP",
-<<<<<<< HEAD
-            "MOMO"  => "MM",
-            _       => "TXN"
-        };
-        return $"{prefix}{DateTime.Now:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
-    }
-=======
             "MOMO" => "MM",
             _ => "TXN"
         };
@@ -154,7 +126,7 @@ public class PaymentService : IPaymentService
             string mockGatewayUrl = $"/Payment/ReturnResult?paymentId={payment.PaymentId}&transactionCode={payment.TransactionCode}&success=true";
 
             return (true, payment.PaymentId, mockGatewayUrl, null);
-        }    
+        }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
@@ -325,7 +297,7 @@ public class PaymentService : IPaymentService
             return (false, null, "Ghế đã hết thời gian giữ, vui lòng đặt lại.");
 
         var payment = await _context.Payments.FirstOrDefaultAsync(p =>
-            p.BookingId == bookingId && p.Method == "BANK" && p.PaymentStatus == "Pending");
+            p.BookingId == bookingId && p.Method == "SePay" && p.PaymentStatus == "Pending");
 
         if (payment == null)
         {
@@ -333,7 +305,7 @@ public class PaymentService : IPaymentService
             {
                 BookingId = booking.BookingId,
                 Amount = booking.TotalAmount,
-                Method = "BANK",
+                Method = "SePay",
                 PaymentStatus = "Pending"
             };
             _context.Payments.Add(payment);
@@ -354,5 +326,4 @@ public class PaymentService : IPaymentService
 
         return (true, new BankPaymentInfo(payment.PaymentId, payment.Amount, content, qrUrl, bank, acc, name), null);
     }
->>>>>>> main
 }

@@ -1,17 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Data;
+using MovieBooking.Hubs;
 using MovieBooking.Services;
 using MovieBooking.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
-<<<<<<< HEAD
-=======
-var currentConn = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"CONN STRING: {currentConn}");
-
-
->>>>>>> main
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
@@ -35,6 +29,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMovieService, MovieService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IFoodService, FoodService>();
+builder.Services.AddScoped<ICinemaService, CinemaService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -45,6 +41,8 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
+
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -85,5 +83,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+app.MapHub<SeatHub>("/seatHub");
 
 app.Run();
