@@ -31,6 +31,15 @@ public class SessionAuthorizeAttribute : ActionFilterAttribute
 
         if (userId == null)
         {
+            if (IsApiRequest(context))
+            {
+                context.Result = new JsonResult(new { message = "Vui lòng đăng nhập." })
+                {
+                    StatusCode = StatusCodes.Status401Unauthorized
+                };
+                return;
+            }
+
             var returnUrl = context.HttpContext.Request.Path + context.HttpContext.Request.QueryString;
             context.Result = new RedirectToActionResult("Login", "Auth", new { returnUrl });
             return;
@@ -41,6 +50,15 @@ public class SessionAuthorizeAttribute : ActionFilterAttribute
             var userRole = session.GetString("Role");
             if (string.IsNullOrEmpty(userRole) || !string.Equals(userRole, Role, StringComparison.OrdinalIgnoreCase))
             {
+                if (IsApiRequest(context))
+                {
+                    context.Result = new JsonResult(new { message = "Bạn không có quyền thực hiện thao tác này." })
+                    {
+                        StatusCode = StatusCodes.Status403Forbidden
+                    };
+                    return;
+                }
+
                 context.Result = new RedirectToActionResult("AccessDenied", "Auth", null);
                 return;
             }
@@ -48,6 +66,9 @@ public class SessionAuthorizeAttribute : ActionFilterAttribute
 
         base.OnActionExecuting(context);
     }
+
+    private static bool IsApiRequest(ActionExecutingContext context) =>
+        context.HttpContext.Request.Path.StartsWithSegments("/api");
 }
 
 /// <summary>

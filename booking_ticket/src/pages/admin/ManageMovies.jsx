@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FilmIcon, PencilIcon, Trash2Icon, XIcon } from "lucide-react";
+import { PencilIcon, PlusIcon, Trash2Icon, XIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
@@ -20,6 +20,7 @@ export function ManageMovies() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingMovieId, setEditingMovieId] = useState(null);
+  const [isCreatingMovie, setIsCreatingMovie] = useState(false);
   const [form, setForm] = useState(emptyMovie);
   const [saving, setSaving] = useState(false);
 
@@ -52,31 +53,53 @@ export function ManageMovies() {
         language: movie.language || "", ageRating: movie.ageRating || "", status: movie.status || "Coming Soon",
         genreIds: (movie.genres || []).map((genre) => genre.id),
       });
+      setIsCreatingMovie(false);
       setEditingMovieId(id);
     } catch (err) {
       toast.error(err.message || "Không tải được thông tin phim.");
     }
   };
 
-  const saveEdit = async (event) => {
+  const beginCreate = () => {
+    setForm(emptyMovie);
+    setEditingMovieId(null);
+    setIsCreatingMovie(true);
+  };
+
+  const closeForm = () => {
+    setEditingMovieId(null);
+    setIsCreatingMovie(false);
+    setForm(emptyMovie);
+  };
+
+  const saveMovie = async (event) => {
     event.preventDefault();
-    if (!form.title.trim() || Number(form.duration) < 1) {
+    if (!form.title.trim() || Number(form.duration) < 1 || Number(form.duration) > 500) {
       return toast.error("Vui lòng nhập tên phim và thời lượng hợp lệ.");
     }
     setSaving(true);
     try {
-      await api.put(`/api/admin/movies/${editingMovieId}`, {
+      const payload = {
         ...form,
         title: form.title.trim(),
         duration: Number(form.duration),
         releaseDate: form.releaseDate || null,
         endDate: form.endDate || null,
-      });
-      toast.success("Đã cập nhật phim.");
-      setEditingMovieId(null);
-      await loadMovies();
+      };
+
+      if (isCreatingMovie) {
+        await api.post("/api/admin/movies", payload);
+        toast.success("Đã tạo phim mới.");
+        setPage(1);
+        await loadMovies(1);
+      } else {
+        await api.put(`/api/admin/movies/${editingMovieId}`, payload);
+        toast.success("Đã cập nhật phim.");
+        await loadMovies();
+      }
+      closeForm();
     } catch (err) {
-      toast.error(err.message || "Không thể cập nhật phim.");
+      toast.error(err.message || (isCreatingMovie ? "Không thể tạo phim." : "Không thể cập nhật phim."));
     } finally {
       setSaving(false);
     }
@@ -99,13 +122,21 @@ export function ManageMovies() {
 
   return (
     <>
-      <Title text1="Quản Lý" text2="Phim" />
+      <div className="flex items-center justify-between">
+        <Title text1="Quản Lý" text2="Phim" />
+        <button
+          onClick={beginCreate}
+          className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-primary/90"
+        >
+          <PlusIcon className="h-4 w-4" /> Tạo phim mới
+        </button>
+      </div>
 
-      {editingMovieId !== null && (
-        <form onSubmit={saveEdit} className="my-6 grid max-w-4xl grid-cols-1 gap-4 rounded-xl border border-gray-800 bg-gray-900/80 p-5 md:grid-cols-2">
+      {(editingMovieId !== null || isCreatingMovie) && (
+        <form onSubmit={saveMovie} className="my-6 grid max-w-4xl grid-cols-1 gap-4 rounded-xl border border-gray-800 bg-gray-900/80 p-5 md:grid-cols-2">
           <div className="md:col-span-2 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">Sửa thông tin phim</h2>
-            <button type="button" onClick={() => setEditingMovieId(null)} aria-label="Đóng form" className="text-gray-400 hover:text-white"><XIcon /></button>
+            <h2 className="text-lg font-bold text-white">{isCreatingMovie ? "Tạo phim mới" : "Sửa thông tin phim"}</h2>
+            <button type="button" onClick={closeForm} aria-label="Đóng form" className="text-gray-400 hover:text-white"><XIcon /></button>
           </div>
           <label className="text-sm text-gray-300">Tên phim *<input required maxLength={200} value={form.title} onChange={(e) => setField("title", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Thời lượng (phút) *<input required type="number" min="1" max="500" value={form.duration} onChange={(e) => setField("duration", e.target.value)} className={fieldClass} /></label>
@@ -120,7 +151,7 @@ export function ManageMovies() {
           <label className="text-sm text-gray-300">Ngày kết thúc<input type="date" value={form.endDate} onChange={(e) => setField("endDate", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Trạng thái<select value={form.status} onChange={(e) => setField("status", e.target.value)} className={fieldClass}><option value="Coming Soon">Sắp chiếu</option><option value="Showing">Đang chiếu</option></select></label>
           <fieldset className="md:col-span-2"><legend className="mb-2 text-sm text-gray-300">Thể loại</legend><div className="flex flex-wrap gap-3">{genres.map((genre) => <label key={genre.id} className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={form.genreIds.includes(genre.id)} onChange={(e) => setField("genreIds", e.target.checked ? [...form.genreIds, genre.id] : form.genreIds.filter((id) => id !== genre.id))} />{genre.name}</label>)}</div></fieldset>
-          <div className="md:col-span-2 flex gap-3"><button disabled={saving} className="rounded-lg bg-primary px-5 py-2 font-semibold text-white disabled:opacity-50">{saving ? "Đang lưu..." : "Lưu thay đổi"}</button><button type="button" onClick={() => setEditingMovieId(null)} className="rounded-lg border border-gray-700 px-5 py-2 text-gray-300">Hủy</button></div>
+          <div className="md:col-span-2 flex gap-3"><button disabled={saving} className="rounded-lg bg-primary px-5 py-2 font-semibold text-white disabled:opacity-50">{saving ? "Đang lưu..." : isCreatingMovie ? "Tạo phim" : "Lưu thay đổi"}</button><button type="button" onClick={closeForm} className="rounded-lg border border-gray-700 px-5 py-2 text-gray-300">Hủy</button></div>
         </form>
       )}
 

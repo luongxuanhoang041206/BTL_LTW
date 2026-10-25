@@ -1,66 +1,124 @@
 import {
-  LayoutDashboardIcon,
-  ListCollapseIcon,
-  ListIcon,
-  PlusSquareIcon,
-  FilmIcon,
+  Film,
+  Clapperboard,
+  Building2,
+  Gauge,
+  Activity,
+  Calendar,
+  Ticket,
+  CreditCard,
+  Zap,
+  Users,
+  ShieldCheck,
+  BarChart2,
+  Clock,
+  Settings,
+  LayoutDashboard,
+  Utensils,
 } from "lucide-react";
-import { assets } from "../../assets/assets";
 import { NavLink } from "react-router";
 
 export function AdminSideBar() {
-  const user = {
-    firstName: "Admin",
-    lastName: "User",
-    imageUrl: assets.profile,
-  };
-
-  const adminNavlinks = [
-    { name: "Dashboard", path: "/admin", icon: LayoutDashboardIcon },
-    { name: "Add Shows", path: "/admin/add-shows", icon: PlusSquareIcon },
-    { name: "Manage Movies", path: "/admin/movies", icon: FilmIcon },
-    { name: "List Shows", path: "/admin/list-shows", icon: ListIcon },
+  const navSections = [
     {
-      name: "List Bookings",
-      path: "/admin/list-bookings",
-      icon: ListCollapseIcon,
+      title: "TỔNG QUAN",
+      items: [
+        { name: "Bảng điều khiển", path: "/admin", icon: LayoutDashboard },
+      ],
+    },
+    {
+      title: "NỘI DUNG PHIM",
+      items: [
+        { name: "Danh sách phim", path: "/admin/movies", icon: Film },
+        { name: "Thể loại phim", path: "/admin/genres", icon: Clapperboard },
+        { name: "Đồ ăn & combo", path: "/admin/fnb", icon: Utensils },
+      ],
+    },
+    {
+      title: "HỆ THỐNG RẠP",
+      items: [
+        { name: "Danh sách rạp", path: "/admin/cinemas", icon: Building2 },
+        { name: "Phòng chiếu", path: "/admin/rooms", icon: Gauge },
+        { name: "Sơ đồ ghế", path: "/admin/seat-map", icon: Activity },
+      ],
+    },
+    {
+      title: "VẬN HÀNH",
+      items: [
+        { name: "Lịch chiếu", path: "/admin/shows", icon: Calendar },
+        { name: "Đặt vé", path: "/admin/bookings", icon: Ticket },
+        { name: "Thanh toán", path: "/admin/payments", icon: CreditCard },
+        { name: "Khuyến mãi", path: "/admin/promotions", icon: Zap },
+      ],
+    },
+    {
+      title: "KHÁCH HÀNG",
+      items: [
+        { name: "Khách hàng", path: "/admin/customers", icon: Users },
+        { name: "Đánh giá phim", path: "/admin/reviews", icon: ShieldCheck },
+      ],
+    },
+    {
+      title: "PHÂN TÍCH",
+      items: [
+        { name: "Báo cáo doanh thu", path: "/admin/reports/revenue", icon: BarChart2 },
+        { name: "Hiệu suất suất chiếu", path: "/admin/reports/showtime-performance", icon: Clock },
+        { name: "Tỷ lệ lấp đầy ghế", path: "/admin/reports/seat-occupancy", icon: Activity },
+      ],
+    },
+    {
+      title: "QUẢN TRỊ HỆ THỐNG",
+      items: [
+        { name: "Tài khoản quản trị", path: "/admin/system/users", icon: Users },
+        { name: "Phân quyền", path: "/admin/system/roles", icon: ShieldCheck },
+        { name: "Nhật ký quản trị", path: "/admin/system/audit-logs", icon: Clock },
+        { name: "Cấu hình hệ thống", path: "/admin/system/settings", icon: Settings },
+      ],
     },
   ];
 
   return (
-    <div className="h-[calc(100vh-64px)] md:flex flex-col items-center pt-8 max-w-13 md:max-w-60 w-full border-r border-gray-300/20 text-sm">
-      <img
-        src={user.imageUrl}
-        alt="sidebar"
-        className="h-9 md:h-14 w-9 md:w-14 rounded-full mx-auto"
-      />
-      <p className="mt-2 text-base max-md:hidden">
-        {user.firstName} {user.lastName}
-      </p>
-      <div className="w-full">
-        {adminNavlinks.map((link, index) => {
-          return (
-            <NavLink
-              key={index}
-              className={({ isActive }) =>
-                `relative flex items-center max-md:justify-center gap-2 w-full py-2.5 md:pl-10 first:mt-6 text-gray-400 ${isActive && "bg-primary/15 text-primary group"}`
-              }
-              to={link.path}
-              end
-            >
-              {({ isActive }) => (
-                <>
-                  <link.icon className="w-5 h-5" />
-                  <p className="max-md:hidden">{link.name}</p>
-                  <span
-                    className={`w-1.5 h-10 rounded-l right-0 absolute ${isActive && "bg-primary"}`}
-                  ></span>
-                </>
-              )}
-            </NavLink>
-          );
-        })}
+    <aside className="h-[calc(100vh-64px)] w-64 min-w-[240px] shrink-0 bg-[#090e17] border-r border-[#1a2638] overflow-y-auto px-3 py-3 select-none">
+      <div className="space-y-4">
+        {navSections.map((section, sIdx) => (
+          <div key={sIdx} className="space-y-1">
+            <h3 className="text-[11px] font-bold tracking-wider text-[#546b8a] uppercase px-3 pt-2 pb-1">
+              {section.title}
+            </h3>
+            <div className="space-y-0.5">
+              {section.items.map((item, iIdx) => {
+                const IconComponent = item.icon;
+                return (
+                  <NavLink
+                    key={iIdx}
+                    to={item.path}
+                    end={item.path === "/admin"}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[14px] transition-colors ${
+                        isActive
+                          ? "bg-[#162237] text-white font-medium shadow-sm"
+                          : "text-[#8e9eb5] hover:text-white hover:bg-[#111c2e]"
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <IconComponent
+                          className={`w-[18px] h-[18px] shrink-0 ${
+                            isActive ? "text-white" : "text-[#8e9eb5]"
+                          }`}
+                          strokeWidth={isActive ? 2.2 : 1.8}
+                        />
+                        <span className="truncate">{item.name}</span>
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
+    </aside>
   );
 }

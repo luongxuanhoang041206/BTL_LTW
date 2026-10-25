@@ -12,6 +12,7 @@
 # ========================
 **/node_modules/
 **/dist/
+MovieBooking/wwwroot/app/
 **/.env
 **/.env.local
 
