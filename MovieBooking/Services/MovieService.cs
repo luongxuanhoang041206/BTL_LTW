@@ -114,13 +114,7 @@ public class MovieService : IMovieService
             .ToListAsync();
     }
 
-    public async Task<IEnumerable<Genre>> GetAllGenresAsync()
-    {
-        return await _context.Genres
-            .OrderBy(g => g.GenreName)
-            .AsNoTracking()
-            .ToListAsync();
-    }
+
 
     public async Task<Movie?> GetMovieByIdAsync(int id, bool includeExpired = false)
     {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit2, Trash2, Clapperboard, Check, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Clapperboard, Check, X, Search, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
@@ -12,22 +12,47 @@ export function ManageGenres() {
   const [editingGenre, setEditingGenre] = useState(null);
   const [genreName, setGenreName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  const fetchGenres = async () => {
+  const fetchGenres = async (search = appliedSearch, pageToLoad = page) => {
     try {
       setLoading(true);
-      const data = await api.get("/api/admin/genres");
-      setGenres(Array.isArray(data) ? data : []);
+      const params = new URLSearchParams({ page: pageToLoad, pageSize: 10 });
+      if (search && search.trim()) {
+        params.append("search", search.trim());
+      }
+      const data = await api.get(`/api/admin/genres?${params.toString()}`);
+      const list = Array.isArray(data) ? data : [];
+      setGenres(list);
+      setHasMore(list.length === 10);
     } catch (err) {
       toast.error(err.message || "Không thể tải danh sách thể loại");
+      setGenres([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchGenres();
+    fetchGenres("", 1);
   }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setPage(1);
+    setAppliedSearch(searchTerm);
+    fetchGenres(searchTerm, 1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setAppliedSearch("");
+    setPage(1);
+    fetchGenres("", 1);
+  };
 
   const openAddModal = () => {
     setEditingGenre(null);
@@ -56,7 +81,7 @@ export function ManageGenres() {
         toast.success("Thêm thể loại thành công!");
       }
       setModalOpen(false);
-      fetchGenres();
+      fetchGenres(appliedSearch, page);
     } catch (err) {
       toast.error(err.message || "Có lỗi xảy ra.");
     } finally {
@@ -73,74 +98,171 @@ export function ManageGenres() {
     try {
       await api.delete(`/api/admin/genres/${genre.id}`);
       toast.success("Đã xóa thể loại.");
-      fetchGenres();
+      fetchGenres(appliedSearch, page);
     } catch (err) {
       toast.error(err.message || "Không thể xóa thể loại.");
     }
   };
 
-  return !loading ? (
+  return (
     <div className="max-w-5xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Title text1="Quản Lý" text2="Thể Loại Phim" />
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-xl text-sm transition"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white font-medium rounded-xl text-sm transition shadow-lg shadow-primary/20"
         >
           <Plus className="w-4 h-4" /> Thêm Thể Loại
         </button>
       </div>
 
-      <div className="mt-6 bg-gray-900/80 rounded-xl border border-primary/20 shadow-xl overflow-hidden">
-        <table className="w-full text-left text-sm text-gray-300">
-          <thead className="bg-black/60 text-xs text-gray-400 uppercase border-b border-gray-800">
-            <tr>
-              <th className="p-4 pl-6">ID</th>
-              <th className="p-4">Tên Thể Loại</th>
-              <th className="p-4 text-center">Số Lượng Phim</th>
-              <th className="p-4 text-right pr-6">Thao Tác</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
-            {genres.length > 0 ? (
-              genres.map((g) => (
-                <tr key={g.id} className="hover:bg-white/5 transition">
-                  <td className="p-4 pl-6 text-gray-500 font-mono">#{g.id}</td>
-                  <td className="p-4 font-semibold text-white flex items-center gap-2">
-                    <Clapperboard className="w-4 h-4 text-primary" /> {g.name}
-                  </td>
-                  <td className="p-4 text-center">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-950/60 text-blue-300 border border-blue-800">
-                      {g.movieCount} phim
-                    </span>
-                  </td>
-                  <td className="p-4 text-right pr-6 space-x-2">
-                    <button
-                      onClick={() => openEditModal(g)}
-                      className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition"
-                      title="Sửa thể loại"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(g)}
-                      className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition"
-                      title="Xóa thể loại"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+      {/* Thanh tìm kiếm thể loại */}
+      <div className="mt-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-gray-900/60 p-3.5 rounded-2xl border border-gray-800">
+        <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1 max-w-md">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              id="genre-search-input"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm kiếm theo tên thể loại..."
+              className="w-full bg-black/60 border border-gray-700/80 rounded-xl pl-10 pr-9 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition p-0.5"
+                title="Xóa chữ"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            id="genre-search-button"
+            className="flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-xl transition shadow-md shadow-primary/20 whitespace-nowrap"
+          >
+            <Search className="w-4 h-4" /> Tìm kiếm
+          </button>
+        </form>
+
+        {appliedSearch && (
+          <div className="flex items-center gap-2 text-xs text-gray-300">
+            <span>
+              Kết quả cho: <strong className="text-primary font-medium">"{appliedSearch}"</strong> ({genres.length} thể loại trang {page})
+            </span>
+            <button
+              onClick={handleClearSearch}
+              className="inline-flex items-center gap-1 text-gray-400 hover:text-white underline text-xs ml-1"
+            >
+              <RotateCcw className="w-3 h-3" /> Đặt lại
+            </button>
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="py-12">
+          <Loading />
+        </div>
+      ) : (
+        <div className="mt-6 bg-gray-900/80 rounded-xl border border-primary/20 shadow-xl overflow-hidden">
+          <table className="w-full text-left text-sm text-gray-300">
+            <thead className="bg-black/60 text-xs text-gray-400 uppercase border-b border-gray-800">
+              <tr>
+                <th className="p-4 pl-6">ID</th>
+                <th className="p-4">Tên Thể Loại</th>
+                <th className="p-4 text-center">Số Lượng Phim</th>
+                <th className="p-4 text-right pr-6">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {genres.length > 0 ? (
+                genres.map((g) => (
+                  <tr key={g.id} className="hover:bg-white/5 transition">
+                    <td className="p-4 pl-6 text-gray-500 font-mono">#{g.id}</td>
+                    <td className="p-4 font-semibold text-white flex items-center gap-2">
+                      <Clapperboard className="w-4 h-4 text-primary" /> {g.name}
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-950/60 text-blue-300 border border-blue-800">
+                        {g.movieCount ?? 0} phim
+                      </span>
+                    </td>
+                    <td className="p-4 text-right pr-6 space-x-2">
+                      <button
+                        onClick={() => openEditModal(g)}
+                        className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition"
+                        title="Sửa thể loại"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(g)}
+                        className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition"
+                        title="Xóa thể loại"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="p-8 text-center text-gray-400">
+                    {appliedSearch ? (
+                      <div className="space-y-2">
+                        <p>Không tìm thấy thể loại nào phù hợp với từ khóa "{appliedSearch}".</p>
+                        <button
+                          onClick={handleClearSearch}
+                          className="px-3 py-1.5 text-xs bg-primary/20 text-primary hover:bg-primary/30 rounded-lg transition inline-flex items-center gap-1"
+                        >
+                          <RotateCcw className="w-3 h-3" /> Xem tất cả thể loại
+                        </button>
+                      </div>
+                    ) : (
+                      "Chưa có thể loại nào trong hệ thống."
+                    )}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" className="p-8 text-center text-gray-400">
-                  Chưa có thể loại nào trong hệ thống.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Phân trang */}
+      <div className="mt-6 flex items-center justify-between">
+        <div className="text-sm text-gray-400">
+          Trang <span className="text-white font-medium">{page}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            disabled={page <= 1 || loading}
+            onClick={() => {
+              const prevPage = page - 1;
+              setPage(prevPage);
+              fetchGenres(appliedSearch, prevPage);
+            }}
+            className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 disabled:opacity-40 hover:border-gray-500 transition"
+          >
+            Trang trước
+          </button>
+          <button
+            disabled={!hasMore || loading}
+            onClick={() => {
+              const nextPage = page + 1;
+              setPage(nextPage);
+              fetchGenres(appliedSearch, nextPage);
+            }}
+            className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 disabled:opacity-40 hover:border-gray-500 transition"
+          >
+            Trang sau
+          </button>
+        </div>
       </div>
 
       {modalOpen && (
@@ -192,7 +314,5 @@ export function ManageGenres() {
         </div>
       )}
     </div>
-  ) : (
-    <Loading />
   );
 }

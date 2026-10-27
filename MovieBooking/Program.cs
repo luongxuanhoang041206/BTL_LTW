@@ -31,6 +31,7 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IFoodService, FoodService>();
 builder.Services.AddScoped<ICinemaService, CinemaService>();
+builder.Services.AddScoped<IGenreService, GenreService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

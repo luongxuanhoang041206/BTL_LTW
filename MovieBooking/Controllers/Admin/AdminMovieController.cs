@@ -16,7 +16,7 @@ public class AdminMovieController : AdminBaseController
     }
 
     [HttpGet("movies")]
-    public async Task<IActionResult> GetMovies([FromQuery] int page = 1)
+    public async Task<IActionResult> GetMovies([FromQuery] int page = 1, [FromQuery] string? search = null)
     {
         if (!IsAdmin())
         {
@@ -24,13 +24,25 @@ public class AdminMovieController : AdminBaseController
         }
 
         page = Math.Max(1, page);
-        var movies = await _context.Movies
+        var query = _context.Movies
             .Include(m => m.Genres)
-            .AsNoTracking()
+            .AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToLower();
+            query = query.Where(m => m.Title.ToLower().Contains(keyword) ||
+                                     (m.Director != null && m.Director.ToLower().Contains(keyword)) ||
+                                     (m.Actors != null && m.Actors.ToLower().Contains(keyword)));
+        }
+
+        var movies = await query
             .OrderByDescending(m => m.CreatedAt)
             .Skip((page - 1) * 10)
             .Take(10)
             .ToListAsync();
+
+
 
         return Ok(movies.Select(m => new
             {
@@ -50,6 +62,15 @@ public class AdminMovieController : AdminBaseController
                 isExpired = m.EndDate.HasValue && m.EndDate.Value < VietnamToday,
                 genres = m.Genres.Select(g => new { id = g.GenreId, name = g.GenreName }).ToList()
             }));
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? search, [FromQuery] int page = 1)
+    {
+        return await GetMovies(page, search);
+
+
     }
 
     [HttpGet("movies/{id}")]

@@ -14,12 +14,18 @@ public class ApiMovieController : ControllerBase
 {
     private readonly IMovieService _movieService;
     private readonly IBookingService _bookingService;
+    private readonly IGenreService _genreService;
     private readonly MovieBookingContext _context;
 
-    public ApiMovieController(IMovieService movieService, IBookingService bookingService, MovieBookingContext context)
+    public ApiMovieController(
+        IMovieService movieService,
+        IBookingService bookingService,
+        IGenreService genreService,
+        MovieBookingContext context)
     {
         _movieService = movieService;
         _bookingService = bookingService;
+        _genreService = genreService;
         _context = context;
     }
 
@@ -67,10 +73,10 @@ public class ApiMovieController : ControllerBase
     }
 
     [HttpGet("genres")]
-    public async Task<IActionResult> GetGenres()
+    public async Task<IActionResult> GetGenres([FromQuery] string? search = null)
     {
-        var genres = await _movieService.GetAllGenresAsync();
-        return Ok(genres.Select(g => new { id = g.GenreId, name = g.GenreName }));
+        var genres = await _genreService.GetAllGenresAsync(search);
+        return Ok(genres.Select(g => new { id = g.GenreId, name = g.Name, movieCount = g.MovieCount }));
     }
 
     [HttpGet("{id}")]
