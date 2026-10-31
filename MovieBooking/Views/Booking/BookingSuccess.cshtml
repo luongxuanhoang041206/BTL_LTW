@@ -24,6 +24,14 @@
                 <div class="text-end">
                     <span class="badge bg-success-subtle text-success border fs-6">✓ Đã thanh toán</span>
                 </div>
+                @if (!string.IsNullOrEmpty(Model.TicketCode))
+                {
+                    <div style="text-align:center; margin:16px 0;">
+                        <img src="/api/booking/@Model.BookingId/ticket-qr" alt="QR vé" width="200" height="200" />
+                        <p>Mã vé: <strong>@Model.TicketCode</strong></p>
+                        <small>Đưa mã này cho nhân viên khi vào rạp</small>
+                    </div>
+                }
             </div>
         </div>
 

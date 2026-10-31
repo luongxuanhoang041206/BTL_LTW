@@ -155,6 +155,7 @@ public class BookingSuccessViewModel
 {
     public int BookingId { get; set; }
     public string MovieTitle { get; set; } = string.Empty;
+    public string? TicketCode { get; set; }
     public string? PosterUrl { get; set; }
     public DateOnly ShowDate { get; set; }
     public TimeOnly StartTime { get; set; }
@@ -195,6 +196,7 @@ public class BookingDetailViewModel
 {
     public int BookingId { get; set; }
     public string MovieTitle { get; set; } = string.Empty;
+    public string? TicketCode { get; set; }
     public string? PosterUrl { get; set; }
     public int Duration { get; set; }
     public DateOnly ShowDate { get; set; }

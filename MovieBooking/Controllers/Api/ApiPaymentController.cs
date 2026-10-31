@@ -111,5 +111,36 @@ namespace MovieBooking.Controllers.Api
 
             return Ok(new { success = true, info = r.Info });
         }
+
+        //simulate webhook Sepay
+        [HttpPost("simulate/{paymentId:int}")]
+        public async Task<IActionResult> Simulate(int paymentId, [FromServices] IWebHostEnvironment env)
+        {
+            if (!env.IsDevelopment()) return NotFound();
+
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+
+            var payment = await _context.Payments
+                .Where(p => p.PaymentId == paymentId && p.Booking.UserId == userId)
+                .Select(p => new { p.Amount })
+                .FirstOrDefaultAsync();
+
+            if (payment == null) return NotFound();
+
+            var dto = new SePayWebhookDto
+            {
+                Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                Gateway = "Simulator",
+                TransferType = "in",
+                TransferAmount = payment.Amount,
+                Content = $"MBPAY{paymentId}",
+                Code = $"MBPAY{paymentId}",
+                ReferenceCode = $"SIM{DateTime.Now:yyyyMMddHHmmss}"
+            };
+
+            await _paymentService.ProcessBankTransferAsync(dto);
+            return Ok(new { success = true, message = "Đã giả lập chuyển khoản thành công." });
+        }
     }
 }

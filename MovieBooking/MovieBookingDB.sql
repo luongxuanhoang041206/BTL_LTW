@@ -161,6 +161,7 @@ CREATE TABLE Bookings (
     PromotionId     INT NULL,
     BookingDate     DATETIME NOT NULL DEFAULT GETDATE(),
     TotalAmount     DECIMAL(10,2) NOT NULL,
+    TicketCode VARCHAR(30) NULL,
     Status          VARCHAR(20) NOT NULL DEFAULT 'Pending'
                     CHECK (Status IN ('Pending','Paid','Cancelled')),
     FOREIGN KEY (UserId) REFERENCES Users(UserId),
@@ -184,10 +185,10 @@ CREATE TABLE Payments (
     PaymentId       INT IDENTITY(1,1) PRIMARY KEY,
     BookingId       INT NOT NULL,
     Amount          DECIMAL(10,2) NOT NULL,
-    Method          VARCHAR(20) NOT NULL CHECK (Method IN ('VNPay','Momo','COD')),
+    Method          VARCHAR(20) NOT NULL CHECK (Method IN ('VNPay','Momo','COD','SePay')),
     TransactionCode VARCHAR(100),
     PaymentStatus   VARCHAR(20) NOT NULL DEFAULT 'Pending'
-                    CHECK (PaymentStatus IN ('Pending','Success','Failed')),
+                    CHECK (PaymentStatus IN ('Pending','Success','Failed','PaidNeedRefund')),
     PaidAt          DATETIME NULL,
     FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE
 );
@@ -302,4 +303,5 @@ GO
 CREATE INDEX IX_Showtimes_MovieId_ShowDate ON Showtimes(MovieId, ShowDate);
 CREATE INDEX IX_ShowtimeSeats_ShowtimeId ON ShowtimeSeats(ShowtimeId);
 CREATE INDEX IX_Bookings_UserId ON Bookings(UserId);
+CREATE UNIQUE INDEX UX_Bookings_TicketCode ON Bookings(TicketCode) WHERE TicketCode IS NOT NULL;
 GO

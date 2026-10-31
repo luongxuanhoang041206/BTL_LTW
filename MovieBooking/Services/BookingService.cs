@@ -156,7 +156,6 @@ public class BookingService : IBookingService
             seat.HoldExpiresAt   = null;
             seat.LockedByUserId  = null;
         }
-
         await _context.SaveChangesAsync();
     }
 
@@ -565,11 +564,15 @@ public class BookingService : IBookingService
         foreach (var detail in booking.BookingDetails)
         {
             var seat = detail.ShowtimeSeat;
-            seat.Status         = "Available";
-            seat.HoldExpiresAt  = null;
-            seat.LockedByUserId = null;
+            if (seat.Status == "Holding" && seat.LockedByUserId == userId)
+            {
+                seat.Status = "Available";
+                seat.HoldExpiresAt = null;
+                seat.LockedByUserId = null;
+            }
         }
 
+        _context.BookingDetails.RemoveRange(booking.BookingDetails);
         await _context.SaveChangesAsync();
         return (true, null);
     }
@@ -647,6 +650,7 @@ public class BookingService : IBookingService
         {
             BookingId     = booking.BookingId,
             MovieTitle    = booking.Showtime.Movie.Title,
+            TicketCode = booking.TicketCode,
             PosterUrl     = booking.Showtime.Movie.PosterUrl,
             ShowDate      = booking.Showtime.ShowDate,
             StartTime     = booking.Showtime.StartTime,

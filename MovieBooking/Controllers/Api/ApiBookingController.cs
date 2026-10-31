@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.DTOs;
 using MovieBooking.Services.Interfaces;
+using QRCoder;
 
 namespace MovieBooking.Controllers.Api;
 
@@ -258,5 +259,24 @@ public class ApiBookingController : ControllerBase
         }
 
         return Ok(new { success = true, message = "Hủy vé thành công!" });
+    }
+
+    [HttpGet("{bookingId:int}/ticket-qr")]
+    public async Task<IActionResult> GetTicketQr(int bookingId)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null) return Unauthorized();
+
+        var code = await _context.Bookings
+            .Where(b => b.BookingId == bookingId && b.UserId == userId && b.Status == "Paid")
+            .Select(b => b.TicketCode)
+            .FirstOrDefaultAsync();
+
+        if (string.IsNullOrEmpty(code)) return NotFound();
+
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(code, QRCodeGenerator.ECCLevel.Q);
+        var png = new PngByteQRCode(data).GetGraphic(10);
+        return File(png, "image/png");
     }
 }

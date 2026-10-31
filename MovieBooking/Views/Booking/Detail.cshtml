@@ -232,6 +232,20 @@
             </div>
 
             <!-- Action buttons -->
+            <!-- Ticket QR -->
+            @if (Model.BookingStatus == "Paid" && !string.IsNullOrEmpty(Model.TicketCode))
+            {
+                <div class="card border-0 shadow-sm rounded-3 mb-3">
+                    <div class="card-header bg-light fw-semibold">🎟️ Vé điện tử</div>
+                    <div class="card-body text-center">
+                        <img src="/api/booking/@Model.BookingId/ticket-qr"
+                             alt="QR vé" style="width:200px;height:200px;" />
+                        <div class="mt-2 text-muted small">Mã vé</div>
+                        <div class="fw-bold fs-5">@Model.TicketCode</div>
+                        <div class="text-muted small mt-1">Đưa mã này cho nhân viên khi vào rạp</div>
+                    </div>
+                </div>
+            }
             <div class="d-flex flex-column gap-2">
                 @if (Model.CanRetryPayment)
                 {
