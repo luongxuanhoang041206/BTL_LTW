@@ -15,6 +15,7 @@ import {
   Settings,
   LayoutDashboard,
   Utensils,
+  PanelsTopLeft,
 } from "lucide-react";
 import { NavLink } from "react-router";
 
@@ -26,6 +27,7 @@ export function AdminSideBar() {
         { name: "Bảng điều khiển", path: "/admin", icon: LayoutDashboard },
       ],
     },
+    { title: "WEBSITE", items: [{ name: "Quản lý website", path: "/admin/website", icon: PanelsTopLeft }] },
     {
       title: "NỘI DUNG PHIM",
       items: [

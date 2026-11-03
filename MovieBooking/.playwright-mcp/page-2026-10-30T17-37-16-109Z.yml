@@ -1,0 +1,140 @@
+- generic [ref=f24e2]:
+  - generic [ref=f24e3]:
+    - link [ref=f24e4] [cursor=pointer]:
+      - /url: /home
+      - img "Logo" [ref=f24e5]
+      - heading "RoPhim" [level=1] [ref=f24e6]
+    - generic [ref=f24e7]:
+      - link "Trang chủ" [ref=f24e8] [cursor=pointer]:
+        - /url: /home
+      - link "Phim đang chiếu" [ref=f24e9] [cursor=pointer]:
+        - /url: /movies
+      - link "Vé của tôi" [ref=f24e10] [cursor=pointer]:
+        - /url: /booking
+      - link "Yêu thích" [ref=f24e11] [cursor=pointer]:
+        - /url: /favourite
+    - button "Đăng nhập" [ref=f24e13] [cursor=pointer]
+  - generic [ref=f24e14]:
+    - heading "Your Favorite Movies" [level=1] [ref=f24e17]
+    - generic [ref=f24e18]:
+      - generic [ref=f24e19]:
+        - img "In the Lost Lands" [ref=f24e21] [cursor=pointer]
+        - paragraph [ref=f24e22]: In the Lost Lands
+        - paragraph [ref=f24e23]: 2025 • Action | Fantasy • 1h 42m
+        - generic [ref=f24e24]:
+          - button "Đặt vé ngay" [ref=f24e25] [cursor=pointer]
+          - paragraph [ref=f24e26]: "6.4"
+      - generic [ref=f24e29]:
+        - img "Until Dawn" [ref=f24e31] [cursor=pointer]
+        - paragraph [ref=f24e32]: Until Dawn
+        - paragraph [ref=f24e33]: 2025 • Horror | Mystery • 1h 43m
+        - generic [ref=f24e34]:
+          - button "Đặt vé ngay" [ref=f24e35] [cursor=pointer]
+          - paragraph [ref=f24e36]: "6.4"
+      - generic [ref=f24e39]:
+        - img "Lilo & Stitch" [ref=f24e41] [cursor=pointer]
+        - paragraph [ref=f24e42]: Lilo & Stitch
+        - paragraph [ref=f24e43]: 2025 • Family | Comedy • 1h 48m
+        - generic [ref=f24e44]:
+          - button "Đặt vé ngay" [ref=f24e45] [cursor=pointer]
+          - paragraph [ref=f24e46]: "7.1"
+      - generic [ref=f24e49]:
+        - img "Havoc" [ref=f24e51] [cursor=pointer]
+        - paragraph [ref=f24e52]: Havoc
+        - paragraph [ref=f24e53]: 2025 • Action | Crime • 1h 47m
+        - generic [ref=f24e54]:
+          - button "Đặt vé ngay" [ref=f24e55] [cursor=pointer]
+          - paragraph [ref=f24e56]: "6.5"
+      - generic [ref=f24e59]:
+        - img "A Minecraft Movie" [ref=f24e61] [cursor=pointer]
+        - paragraph [ref=f24e62]: A Minecraft Movie
+        - paragraph [ref=f24e63]: 2025 • Family | Comedy • 1h 41m
+        - generic [ref=f24e64]:
+          - button "Đặt vé ngay" [ref=f24e65] [cursor=pointer]
+          - paragraph [ref=f24e66]: "6.5"
+      - generic [ref=f24e69]:
+        - 'img "Mission: Impossible - The Final Reckoning" [ref=f24e71] [cursor=pointer]'
+        - paragraph [ref=f24e72]: "Mission: Impossible - The Final Reckoning"
+        - paragraph [ref=f24e73]: 2025 • Action | Adventure • 2h 50m
+        - generic [ref=f24e74]:
+          - button "Đặt vé ngay" [ref=f24e75] [cursor=pointer]
+          - paragraph [ref=f24e76]: "7.0"
+      - generic [ref=f24e79]:
+        - img "Thunderbolts*" [ref=f24e81] [cursor=pointer]
+        - paragraph [ref=f24e82]: Thunderbolts*
+        - paragraph [ref=f24e83]: 2025 • Action | Science Fiction • 2h 7m
+        - generic [ref=f24e84]:
+          - button "Đặt vé ngay" [ref=f24e85] [cursor=pointer]
+          - paragraph [ref=f24e86]: "7.4"
+  - contentinfo [ref=f24e89]:
+    - generic [ref=f24e90]:
+      - generic [ref=f24e91]:
+        - link [ref=f24e92] [cursor=pointer]:
+          - /url: https://prebuiltui.com
+        - paragraph [ref=f24e95]: Please let me know your opinion!
+        - generic [ref=f24e96]:
+          - textbox [ref=f24e97]
+          - button "Send me" [ref=f24e98]
+      - generic [ref=f24e99]:
+        - generic [ref=f24e100]:
+          - heading "Products" [level=3] [ref=f24e101]
+          - list [ref=f24e102]:
+            - listitem [ref=f24e103]:
+              - link "Components" [ref=f24e104] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e105]:
+              - link "Templates" [ref=f24e106] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e107]:
+              - link "Icons" [ref=f24e108] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f24e109]:
+          - heading "Resources" [level=3] [ref=f24e110]
+          - list [ref=f24e111]:
+            - listitem [ref=f24e112]:
+              - link "PrebuiltUI" [ref=f24e113] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e114]:
+              - link "Templates" [ref=f24e115] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e116]:
+              - link "Components" [ref=f24e117] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e118]:
+              - link "Blogs" [ref=f24e119] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e120]:
+              - link "Store" [ref=f24e121] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f24e122]:
+          - heading "Company" [level=3] [ref=f24e123]
+          - list [ref=f24e124]:
+            - listitem [ref=f24e125]:
+              - link "About" [ref=f24e126] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e127]:
+              - link "Vision" [ref=f24e128] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e129]:
+              - link "Careers" [ref=f24e130] [cursor=pointer]:
+                - /url: "#"
+              - generic [ref=f24e131]: HIRING
+            - listitem [ref=f24e132]:
+              - link "Privacy policy" [ref=f24e133] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f24e134]:
+              - link "Contact Us" [ref=f24e135] [cursor=pointer]:
+                - /url: "#"
+    - generic [ref=f24e136]:
+      - paragraph [ref=f24e137]: © 2025 prebuiltUI Design
+      - generic [ref=f24e138]:
+        - link [ref=f24e139] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f24e142] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f24e146] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f24e151] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f24e155] [cursor=pointer]:
+          - /url: "#"

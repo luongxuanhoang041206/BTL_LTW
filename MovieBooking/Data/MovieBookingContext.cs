@@ -56,6 +56,7 @@ public partial class MovieBookingContext : DbContext
     public virtual DbSet<BookingCombo> BookingCombos { get; set; }
     public virtual DbSet<BookingFood> BookingFoods { get; set; }
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
+    public DbSet<WebsiteContent> WebsiteContents => Set<WebsiteContent>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -432,6 +433,18 @@ public partial class MovieBookingContext : DbContext
             entity.HasIndex(x => x.ProviderTransactionId).IsUnique();
             entity.Property(x => x.Amount).HasPrecision(18, 2);
             entity.Property(x => x.Result).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<WebsiteContent>(entity =>
+        {
+            entity.ToTable("WebsiteContent");
+            entity.HasKey(e => e.ContentId);
+            entity.HasIndex(e => e.ContentKey).IsUnique();
+            entity.Property(e => e.ContentKey).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DraftJson).IsRequired();
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.PublishedAt).HasColumnType("datetime2");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.UpdatedByUserId).OnDelete(DeleteBehavior.SetNull);
         });
 
 

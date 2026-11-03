@@ -30,6 +30,7 @@ import { ManageRoles } from "./pages/admin/ManageRoles.jsx";
 import { AuditLogs } from "./pages/admin/AuditLogs.jsx";
 import { SystemSettings } from "./pages/admin/SystemSettings.jsx";
 import { ManageFnb } from "./pages/admin/ManageFnb.jsx";
+import { WebsiteCms } from "./pages/admin/WebsiteCms.jsx";
 import { ErrorPage } from "./components/ErrorPage.jsx";
 
 export const route = createBrowserRouter([
@@ -184,6 +185,7 @@ export const route = createBrowserRouter([
             path: "system/settings",
             element: <SystemSettings />,
           },
+          { path: "website", element: <WebsiteCms /> },
         ],
       },
     ],

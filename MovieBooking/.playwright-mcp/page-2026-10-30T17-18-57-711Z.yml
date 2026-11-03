@@ -1,0 +1,99 @@
+- generic [ref=f6e2]:
+  - generic [ref=f6e3]:
+    - link [ref=f6e4] [cursor=pointer]:
+      - /url: /home
+      - img "Logo" [ref=f6e5]
+      - heading "RoPhim" [level=1] [ref=f6e6]
+    - generic [ref=f6e7]:
+      - link "Trang chủ" [ref=f6e8] [cursor=pointer]:
+        - /url: /home
+      - link "Phim đang chiếu" [ref=f6e9] [cursor=pointer]:
+        - /url: /movies
+      - link "Vé của tôi" [ref=f6e10] [cursor=pointer]:
+        - /url: /booking
+      - link "Yêu thích" [ref=f6e11] [cursor=pointer]:
+        - /url: /favourite
+    - button "Đăng nhập" [ref=f6e13] [cursor=pointer]
+  - generic [ref=f6e14]:
+    - generic [ref=f6e17]:
+      - generic [ref=f6e18]:
+        - heading "Danh Sách Phim" [level=1] [ref=f6e19]
+        - paragraph [ref=f6e20]: Lựa chọn bộ phim yêu thích và đặt vé ngay hôm nay
+      - textbox "Tìm kiếm tên phim..." [ref=f6e25]
+    - generic "Lọc trạng thái phim" [ref=f6e26]:
+      - button "Tất cả phim" [ref=f6e27]
+      - button "Đang chiếu" [ref=f6e28]
+      - button "Sắp chiếu" [ref=f6e29]
+    - button "Tất cả thể loại" [ref=f6e31] [cursor=pointer]
+  - contentinfo [ref=f6e34]:
+    - generic [ref=f6e35]:
+      - generic [ref=f6e36]:
+        - link [ref=f6e37] [cursor=pointer]:
+          - /url: https://prebuiltui.com
+        - paragraph [ref=f6e40]: Please let me know your opinion!
+        - generic [ref=f6e41]:
+          - textbox [ref=f6e42]
+          - button "Send me" [ref=f6e43]
+      - generic [ref=f6e44]:
+        - generic [ref=f6e45]:
+          - heading "Products" [level=3] [ref=f6e46]
+          - list [ref=f6e47]:
+            - listitem [ref=f6e48]:
+              - link "Components" [ref=f6e49] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e50]:
+              - link "Templates" [ref=f6e51] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e52]:
+              - link "Icons" [ref=f6e53] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f6e54]:
+          - heading "Resources" [level=3] [ref=f6e55]
+          - list [ref=f6e56]:
+            - listitem [ref=f6e57]:
+              - link "PrebuiltUI" [ref=f6e58] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e59]:
+              - link "Templates" [ref=f6e60] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e61]:
+              - link "Components" [ref=f6e62] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e63]:
+              - link "Blogs" [ref=f6e64] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e65]:
+              - link "Store" [ref=f6e66] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f6e67]:
+          - heading "Company" [level=3] [ref=f6e68]
+          - list [ref=f6e69]:
+            - listitem [ref=f6e70]:
+              - link "About" [ref=f6e71] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e72]:
+              - link "Vision" [ref=f6e73] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e74]:
+              - link "Careers" [ref=f6e75] [cursor=pointer]:
+                - /url: "#"
+              - generic [ref=f6e76]: HIRING
+            - listitem [ref=f6e77]:
+              - link "Privacy policy" [ref=f6e78] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f6e79]:
+              - link "Contact Us" [ref=f6e80] [cursor=pointer]:
+                - /url: "#"
+    - generic [ref=f6e81]:
+      - paragraph [ref=f6e82]: © 2025 prebuiltUI Design
+      - generic [ref=f6e83]:
+        - link [ref=f6e84] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f6e87] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f6e91] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f6e96] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f6e100] [cursor=pointer]:
+          - /url: "#"
