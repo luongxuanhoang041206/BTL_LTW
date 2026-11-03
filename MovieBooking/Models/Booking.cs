@@ -18,6 +18,7 @@ public partial class Booking
     public decimal TotalAmount { get; set; }
 
     public string Status { get; set; } = null!;
+    public string? TicketCode { get; set; }
 
     public virtual ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
 

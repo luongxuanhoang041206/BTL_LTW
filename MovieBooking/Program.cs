@@ -28,6 +28,7 @@ builder.Services.AddDbContext<MovieBookingContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMovieService, MovieService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddHostedService<ExpiredHoldCleanupService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IFoodService, FoodService>();
 builder.Services.AddScoped<ICinemaService, CinemaService>();

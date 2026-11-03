@@ -7,6 +7,7 @@ using MovieBooking.Models;
 using MovieBooking.Services.Interfaces;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
 
 namespace MovieBooking.Services;
 
@@ -72,6 +73,12 @@ public class PaymentService : IPaymentService
             _ => "TXN"
         };
         return $"{prefix}{DateTime.Now:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
+    }
+
+    private static string GenerateTicketCode(int bookingId)
+    {
+        var rnd = Convert.ToHexString(RandomNumberGenerator.GetBytes(3));
+        return $"MB{bookingId:D6}-{rnd}";
     }
 
     public async Task<(bool Success, int? PaymentId, string? PaymentUrl, string? Error)> InitializePaymentAsync(
@@ -166,6 +173,7 @@ public class PaymentService : IPaymentService
             if (payment.Booking != null)
             {
                 payment.Booking.Status = "Paid";
+                payment.Booking.TicketCode ??= GenerateTicketCode(payment.BookingId);
             }
 
             await _context.SaveChangesAsync();
@@ -214,7 +222,13 @@ public class PaymentService : IPaymentService
         {
             log.PaymentId = payment.PaymentId;
 
-            if (payment.PaymentStatus != "Pending")
+            if (payment.PaymentStatus == "Failed")
+            {
+                // Khách chuyển tiền sau khi job đã hủy đơn: đánh dấu để hoàn tiền thủ công
+                payment.PaymentStatus = "PaidNeedRefund";
+                log.Result = "PaidAfterExpired";
+            }
+            else if (payment.PaymentStatus != "Pending")
                 log.Result = "AlreadyProcessed";
             else if (dto.TransferAmount != payment.Amount)
                 log.Result = "AmountMismatch";
@@ -249,7 +263,8 @@ public class PaymentService : IPaymentService
                             s.Status = "Booked";
                             s.HoldExpiresAt = null;
                         }
-                        payment.Booking.Status = "Confirmed";
+                        payment.Booking.Status = "Paid";
+                        payment.Booking.TicketCode ??= GenerateTicketCode(payment.BookingId);
                         log.Result = "Success";
                     }
                     else
