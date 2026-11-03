@@ -1,15 +1,19 @@
-import { MenuIcon, SearchIcon, TicketPlus, XIcon, UserIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react";
+import { MenuIcon, TicketPlus, XIcon, LogOutIcon, ShieldCheckIcon } from "lucide-react";
 import { assets } from "../assets/assets";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { AuthModal } from "./AuthModal";
+import { useWebsiteContent } from "../context/WebsiteContentContext";
 
-export function NavBar() {
+export function NavBar({ cmsContent } = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { user, isAdmin, openLogin, logout } = useAuth();
   const navigate = useNavigate();
+  const contextSite = useWebsiteContent();
+  const site = cmsContent || contextSite;
+  const links = site.header?.links || [];
 
   return (
     <>
@@ -42,34 +46,7 @@ export function NavBar() {
             className="md:hidden absolute top-6 right-6 w-6 h-6 cursor-pointer text-gray-400"
             onClick={() => setIsOpen(false)}
           />
-          <Link
-            onClick={() => { scrollTo(0, 0); setIsOpen(false); }}
-            to="/home"
-            className="hover:text-primary transition"
-          >
-            Trang chủ
-          </Link>
-          <Link
-            onClick={() => { scrollTo(0, 0); setIsOpen(false); }}
-            to="/movies"
-            className="hover:text-primary transition"
-          >
-            Phim đang chiếu
-          </Link>
-          <Link
-            onClick={() => { scrollTo(0, 0); setIsOpen(false); }}
-            to="/booking"
-            className="hover:text-primary transition"
-          >
-            Vé của tôi
-          </Link>
-          <Link
-            onClick={() => { scrollTo(0, 0); setIsOpen(false); }}
-            to="/favourite"
-            className="hover:text-primary transition"
-          >
-            Yêu thích
-          </Link>
+          {links.map((item, index) => <Link key={`${item.href}-${index}`} onClick={() => { scrollTo(0, 0); setIsOpen(false); }} to={item.href} className="hover:text-primary transition">{item.text}</Link>)}
           {isAdmin && (
             <Link
               onClick={() => { scrollTo(0, 0); setIsOpen(false); }}

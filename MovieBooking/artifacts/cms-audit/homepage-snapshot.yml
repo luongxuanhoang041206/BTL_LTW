@@ -1,0 +1,168 @@
+- generic [ref=f17e2]:
+  - generic [ref=f17e3]:
+    - link [ref=f17e4] [cursor=pointer]:
+      - /url: /home
+      - img "Logo" [ref=f17e5]
+      - heading "RoPhim" [level=1] [ref=f17e6]
+    - generic [ref=f17e7]:
+      - link "Trang chủ" [ref=f17e8] [cursor=pointer]:
+        - /url: /home
+      - link "Phim đang chiếu" [ref=f17e9] [cursor=pointer]:
+        - /url: /movies
+      - link "Vé của tôi" [ref=f17e10] [cursor=pointer]:
+        - /url: /booking
+      - link "Yêu thích" [ref=f17e11] [cursor=pointer]:
+        - /url: /favourite
+    - button "Đăng nhập" [ref=f17e13] [cursor=pointer]
+  - generic [ref=f17e14]:
+    - heading "Guardian of the galaxy" [level=1] [ref=f17e15]
+    - generic [ref=f17e16]:
+      - generic [ref=f17e17]: Action | Adventure | Sci-fi
+      - generic [ref=f17e18]: "2018"
+      - generic [ref=f17e22]: 2h 8m
+    - paragraph [ref=f17e26]: A group of unlikely heroes must overcome their differences and join forces to protect the galaxy from a powerful enemy.
+    - button "Explore Movies" [ref=f17e27] [cursor=pointer]
+  - generic [ref=f17e30]:
+    - generic [ref=f17e31]:
+      - paragraph [ref=f17e33]: Phim Đang Chiếu
+      - button "Xem tất cả" [ref=f17e34] [cursor=pointer]
+    - generic [ref=f17e37]:
+      - generic [ref=f17e38]:
+        - img "In the Lost Lands" [ref=f17e40] [cursor=pointer]
+        - paragraph [ref=f17e41]: In the Lost Lands
+        - paragraph [ref=f17e42]: 2025 • Action | Fantasy • 1h 42m
+        - generic [ref=f17e43]:
+          - button "Đặt vé ngay" [ref=f17e44] [cursor=pointer]
+          - paragraph [ref=f17e45]: "6.4"
+      - generic [ref=f17e48]:
+        - img "Until Dawn" [ref=f17e50] [cursor=pointer]
+        - paragraph [ref=f17e51]: Until Dawn
+        - paragraph [ref=f17e52]: 2025 • Horror | Mystery • 1h 43m
+        - generic [ref=f17e53]:
+          - button "Đặt vé ngay" [ref=f17e54] [cursor=pointer]
+          - paragraph [ref=f17e55]: "6.4"
+      - generic [ref=f17e58]:
+        - img "Lilo & Stitch" [ref=f17e60] [cursor=pointer]
+        - paragraph [ref=f17e61]: Lilo & Stitch
+        - paragraph [ref=f17e62]: 2025 • Family | Comedy • 1h 48m
+        - generic [ref=f17e63]:
+          - button "Đặt vé ngay" [ref=f17e64] [cursor=pointer]
+          - paragraph [ref=f17e65]: "7.1"
+      - generic [ref=f17e68]:
+        - img "Havoc" [ref=f17e70] [cursor=pointer]
+        - paragraph [ref=f17e71]: Havoc
+        - paragraph [ref=f17e72]: 2025 • Action | Crime • 1h 47m
+        - generic [ref=f17e73]:
+          - button "Đặt vé ngay" [ref=f17e74] [cursor=pointer]
+          - paragraph [ref=f17e75]: "6.5"
+      - generic [ref=f17e174]:
+        - img "A Minecraft Movie" [ref=f17e176] [cursor=pointer]
+        - paragraph [ref=f17e177]: A Minecraft Movie
+        - paragraph [ref=f17e178]: 2025 • Family | Comedy • 1h 41m
+        - generic [ref=f17e179]:
+          - button "Đặt vé ngay" [ref=f17e180] [cursor=pointer]
+          - paragraph [ref=f17e181]: "6.5"
+      - generic [ref=f17e184]:
+        - 'img "Mission: Impossible - The Final Reckoning" [ref=f17e186] [cursor=pointer]'
+        - paragraph [ref=f17e187]: "Mission: Impossible - The Final Reckoning"
+        - paragraph [ref=f17e188]: 2025 • Action | Adventure • 2h 50m
+        - generic [ref=f17e189]:
+          - button "Đặt vé ngay" [ref=f17e190] [cursor=pointer]
+          - paragraph [ref=f17e191]: "7.0"
+      - generic [ref=f17e194]:
+        - img "Thunderbolts*" [ref=f17e196] [cursor=pointer]
+        - paragraph [ref=f17e197]: Thunderbolts*
+        - paragraph [ref=f17e198]: 2025 • Action | Science Fiction • 2h 7m
+        - generic [ref=f17e199]:
+          - button "Đặt vé ngay" [ref=f17e200] [cursor=pointer]
+          - paragraph [ref=f17e201]: "7.4"
+    - button "Khám phá thêm phim" [ref=f17e79] [cursor=pointer]
+  - generic [ref=f17e80]:
+    - paragraph [ref=f17e81]: Trailers
+    - iframe [ref=f17e206]:
+      - generic [ref=f18e1]:
+        - generic "YouTube Video Player" [ref=f18e3]
+        - generic [ref=f18e5]:
+          - generic:
+            - generic:
+              - generic [ref=f18e6] [cursor=pointer]
+              - button "Play video" [ref=f18e10] [cursor=pointer]
+              - button "Hide player controls" [ref=f18e12] [cursor=pointer]
+              - generic [ref=f18e14]
+    - generic [ref=f17e83]:
+      - img "trailer" [ref=f17e85] [cursor=pointer]
+      - img "trailer" [ref=f17e90] [cursor=pointer]
+      - img "trailer" [ref=f17e95] [cursor=pointer]
+      - img "trailer" [ref=f17e100] [cursor=pointer]
+  - contentinfo [ref=f17e104]:
+    - generic [ref=f17e105]:
+      - generic [ref=f17e106]:
+        - link [ref=f17e107] [cursor=pointer]:
+          - /url: https://prebuiltui.com
+        - paragraph [ref=f17e110]: Please let me know your opinion!
+        - generic [ref=f17e111]:
+          - textbox [ref=f17e112]
+          - button "Send me" [ref=f17e113]
+      - generic [ref=f17e114]:
+        - generic [ref=f17e115]:
+          - heading "Products" [level=3] [ref=f17e116]
+          - list [ref=f17e117]:
+            - listitem [ref=f17e118]:
+              - link "Components" [ref=f17e119] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e120]:
+              - link "Templates" [ref=f17e121] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e122]:
+              - link "Icons" [ref=f17e123] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f17e124]:
+          - heading "Resources" [level=3] [ref=f17e125]
+          - list [ref=f17e126]:
+            - listitem [ref=f17e127]:
+              - link "PrebuiltUI" [ref=f17e128] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e129]:
+              - link "Templates" [ref=f17e130] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e131]:
+              - link "Components" [ref=f17e132] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e133]:
+              - link "Blogs" [ref=f17e134] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e135]:
+              - link "Store" [ref=f17e136] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f17e137]:
+          - heading "Company" [level=3] [ref=f17e138]
+          - list [ref=f17e139]:
+            - listitem [ref=f17e140]:
+              - link "About" [ref=f17e141] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e142]:
+              - link "Vision" [ref=f17e143] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e144]:
+              - link "Careers" [ref=f17e145] [cursor=pointer]:
+                - /url: "#"
+              - generic [ref=f17e146]: HIRING
+            - listitem [ref=f17e147]:
+              - link "Privacy policy" [ref=f17e148] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f17e149]:
+              - link "Contact Us" [ref=f17e150] [cursor=pointer]:
+                - /url: "#"
+    - generic [ref=f17e151]:
+      - paragraph [ref=f17e152]: © 2025 prebuiltUI Design
+      - generic [ref=f17e153]:
+        - link [ref=f17e154] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f17e157] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f17e161] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f17e166] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f17e170] [cursor=pointer]:
+          - /url: "#"

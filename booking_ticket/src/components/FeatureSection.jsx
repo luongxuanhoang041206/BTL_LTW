@@ -5,11 +5,14 @@ import { dummyShowsData } from "../assets/assets";
 import { MovieCard } from "./MovieCard";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { useWebsiteContent } from "../context/WebsiteContentContext";
 
-export function FeatureSection() {
+export function FeatureSection({ cmsContent } = {}) {
+  const contextSite = useWebsiteContent();
+  const site = cmsContent || contextSite;
+  const section = site.sections?.find(x => x.key === "nowShowing") || {};
   const navigate = useNavigate();
   const [movies, setMovies] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMovies = async () => {
@@ -22,18 +25,16 @@ export function FeatureSection() {
         }
       } catch {
         setMovies(dummyShowsData);
-      } finally {
-        setLoading(false);
       }
     };
     fetchMovies();
   }, []);
 
   return (
-    <div className="px-6 md:px-16 lg:px-24 xl:px-44 overflow-hidden">
+    section.visible === false ? null : <div className="px-6 md:px-16 lg:px-24 xl:px-44 overflow-hidden">
       <div className="relative flex items-center justify-between pt-20 pb-10">
         <BlurCicle top="0" right="-80px" />
-        <p className="text-gray-200 font-semibold text-xl">Phim Đang Chiếu</p>
+        <div><p className="text-gray-200 font-semibold text-xl">{section.title || "Phim Đang Chiếu"}</p>{section.description && <p className="mt-1 text-sm text-gray-400">{section.description}</p>}</div>
         <button
           onClick={() => {
             navigate("/movies");

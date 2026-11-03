@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5080";
+// React is hosted by ASP.NET in production, so API requests use the same origin.
+const API_BASE = "";
 
 export const api = {
   baseUrl: API_BASE,

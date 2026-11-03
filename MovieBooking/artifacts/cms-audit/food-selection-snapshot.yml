@@ -1,0 +1,66 @@
+- generic [ref=f25e2]:
+  - generic [ref=f25e3]:
+    - link [ref=f25e4] [cursor=pointer]:
+      - /url: /home
+      - img "Logo" [ref=f25e5]
+      - heading "RoPhim" [level=1] [ref=f25e6]
+    - generic [ref=f25e7]:
+      - link "Trang chủ" [ref=f25e8] [cursor=pointer]:
+        - /url: /home
+      - link "Phim đang chiếu" [ref=f25e9] [cursor=pointer]:
+        - /url: /movies
+      - link "Vé của tôi" [ref=f25e10] [cursor=pointer]:
+        - /url: /booking
+      - link "Yêu thích" [ref=f25e11] [cursor=pointer]:
+        - /url: /favourite
+    - button "Đăng nhập" [ref=f25e13] [cursor=pointer]
+  - main [ref=f25e14]:
+    - heading "Không tìm thấy ghế đang giữ" [level=1] [ref=f25e15]
+    - paragraph [ref=f25e16]: Vui lòng chọn ghế trước khi chọn đồ ăn.
+    - link "Chọn phim" [ref=f25e17] [cursor=pointer]:
+      - /url: /movies
+  - contentinfo [ref=f25e18]:
+    - generic [ref=f25e19]:
+      - generic [ref=f25e20]:
+        - link [ref=f25e21] [cursor=pointer]:
+          - /url: https://prebuiltui.com
+        - paragraph [ref=f25e24]: Please let me know your opinion!
+        - generic [ref=f25e25]:
+          - textbox [ref=f25e26]
+          - button "Send me" [ref=f25e27]
+      - generic [ref=f25e28]:
+        - generic [ref=f25e29]:
+          - heading "Products" [level=3] [ref=f25e30]
+          - list [ref=f25e31]:
+            - listitem [ref=f25e32]
+            - listitem [ref=f25e34]
+            - listitem [ref=f25e36]
+        - generic [ref=f25e38]:
+          - heading "Resources" [level=3] [ref=f25e39]
+          - list [ref=f25e40]:
+            - listitem [ref=f25e41]
+            - listitem [ref=f25e43]
+            - listitem [ref=f25e45]
+            - listitem [ref=f25e47]
+            - listitem [ref=f25e49]
+        - generic [ref=f25e51]:
+          - heading "Company" [level=3] [ref=f25e52]
+          - list [ref=f25e53]:
+            - listitem [ref=f25e54]
+            - listitem [ref=f25e56]
+            - listitem [ref=f25e58]
+            - listitem [ref=f25e61]
+            - listitem [ref=f25e63]
+    - generic [ref=f25e65]:
+      - paragraph [ref=f25e66]: © 2025 prebuiltUI Design
+      - generic [ref=f25e67]:
+        - link [ref=f25e68] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f25e71] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f25e75] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f25e80] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f25e84] [cursor=pointer]:
+          - /url: "#"

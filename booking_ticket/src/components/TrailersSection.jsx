@@ -3,15 +3,17 @@ import { dummyTrailers } from "../assets/assets";
 import ReactPlayer from "react-player";
 import { BlurCicle } from "./BlurCircle";
 import { PlayCircleIcon } from "lucide-react";
+import { useWebsiteContent } from "../context/WebsiteContentContext";
 
-export function TrailersSection() {
+export function TrailersSection({ cmsContent } = {}) {
+  const contextSite = useWebsiteContent();
+  const site = cmsContent || contextSite;
+  const section = site.sections?.find(x => x.key === "trailers") || {};
   const [currentTrailer, setCurrentTrailer] = useState(dummyTrailers[0]);
 
   return (
-    <div className="px-6 md:px-16 lg:px-24 xl:px-44 py-20 overflow-hidden">
-      <p className="text-gray-300 font-medium text-lg max-w-[960px] mx-auto">
-        Trailers
-      </p>
+    section.visible === false ? null : <div className="px-6 md:px-16 lg:px-24 xl:px-44 py-20 overflow-hidden">
+      <div className="max-w-[960px] mx-auto"><p className="text-gray-300 font-medium text-lg">{section.title || "Trailers"}</p>{section.description && <p className="mt-1 text-sm text-gray-400">{section.description}</p>}</div>
 
       <div className="relative mt-6">
         <BlurCicle top="-100px" right="-100px" />

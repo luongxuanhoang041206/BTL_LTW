@@ -43,6 +43,9 @@ public partial class MovieBookingContext : DbContext
     public virtual DbSet<ShowtimeSeat> ShowtimeSeats { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<SystemSetting> SystemSettings { get; set; }
+
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<FoodItem> FoodItems { get; set; }
 
@@ -53,6 +56,7 @@ public partial class MovieBookingContext : DbContext
     public virtual DbSet<BookingCombo> BookingCombos { get; set; }
     public virtual DbSet<BookingFood> BookingFoods { get; set; }
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
+    public DbSet<WebsiteContent> WebsiteContents => Set<WebsiteContent>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -430,6 +434,84 @@ public partial class MovieBookingContext : DbContext
             entity.Property(x => x.Amount).HasPrecision(18, 2);
             entity.Property(x => x.Result).HasMaxLength(50);
         });
+
+        modelBuilder.Entity<WebsiteContent>(entity =>
+        {
+            entity.ToTable("WebsiteContent");
+            entity.HasKey(e => e.ContentId);
+            entity.HasIndex(e => e.ContentKey).IsUnique();
+            entity.Property(e => e.ContentKey).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DraftJson).IsRequired();
+            entity.Property(e => e.UpdatedAt).HasColumnType("datetime2").HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.PublishedAt).HasColumnType("datetime2");
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.UpdatedByUserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.ToTable("SystemSettings");
+
+            entity.HasKey(e => e.SettingId);
+
+            entity.HasIndex(e => e.SettingKey)
+                .IsUnique();
+
+            entity.Property(e => e.SettingKey)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.SettingValue)
+                .IsRequired();
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(e => e.UpdatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.UpdatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("AuditLogs");
+
+            entity.HasKey(e => e.LogId);
+
+            entity.Property(e => e.Action)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(e => e.Target)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValue("Success")
+                .IsRequired();
+
+            entity.Property(e => e.IpAddress)
+                .HasMaxLength(45);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("GETDATE()");
+
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+
         OnModelCreatingPartial(modelBuilder);
     }
 

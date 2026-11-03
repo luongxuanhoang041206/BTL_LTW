@@ -32,6 +32,7 @@ builder.Services.AddHostedService<ExpiredHoldCleanupService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IFoodService, FoodService>();
 builder.Services.AddScoped<ICinemaService, CinemaService>();
+builder.Services.AddScoped<IGenreService, GenreService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -50,7 +51,17 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            title = "Đã xảy ra lỗi máy chủ.",
+            status = StatusCodes.Status500InternalServerError,
+            requestId = context.TraceIdentifier
+        });
+    }));
     app.UseHsts();
 }
 
@@ -63,6 +74,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+// Serve the React build and other files from wwwroot.
+app.UseStaticFiles();
 app.UseRouting();
 
 app.UseCors("ReactFrontend");
@@ -73,18 +86,21 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapStaticAssets();
-
-app.MapControllerRoute(
-    name: "areas",
-    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
 app.MapHub<SeatHub>("/seatHub");
+
+// React Router handles client-side routes. Keep unknown API and legacy paths as 404s.
+app.MapFallback(async context =>
+{
+    var path = context.Request.Path;
+    if (path.StartsWithSegments("/api") || path.StartsWithSegments("/seatHub"))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await context.Response.SendFileAsync(
+        Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "app", "index.html"));
+});
 
 app.Run();
