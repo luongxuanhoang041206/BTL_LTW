@@ -1,0 +1,278 @@
+- generic [ref=f15e3]:
+  - generic [ref=f15e4]:
+    - link [ref=f15e5] [cursor=pointer]:
+      - /url: /home
+      - img "Logo" [ref=f15e6]
+      - heading "RoPhim" [level=1] [ref=f15e7]
+    - link:
+      - /url: /home
+  - generic [ref=f15e8]:
+    - complementary [ref=f15e9]:
+      - generic [ref=f15e10]:
+        - generic [ref=f15e11]:
+          - heading "TỔNG QUAN" [level=3] [ref=f15e12]
+          - link "Bảng điều khiển" [ref=f15e14] [cursor=pointer]:
+            - /url: /admin
+        - generic [ref=f15e21]:
+          - heading "WEBSITE" [level=3] [ref=f15e22]
+          - link "Quản lý website" [ref=f15e24] [cursor=pointer]:
+            - /url: /admin/website
+        - generic [ref=f15e28]:
+          - heading "NỘI DUNG PHIM" [level=3] [ref=f15e29]
+          - generic [ref=f15e30]:
+            - link "Danh sách phim" [ref=f15e31] [cursor=pointer]:
+              - /url: /admin/movies
+            - link "Thể loại phim" [ref=f15e35] [cursor=pointer]:
+              - /url: /admin/genres
+            - link "Đồ ăn & combo" [ref=f15e42] [cursor=pointer]:
+              - /url: /admin/fnb
+        - generic [ref=f15e47]:
+          - heading "HỆ THỐNG RẠP" [level=3] [ref=f15e48]
+          - generic [ref=f15e49]:
+            - link "Danh sách rạp" [ref=f15e50] [cursor=pointer]:
+              - /url: /admin/cinemas
+            - link "Phòng chiếu" [ref=f15e56] [cursor=pointer]:
+              - /url: /admin/rooms
+            - link "Sơ đồ ghế" [ref=f15e61] [cursor=pointer]:
+              - /url: /admin/seat-map
+        - generic [ref=f15e65]:
+          - heading "VẬN HÀNH" [level=3] [ref=f15e66]
+          - generic [ref=f15e67]:
+            - link "Lịch chiếu" [ref=f15e68] [cursor=pointer]:
+              - /url: /admin/shows
+            - link "Đặt vé" [ref=f15e72] [cursor=pointer]:
+              - /url: /admin/bookings
+            - link "Thanh toán" [ref=f15e76] [cursor=pointer]:
+              - /url: /admin/payments
+            - link "Khuyến mãi" [ref=f15e80] [cursor=pointer]:
+              - /url: /admin/promotions
+        - generic [ref=f15e84]:
+          - heading "KHÁCH HÀNG" [level=3] [ref=f15e85]
+          - generic [ref=f15e86]:
+            - link "Khách hàng" [ref=f15e87] [cursor=pointer]:
+              - /url: /admin/customers
+            - link "Đánh giá phim" [ref=f15e94] [cursor=pointer]:
+              - /url: /admin/reviews
+        - generic [ref=f15e99]:
+          - heading "PHÂN TÍCH" [level=3] [ref=f15e100]
+          - generic [ref=f15e101]:
+            - link "Báo cáo doanh thu" [ref=f15e102] [cursor=pointer]:
+              - /url: /admin/reports/revenue
+            - link "Hiệu suất suất chiếu" [ref=f15e105] [cursor=pointer]:
+              - /url: /admin/reports/showtime-performance
+            - link "Tỷ lệ lấp đầy ghế" [ref=f15e110] [cursor=pointer]:
+              - /url: /admin/reports/seat-occupancy
+        - generic [ref=f15e114]:
+          - heading "QUẢN TRỊ HỆ THỐNG" [level=3] [ref=f15e115]
+          - generic [ref=f15e116]:
+            - link "Tài khoản quản trị" [ref=f15e117] [cursor=pointer]:
+              - /url: /admin/system/users
+            - link "Phân quyền" [ref=f15e124] [cursor=pointer]:
+              - /url: /admin/system/roles
+            - link "Nhật ký quản trị" [ref=f15e129] [cursor=pointer]:
+              - /url: /admin/system/audit-logs
+            - link "Cấu hình hệ thống" [ref=f15e134] [cursor=pointer]:
+              - /url: /admin/system/settings
+    - generic [ref=f15e140]:
+      - generic [ref=f15e141]:
+        - generic [ref=f15e142]:
+          - heading "Quản lý website" [level=1] [ref=f15e143]
+          - paragraph [ref=f15e144]: Chỉnh sửa nội dung, xem trước trực tiếp và xuất bản khi sẵn sàng.
+        - generic [ref=f15e145]:
+          - button "Lưu nháp" [ref=f15e146]
+          - button "Xuất bản" [ref=f15e147]
+      - paragraph [ref=f15e148]: "Lỗi yêu cầu: Not Found"
+      - generic [ref=f15e149]:
+        - generic [ref=f15e150]:
+          - generic [ref=f15e151]:
+            - heading "Banner trang chủ" [level=2] [ref=f15e152]
+            - generic [ref=f15e153]:
+              - text: Tiêu đề
+              - textbox "Tiêu đề" [ref=f15e154]: Guardian of the galaxy
+            - generic [ref=f15e155]:
+              - text: Mô tả
+              - textbox "Mô tả" [ref=f15e156]: A group of unlikely heroes must overcome their differences and join forces to protect the galaxy from a powerful enemy.
+            - generic [ref=f15e157]:
+              - text: URL hình ảnh
+              - textbox "URL hình ảnh" [ref=f15e158]
+            - generic [ref=f15e159]:
+              - text: Nhãn nút
+              - textbox "Nhãn nút" [ref=f15e160]: Explore Movies
+            - generic [ref=f15e161]:
+              - text: Liên kết nút
+              - textbox "Liên kết nút" [ref=f15e162]: /movies
+            - generic [ref=f15e163]:
+              - checkbox "Hiển thị banner" [checked] [ref=f15e164]
+              - text: Hiển thị banner
+          - generic [ref=f15e165]:
+            - heading "Khu vực trang chủ" [level=2] [ref=f15e166]
+            - generic [ref=f15e167]:
+              - textbox [ref=f15e168]: Phim Đang Chiếu
+              - textbox "Mô tả" [ref=f15e169]
+              - generic [ref=f15e170]:
+                - checkbox "Hiển thị" [checked] [ref=f15e171]
+                - text: Hiển thị
+            - generic [ref=f15e172]:
+              - textbox [ref=f15e173]: Trailers
+              - textbox "Mô tả" [ref=f15e174]
+              - generic [ref=f15e175]:
+                - checkbox "Hiển thị" [checked] [ref=f15e176]
+                - text: Hiển thị
+          - generic [ref=f15e177]:
+            - heading "Đầu trang & chân trang" [level=2] [ref=f15e178]
+            - generic [ref=f15e179]:
+              - textbox "Tên liên kết" [ref=f15e180]: Trang chủ
+              - textbox "URL liên kết" [ref=f15e181]: /home
+            - generic [ref=f15e182]:
+              - textbox "Tên liên kết" [ref=f15e183]: Phim đang chiếu
+              - textbox "URL liên kết" [ref=f15e184]: /movies
+            - generic [ref=f15e185]:
+              - textbox "Tên liên kết" [ref=f15e186]: Vé của tôi
+              - textbox "URL liên kết" [ref=f15e187]: /booking
+            - generic [ref=f15e188]:
+              - textbox "Tên liên kết" [ref=f15e189]: Yêu thích
+              - textbox "URL liên kết" [ref=f15e190]: /favourite
+            - textbox "Chân trang" [ref=f15e191]: Please let me know your opinion!
+            - textbox "Bản quyền" [ref=f15e192]: © 2025 prebuiltUI Design
+          - generic [ref=f15e193]:
+            - heading "Thông báo" [level=2] [ref=f15e194]
+            - button "+ Thêm thông báo" [ref=f15e195]
+        - generic [ref=f15e196]:
+          - generic [ref=f15e197]: Xem trước website
+          - generic [ref=f15e198]:
+            - generic [ref=f15e199]:
+              - link [ref=f15e200] [cursor=pointer]:
+                - /url: /home
+                - img "Logo" [ref=f15e201]
+                - heading "RoPhim" [level=1] [ref=f15e202]
+              - generic [ref=f15e203]:
+                - link "Trang chủ" [ref=f15e204] [cursor=pointer]:
+                  - /url: /home
+                - link "Phim đang chiếu" [ref=f15e205] [cursor=pointer]:
+                  - /url: /movies
+                - link "Vé của tôi" [ref=f15e206] [cursor=pointer]:
+                  - /url: /booking
+                - link "Yêu thích" [ref=f15e207] [cursor=pointer]:
+                  - /url: /favourite
+              - button "Đăng nhập" [ref=f15e209] [cursor=pointer]
+            - generic [ref=f15e210]:
+              - heading "Guardian of the galaxy" [level=1] [ref=f15e211]
+              - generic [ref=f15e212]:
+                - generic [ref=f15e213]: Action | Adventure | Sci-fi
+                - generic [ref=f15e214]: "2018"
+                - generic [ref=f15e218]: 2h 8m
+              - paragraph [ref=f15e222]: A group of unlikely heroes must overcome their differences and join forces to protect the galaxy from a powerful enemy.
+              - button "Explore Movies" [ref=f15e223] [cursor=pointer]
+            - generic [ref=f15e226]:
+              - generic [ref=f15e227]:
+                - paragraph [ref=f15e229]: Phim Đang Chiếu
+                - button "Xem tất cả" [ref=f15e230] [cursor=pointer]
+              - generic [ref=f15e233]:
+                - generic [ref=f15e234]:
+                  - img "In the Lost Lands" [ref=f15e236] [cursor=pointer]
+                  - paragraph [ref=f15e237]: In the Lost Lands
+                  - paragraph [ref=f15e238]: 2025 • Action | Fantasy • 1h 42m
+                  - generic [ref=f15e239]:
+                    - button "Đặt vé ngay" [ref=f15e240] [cursor=pointer]
+                    - paragraph [ref=f15e241]: "6.4"
+                - generic [ref=f15e244]:
+                  - img "Until Dawn" [ref=f15e246] [cursor=pointer]
+                  - paragraph [ref=f15e247]: Until Dawn
+                  - paragraph [ref=f15e248]: 2025 • Horror | Mystery • 1h 43m
+                  - generic [ref=f15e249]:
+                    - button "Đặt vé ngay" [ref=f15e250] [cursor=pointer]
+                    - paragraph [ref=f15e251]: "6.4"
+                - generic [ref=f15e254]:
+                  - img "Lilo & Stitch" [ref=f15e256] [cursor=pointer]
+                  - paragraph [ref=f15e257]: Lilo & Stitch
+                  - paragraph [ref=f15e258]: 2025 • Family | Comedy • 1h 48m
+                  - generic [ref=f15e259]:
+                    - button "Đặt vé ngay" [ref=f15e260] [cursor=pointer]
+                    - paragraph [ref=f15e261]: "7.1"
+                - generic [ref=f15e264]:
+                  - img "Havoc" [ref=f15e266] [cursor=pointer]
+                  - paragraph [ref=f15e267]: Havoc
+                  - paragraph [ref=f15e268]: 2025 • Action | Crime • 1h 47m
+                  - generic [ref=f15e269]:
+                    - button "Đặt vé ngay" [ref=f15e270] [cursor=pointer]
+                    - paragraph [ref=f15e271]: "6.5"
+              - button "Khám phá thêm phim" [ref=f15e275] [cursor=pointer]
+            - generic [ref=f15e276]:
+              - paragraph [ref=f15e277]: Trailers
+              - generic [ref=f15e279]:
+                - img "trailer" [ref=f15e281] [cursor=pointer]
+                - img "trailer" [ref=f15e286] [cursor=pointer]
+                - img "trailer" [ref=f15e291] [cursor=pointer]
+                - img "trailer" [ref=f15e296] [cursor=pointer]
+            - generic [ref=f15e300]:
+              - generic [ref=f15e301]:
+                - generic [ref=f15e302]:
+                  - link [ref=f15e303] [cursor=pointer]:
+                    - /url: https://prebuiltui.com
+                  - paragraph [ref=f15e306]: Please let me know your opinion!
+                  - generic [ref=f15e307]:
+                    - textbox [ref=f15e308]
+                    - button "Send me" [ref=f15e309]
+                - generic [ref=f15e310]:
+                  - generic [ref=f15e311]:
+                    - heading "Products" [level=3] [ref=f15e312]
+                    - list [ref=f15e313]:
+                      - listitem [ref=f15e314]:
+                        - link "Components" [ref=f15e315] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e316]:
+                        - link "Templates" [ref=f15e317] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e318]:
+                        - link "Icons" [ref=f15e319] [cursor=pointer]:
+                          - /url: "#"
+                  - generic [ref=f15e320]:
+                    - heading "Resources" [level=3] [ref=f15e321]
+                    - list [ref=f15e322]:
+                      - listitem [ref=f15e323]:
+                        - link "PrebuiltUI" [ref=f15e324] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e325]:
+                        - link "Templates" [ref=f15e326] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e327]:
+                        - link "Components" [ref=f15e328] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e329]:
+                        - link "Blogs" [ref=f15e330] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e331]:
+                        - link "Store" [ref=f15e332] [cursor=pointer]:
+                          - /url: "#"
+                  - generic [ref=f15e333]:
+                    - heading "Company" [level=3] [ref=f15e334]
+                    - list [ref=f15e335]:
+                      - listitem [ref=f15e336]:
+                        - link "About" [ref=f15e337] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e338]:
+                        - link "Vision" [ref=f15e339] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e340]:
+                        - link "Careers" [ref=f15e341] [cursor=pointer]:
+                          - /url: "#"
+                        - generic [ref=f15e342]: HIRING
+                      - listitem [ref=f15e343]:
+                        - link "Privacy policy" [ref=f15e344] [cursor=pointer]:
+                          - /url: "#"
+                      - listitem [ref=f15e345]:
+                        - link "Contact Us" [ref=f15e346] [cursor=pointer]:
+                          - /url: "#"
+              - generic [ref=f15e347]:
+                - paragraph [ref=f15e348]: © 2025 prebuiltUI Design
+                - generic [ref=f15e349]:
+                  - link [ref=f15e350] [cursor=pointer]:
+                    - /url: "#"
+                  - link [ref=f15e353] [cursor=pointer]:
+                    - /url: "#"
+                  - link [ref=f15e357] [cursor=pointer]:
+                    - /url: "#"
+                  - link [ref=f15e362] [cursor=pointer]:
+                    - /url: "#"
+                  - link [ref=f15e366] [cursor=pointer]:
+                    - /url: "#"

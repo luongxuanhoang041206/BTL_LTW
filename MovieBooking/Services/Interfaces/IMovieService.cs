@@ -13,7 +13,7 @@ public interface IMovieService
 
     Task<IEnumerable<Movie>> GetComingSoonMoviesAsync();
 
-    Task<IEnumerable<Genre>> GetAllGenresAsync();
+
 
     Task<Movie?> GetMovieByIdAsync(int id, bool includeExpired = false);
 
@@ -24,4 +24,5 @@ public interface IMovieService
     Task<bool> UpdateMovieAsync(int id, MovieFormDto dto);
 
     Task<bool> DeleteMovieAsync(int id);
+
 }

@@ -1,23 +1,13 @@
-# React + Vite
+# MovieBooking frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend React dùng Vite trong lúc phát triển và được ASP.NET Core phục vụ khi chạy ứng dụng.
 
-Currently, two official plugins are available:
+## Phát triển
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Chạy backend ASP.NET tại `http://localhost:5080` bằng profile `http` trong `MovieBooking/Properties/launchSettings.json`.
+2. Trong thư mục này, chạy `npm ci` lần đầu rồi `npm run dev`.
+3. Mở URL Vite hiển thị trong terminal. Các request `/api` và `/seatHub` được proxy sang backend.
 
-## React Compiler
+## Build và chạy cùng ASP.NET
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-
-# booking_ticket
-
-# Environment variable need for project
-
-VITE_CURRENCY = '$'
-VITE_CLERK_PUBLISHABLE_KEY in clerk
+Chạy `dotnet run` hoặc `dotnet publish` cho project `MovieBooking`. MSBuild tự build React vào `MovieBooking/wwwroot/app`; ASP.NET phục vụ React Router, API và asset từ cùng origin. Giao diện được render bởi React; ASP.NET MVC controllers chỉ trả dữ liệu/trạng thái HTTP.

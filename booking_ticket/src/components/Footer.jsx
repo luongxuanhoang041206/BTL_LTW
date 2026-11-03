@@ -1,4 +1,8 @@
-export function Footer() {
+import { useWebsiteContent } from "../context/WebsiteContentContext";
+export function Footer({ cmsContent } = {}) {
+  const contextSite = useWebsiteContent();
+  const site = cmsContent || contextSite;
+  const content = site.footer || {};
   return (
     <footer class="bg-black text-white py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-20">
       <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-6 gap-8 md:gap-16">
@@ -20,7 +24,7 @@ export function Footer() {
               />
             </svg>
           </a>
-          <p class="text-sm md:text-base">Please let me know your opinion!</p>
+          <p class="text-sm md:text-base">{content.feedback || "Please let me know your opinion!"}</p>
           <div className="flex flex-col gap-3">
             <textarea
               className="bg-[#14171A] text-white/70 border border-white/10 px-3 py-3 rounded-md w-full placeholder:text-sm placeholder:font-light focus:outline-none focus:ring-1 focus:ring-gray-600"
@@ -58,31 +62,7 @@ export function Footer() {
           <div>
             <h3 class="font-medium text-sm mb-4 md:mb-6">Resources</h3>
             <ul class="space-y-3 md:space-y-4 text-sm text-white/70">
-              <li>
-                <a href="#" class="hover:text-white">
-                  PrebuiltUI
-                </a>
-              </li>
-              <li>
-                <a href="#" class="hover:text-white">
-                  Templates
-                </a>
-              </li>
-              <li>
-                <a href="#" class="hover:text-white">
-                  Components
-                </a>
-              </li>
-              <li>
-                <a href="#" class="hover:text-white">
-                  Blogs
-                </a>
-              </li>
-              <li>
-                <a href="#" class="hover:text-white">
-                  Store
-                </a>
-              </li>
+              {(content.links?.length ? content.links : [{text:"PrebuiltUI",href:"#"},{text:"Templates",href:"#"},{text:"Components",href:"#"},{text:"Blogs",href:"#"},{text:"Store",href:"#"}]).map((link,index)=><li key={index}><a href={link.href} class="hover:text-white">{link.text}</a></li>)}
             </ul>
           </div>
 
@@ -124,7 +104,7 @@ export function Footer() {
 
       <div class="max-w-7xl mx-auto mt-12 md:mt-16 pt-6 border-t border-neutral-700 flex flex-col md:flex-row justify-between items-center gap-6">
         <p class="text-white/70 text-xs sm:text-sm order-2 md:order-1">
-          © 2025 prebuiltUI Design
+          {content.copyright || "© 2025 prebuiltUI Design"}
         </p>
         <div class="flex gap-5 md:gap-6 order-1 md:order-2">
           <a href="#" class="text-white hover:text-gray-300">

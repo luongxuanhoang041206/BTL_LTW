@@ -1,0 +1,91 @@
+- generic [ref=f13e2]:
+  - generic [ref=f13e3]:
+    - link [ref=f13e4] [cursor=pointer]:
+      - /url: /home
+      - img "Logo" [ref=f13e5]
+      - heading "RoPhim" [level=1] [ref=f13e6]
+    - generic [ref=f13e7]:
+      - link "Trang chủ" [ref=f13e8] [cursor=pointer]:
+        - /url: /home
+      - link "Phim đang chiếu" [ref=f13e9] [cursor=pointer]:
+        - /url: /movies
+      - link "Vé của tôi" [ref=f13e10] [cursor=pointer]:
+        - /url: /booking
+      - link "Yêu thích" [ref=f13e11] [cursor=pointer]:
+        - /url: /favourite
+    - button "Đăng nhập" [ref=f13e13] [cursor=pointer]
+  - generic [ref=f13e14]:
+    - paragraph [ref=f13e15]: Vui lòng đăng nhập để tiếp tục thanh toán.
+    - button "Đăng nhập" [ref=f13e16]
+  - contentinfo [ref=f13e17]:
+    - generic [ref=f13e18]:
+      - generic [ref=f13e19]:
+        - link [ref=f13e20] [cursor=pointer]:
+          - /url: https://prebuiltui.com
+        - paragraph [ref=f13e23]: Please let me know your opinion!
+        - generic [ref=f13e24]:
+          - textbox [ref=f13e25]
+          - button "Send me" [ref=f13e26]
+      - generic [ref=f13e27]:
+        - generic [ref=f13e28]:
+          - heading "Products" [level=3] [ref=f13e29]
+          - list [ref=f13e30]:
+            - listitem [ref=f13e31]:
+              - link "Components" [ref=f13e32] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e33]:
+              - link "Templates" [ref=f13e34] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e35]:
+              - link "Icons" [ref=f13e36] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f13e37]:
+          - heading "Resources" [level=3] [ref=f13e38]
+          - list [ref=f13e39]:
+            - listitem [ref=f13e40]:
+              - link "PrebuiltUI" [ref=f13e41] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e42]:
+              - link "Templates" [ref=f13e43] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e44]:
+              - link "Components" [ref=f13e45] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e46]:
+              - link "Blogs" [ref=f13e47] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e48]:
+              - link "Store" [ref=f13e49] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=f13e50]:
+          - heading "Company" [level=3] [ref=f13e51]
+          - list [ref=f13e52]:
+            - listitem [ref=f13e53]:
+              - link "About" [ref=f13e54] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e55]:
+              - link "Vision" [ref=f13e56] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e57]:
+              - link "Careers" [ref=f13e58] [cursor=pointer]:
+                - /url: "#"
+              - generic [ref=f13e59]: HIRING
+            - listitem [ref=f13e60]:
+              - link "Privacy policy" [ref=f13e61] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=f13e62]:
+              - link "Contact Us" [ref=f13e63] [cursor=pointer]:
+                - /url: "#"
+    - generic [ref=f13e64]:
+      - paragraph [ref=f13e65]: © 2025 prebuiltUI Design
+      - generic [ref=f13e66]:
+        - link [ref=f13e67] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f13e70] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f13e74] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f13e79] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=f13e83] [cursor=pointer]:
+          - /url: "#"

@@ -1,0 +1,184 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link [ref=e4] [cursor=pointer]:
+      - /url: /home
+      - img "Logo" [ref=e5]
+      - heading "RoPhim" [level=1] [ref=e6]
+    - generic [ref=e7]:
+      - link "Trang chủ" [ref=e8] [cursor=pointer]:
+        - /url: /home
+      - link "Phim đang chiếu" [ref=e9] [cursor=pointer]:
+        - /url: /movies
+      - link "Vé của tôi" [ref=e10] [cursor=pointer]:
+        - /url: /booking
+      - link "Yêu thích" [ref=e11] [cursor=pointer]:
+        - /url: /favourite
+    - button "Đăng nhập" [ref=e13] [cursor=pointer]
+  - generic [ref=e14]:
+    - heading "Guardian of the galaxy" [level=1] [ref=e15]
+    - generic [ref=e16]:
+      - generic [ref=e17]: Action | Adventure | Sci-fi
+      - generic [ref=e18]: "2018"
+      - generic [ref=e22]: 2h 8m
+    - paragraph [ref=e26]: A group of unlikely heroes must overcome their differences and join forces to protect the galaxy from a powerful enemy.
+    - button "Explore Movies" [ref=e27] [cursor=pointer]
+  - generic [ref=e30]:
+    - generic [ref=e31]:
+      - paragraph [ref=e33]: Phim Đang Chiếu
+      - button "Xem tất cả" [ref=e34] [cursor=pointer]
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - img "In the Lost Lands" [ref=e40] [cursor=pointer]
+        - paragraph [ref=e41]: In the Lost Lands
+        - paragraph [ref=e42]: 2025 • Action | Fantasy • 1h 42m
+        - generic [ref=e43]:
+          - button "Đặt vé ngay" [ref=e44] [cursor=pointer]
+          - paragraph [ref=e45]: "6.4"
+      - generic [ref=e48]:
+        - img "Until Dawn" [ref=e50] [cursor=pointer]
+        - paragraph [ref=e51]: Until Dawn
+        - paragraph [ref=e52]: 2025 • Horror | Mystery • 1h 43m
+        - generic [ref=e53]:
+          - button "Đặt vé ngay" [ref=e54] [cursor=pointer]
+          - paragraph [ref=e55]: "6.4"
+      - generic [ref=e58]:
+        - img "Lilo & Stitch" [ref=e60] [cursor=pointer]
+        - paragraph [ref=e61]: Lilo & Stitch
+        - paragraph [ref=e62]: 2025 • Family | Comedy • 1h 48m
+        - generic [ref=e63]:
+          - button "Đặt vé ngay" [ref=e64] [cursor=pointer]
+          - paragraph [ref=e65]: "7.1"
+      - generic [ref=e68]:
+        - img "Havoc" [ref=e70] [cursor=pointer]
+        - paragraph [ref=e71]: Havoc
+        - paragraph [ref=e72]: 2025 • Action | Crime • 1h 47m
+        - generic [ref=e73]:
+          - button "Đặt vé ngay" [ref=e74] [cursor=pointer]
+          - paragraph [ref=e75]: "6.5"
+      - generic [ref=e78]:
+        - img "A Minecraft Movie" [ref=e80] [cursor=pointer]
+        - paragraph [ref=e81]: A Minecraft Movie
+        - paragraph [ref=e82]: 2025 • Family | Comedy • 1h 41m
+        - generic [ref=e83]:
+          - button "Đặt vé ngay" [ref=e84] [cursor=pointer]
+          - paragraph [ref=e85]: "6.5"
+      - generic [ref=e88]:
+        - 'img "Mission: Impossible - The Final Reckoning" [ref=e90] [cursor=pointer]'
+        - paragraph [ref=e91]: "Mission: Impossible - The Final Reckoning"
+        - paragraph [ref=e92]: 2025 • Action | Adventure • 2h 50m
+        - generic [ref=e93]:
+          - button "Đặt vé ngay" [ref=e94] [cursor=pointer]
+          - paragraph [ref=e95]: "7.0"
+      - generic [ref=e98]:
+        - img "Thunderbolts*" [ref=e100] [cursor=pointer]
+        - paragraph [ref=e101]: Thunderbolts*
+        - paragraph [ref=e102]: 2025 • Action | Science Fiction • 2h 7m
+        - generic [ref=e103]:
+          - button "Đặt vé ngay" [ref=e104] [cursor=pointer]
+          - paragraph [ref=e105]: "7.4"
+    - button "Khám phá thêm phim" [ref=e109] [cursor=pointer]
+  - generic [ref=e110]:
+    - paragraph [ref=e111]: Trailers
+    - iframe [ref=e115]:
+      - generic [ref=f1e1]:
+        - generic "YouTube Video Player" [ref=f1e3]
+        - generic [ref=f1e5]:
+          - generic:
+            - generic:
+              - generic [ref=f1e6] [cursor=pointer]
+              - button "Play video" [ref=f1e10] [cursor=pointer]
+              - button "Hide player controls" [ref=f1e12] [cursor=pointer]
+              - generic [ref=f1e14]:
+                - generic [ref=f1e21]:
+                  - generic [ref=f1e22]:
+                    - link "Marvel Television's Ironheart | Official Trailer | Disney+" [ref=f1e23] [cursor=pointer]:
+                      - /url: https://www.youtube.com/watch?v=WpW36ldAqnM
+                    - link "Marvel Entertainment" [ref=f1e24] [cursor=pointer]:
+                      - /url: /channel/UCvC4D8onUfXzvjTOM-dBfEA
+                  - generic [ref=f1e26]:
+                    - button [ref=f1e27] [cursor=pointer]
+                    - generic [ref=f1e29]:
+                      - generic: Marvel Entertainment
+                      - generic: 23.9M subscribers
+                - generic [ref=f1e30]:
+                  - button "Share" [ref=f1e33] [cursor=pointer]
+                  - link "Watch on YouTube" [ref=f1e44] [cursor=pointer]:
+                    - /url: https://www.youtube.com/watch?v=WpW36ldAqnM
+                    - generic [ref=f1e45]: Watch on
+    - generic [ref=e116]:
+      - img "trailer" [ref=e118] [cursor=pointer]
+      - img "trailer" [ref=e123] [cursor=pointer]
+      - img "trailer" [ref=e128] [cursor=pointer]
+      - img "trailer" [ref=e133] [cursor=pointer]
+  - contentinfo [ref=e137]:
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - link [ref=e140] [cursor=pointer]:
+          - /url: https://prebuiltui.com
+        - paragraph [ref=e143]: Please let me know your opinion!
+        - generic [ref=e144]:
+          - textbox [ref=e145]
+          - button "Send me" [ref=e146]
+      - generic [ref=e147]:
+        - generic [ref=e148]:
+          - heading "Products" [level=3] [ref=e149]
+          - list [ref=e150]:
+            - listitem [ref=e151]:
+              - link "Components" [ref=e152] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e153]:
+              - link "Templates" [ref=e154] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e155]:
+              - link "Icons" [ref=e156] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e157]:
+          - heading "Resources" [level=3] [ref=e158]
+          - list [ref=e159]:
+            - listitem [ref=e160]:
+              - link "PrebuiltUI" [ref=e161] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e162]:
+              - link "Templates" [ref=e163] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e164]:
+              - link "Components" [ref=e165] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e166]:
+              - link "Blogs" [ref=e167] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e168]:
+              - link "Store" [ref=e169] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e170]:
+          - heading "Company" [level=3] [ref=e171]
+          - list [ref=e172]:
+            - listitem [ref=e173]:
+              - link "About" [ref=e174] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e175]:
+              - link "Vision" [ref=e176] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e177]:
+              - link "Careers" [ref=e178] [cursor=pointer]:
+                - /url: "#"
+              - generic [ref=e179]: HIRING
+            - listitem [ref=e180]:
+              - link "Privacy policy" [ref=e181] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e182]:
+              - link "Contact Us" [ref=e183] [cursor=pointer]:
+                - /url: "#"
+    - generic [ref=e184]:
+      - paragraph [ref=e185]: © 2025 prebuiltUI Design
+      - generic [ref=e186]:
+        - link [ref=e187] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=e190] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=e194] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=e199] [cursor=pointer]:
+          - /url: "#"
+        - link [ref=e203] [cursor=pointer]:
+          - /url: "#"
