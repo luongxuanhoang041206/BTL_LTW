@@ -1,16 +1,29 @@
 import { useEffect, useState } from "react";
-import { dummyBookingData } from "../assets/assets";
+import { Link } from "react-router";
 import { Loading } from "../components/Loading";
 import { BlurCicle } from "../components/BlurCircle";
-import { ClockIcon, MapPinIcon, TicketIcon, CheckCircleIcon, AlertCircleIcon, XCircleIcon } from "lucide-react";
+import {
+  ClockIcon,
+  MapPinIcon,
+  TicketIcon,
+  CheckCircleIcon,
+  AlertCircleIcon,
+  XCircleIcon,
+  QrCode,
+  X,
+  CreditCard,
+} from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { TicketCard } from "../components/TicketCard";
 import toast from "react-hot-toast";
 
 export function Bookings() {
   const { user, openLogin } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [isLoadingTicket, setIsLoadingTicket] = useState(false);
 
   const fetchBookings = async () => {
     if (!user) {
@@ -26,7 +39,6 @@ export function Bookings() {
         setBookings([]);
       }
     } catch {
-      // Fallback
       setBookings([]);
     } finally {
       setIsLoading(false);
@@ -50,6 +62,23 @@ export function Bookings() {
     }
   };
 
+  // Mở modal xem vé & QR chi tiết
+  const handleViewTicket = async (bookingId) => {
+    setIsLoadingTicket(true);
+    try {
+      const ticket = await api.get(`/api/booking/details/${bookingId}`);
+      if (ticket) {
+        setSelectedTicket(ticket);
+      } else {
+        toast.error("Không tìm thấy thông tin vé chi tiết.");
+      }
+    } catch (err) {
+      toast.error(err.message || "Không thể tải thông tin vé.");
+    } finally {
+      setIsLoadingTicket(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[75vh] px-4 text-center pt-32">
@@ -60,7 +89,7 @@ export function Bookings() {
         </p>
         <button
           onClick={openLogin}
-          className="px-8 py-3 bg-primary hover:bg-primary-dull text-white font-semibold rounded-full shadow-lg shadow-primary/30 transition cursor-pointer"
+          className="px-8 py-3 bg-primary hover:bg-primary-dull text-black font-semibold rounded-full shadow-lg shadow-primary/30 transition cursor-pointer"
         >
           Đăng nhập ngay
         </button>
@@ -71,14 +100,16 @@ export function Bookings() {
   if (isLoading) return <Loading />;
 
   return (
-    <div className="relative px-6 md:px-16 lg:px-40 pt-32 md:pt-36 min-h-[85vh] pb-24">
+    <div className="relative px-6 md:px-16 lg:px-40 pt-32 md:pt-36 min-h-[85vh] pb-24 text-white">
       <BlurCicle top="100px" left="100px" />
       <BlurCicle bottom="0" right="200px" />
 
       <div className="flex items-center justify-between mb-8 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold text-white">Vé Của Tôi</h1>
-          <p className="text-gray-400 text-sm mt-1">Quản lý và xuất trình mã vé tại quầy rạp chiếu</p>
+          <p className="text-gray-400 text-sm mt-1">
+            Quản lý, xem mã QR và xuất trình vé điện tử tại quầy rạp chiếu
+          </p>
         </div>
         <span className="text-xs bg-primary/20 text-primary px-3 py-1 rounded-full border border-primary/30 font-medium">
           {bookings.length} vé đã đặt
@@ -98,33 +129,33 @@ export function Bookings() {
                 className="flex flex-col md:flex-row justify-between bg-gray-900/90 border border-primary/20 hover:border-primary/40 rounded-2xl overflow-hidden shadow-xl transition"
               >
                 {/* Poster & Showtime Details */}
-                <div className="flex flex-col sm:flex-row gap-4 p-4 md:p-5">
+                <div className="flex flex-col sm:flex-row gap-4 p-4 md:p-5 flex-1">
                   <img
                     src={item.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800"}
                     alt={item.movieTitle}
-                    className="w-full sm:w-32 h-44 object-cover rounded-xl shadow-md border border-white/10"
+                    className="w-full sm:w-32 h-44 object-cover rounded-xl shadow-md border border-white/10 shrink-0"
                     onError={(e) => {
                       e.target.src = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800";
                     }}
                   />
                   <div className="flex flex-col justify-between py-1">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-xs text-primary font-bold">
                           MÃ VÉ: MB-{item.bookingId.toString().padStart(6, "0")}
                         </span>
                         {isConfirmed && (
-                          <span className="flex items-center gap-1 text-[11px] text-green-400 bg-green-950/60 px-2 py-0.5 rounded border border-green-800">
+                          <span className="flex items-center gap-1 text-[11px] text-green-400 bg-green-950/60 px-2 py-0.5 rounded border border-green-800 font-medium">
                             <CheckCircleIcon className="w-3 h-3" /> Đã thanh toán
                           </span>
                         )}
                         {isPending && (
-                          <span className="flex items-center gap-1 text-[11px] text-yellow-400 bg-yellow-950/60 px-2 py-0.5 rounded border border-yellow-800">
+                          <span className="flex items-center gap-1 text-[11px] text-yellow-400 bg-yellow-950/60 px-2 py-0.5 rounded border border-yellow-800 font-medium">
                             <AlertCircleIcon className="w-3 h-3" /> Chờ thanh toán
                           </span>
                         )}
                         {isCancelled && (
-                          <span className="flex items-center gap-1 text-[11px] text-red-400 bg-red-950/60 px-2 py-0.5 rounded border border-red-800">
+                          <span className="flex items-center gap-1 text-[11px] text-red-400 bg-red-950/60 px-2 py-0.5 rounded border border-red-800 font-medium">
                             <XCircleIcon className="w-3 h-3" /> Đã hủy
                           </span>
                         )}
@@ -155,22 +186,48 @@ export function Bookings() {
                 </div>
 
                 {/* Price & Actions */}
-                <div className="flex flex-row md:flex-col justify-between items-end p-5 md:border-l border-gray-800 bg-black/30">
-                  <div className="text-left md:text-right">
+                <div className="flex flex-row md:flex-col justify-between items-end p-5 md:border-l border-gray-800 bg-black/30 gap-4 min-w-[200px]">
+                  <div className="text-left md:text-right w-full">
                     <p className="text-xs text-gray-400">Số lượng: {item.seatCount} vé</p>
                     <p className="text-2xl font-black text-primary mt-0.5">
                       {Number(item.totalAmount).toLocaleString("vi-VN")} ₫
                     </p>
                   </div>
 
-                  {!isCancelled && (
-                    <button
-                      onClick={() => handleCancelBooking(item.bookingId)}
-                      className="text-xs text-red-400 hover:text-red-300 hover:underline cursor-pointer"
-                    >
-                      Hủy vé
-                    </button>
-                  )}
+                  <div className="flex flex-col sm:flex-row md:flex-col gap-2 w-full items-end">
+                    {/* Nút Xem vé & QR (Dành cho vé đã thanh toán) */}
+                    {isConfirmed && (
+                      <button
+                        onClick={() => handleViewTicket(item.bookingId)}
+                        disabled={isLoadingTicket}
+                        className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary hover:bg-primary-dull text-black px-4 py-2 text-xs font-bold transition shadow-md shadow-primary/20 cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        Xem vé & QR
+                      </button>
+                    )}
+
+                    {/* Nút Tiếp tục thanh toán (Dành cho vé Pending) */}
+                    {isPending && (
+                      <Link
+                        to={`/payment/${item.bookingId}`}
+                        className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 text-xs font-bold transition shadow-md cursor-pointer"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        Thanh toán ngay
+                      </Link>
+                    )}
+
+                    {/* Nút Hủy vé */}
+                    {isPending && (
+                      <button
+                        onClick={() => handleCancelBooking(item.bookingId)}
+                        className="text-xs text-red-400 hover:text-red-300 hover:underline cursor-pointer pt-1"
+                      >
+                        Hủy đơn đặt
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -181,12 +238,31 @@ export function Bookings() {
           <TicketIcon className="w-12 h-12 text-gray-600 mb-3" />
           <p className="text-lg text-gray-300 font-medium">Bạn chưa có vé xem phim nào.</p>
           <p className="text-xs text-gray-500 mt-1 mb-6">Hãy chọn bộ phim bạn yêu thích và trải nghiệm ngay!</p>
-          <a
-            href="/movies"
-            className="px-6 py-2.5 bg-primary hover:bg-primary-dull text-white text-sm font-semibold rounded-full transition shadow-lg shadow-primary/30"
+          <Link
+            to="/movies"
+            className="px-6 py-2.5 bg-primary hover:bg-primary-dull text-black text-sm font-semibold rounded-full transition shadow-lg shadow-primary/30"
           >
             Xem danh sách phim
-          </a>
+          </Link>
+        </div>
+      )}
+
+      {/* MODAL XEM CHI TIẾT VÉ & MÃ QR */}
+      {selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-4xl my-8">
+            {/* Nút đóng modal */}
+            <button
+              onClick={() => setSelectedTicket(null)}
+              className="absolute -top-3 -right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 text-gray-300 hover:bg-red-600 hover:text-white transition shadow-xl border border-white/20 cursor-pointer"
+              title="Đóng vé"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Component Vé */}
+            <TicketCard ticket={selectedTicket} />
+          </div>
         </div>
       )}
     </div>

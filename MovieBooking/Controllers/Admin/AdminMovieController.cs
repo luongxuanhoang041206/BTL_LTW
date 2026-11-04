@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
 using MovieBooking.DTOs;
 using MovieBooking.Services.Interfaces;
 
@@ -10,7 +8,7 @@ public class AdminMovieController : AdminBaseController
 {
     private readonly IMovieService _movieService;
 
-    public AdminMovieController(MovieBookingContext context, IMovieService movieService) : base(context)
+    public AdminMovieController(IMovieService movieService) : base()
     {
         _movieService = movieService;
     }
@@ -24,44 +22,7 @@ public class AdminMovieController : AdminBaseController
         }
 
         page = Math.Max(1, page);
-        var query = _context.Movies
-            .Include(m => m.Genres)
-            .AsNoTracking();
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var keyword = search.Trim().ToLower();
-            query = query.Where(m => m.Title.ToLower().Contains(keyword) ||
-                                     (m.Director != null && m.Director.ToLower().Contains(keyword)) ||
-                                     (m.Actors != null && m.Actors.ToLower().Contains(keyword)));
-        }
-
-        var movies = await query
-            .OrderByDescending(m => m.CreatedAt)
-            .Skip((page - 1) * 10)
-            .Take(10)
-            .ToListAsync();
-
-
-
-        return Ok(movies.Select(m => new
-            {
-                id = m.MovieId,
-                title = m.Title,
-                description = m.Description,
-                duration = m.Duration,
-                releaseDate = m.ReleaseDate.HasValue ? m.ReleaseDate.Value.ToString("yyyy-MM-dd") : null,
-                endDate = m.EndDate.HasValue ? m.EndDate.Value.ToString("yyyy-MM-dd") : null,
-                posterUrl = m.PosterUrl,
-                trailerUrl = m.TrailerUrl,
-                director = m.Director,
-                actors = m.Actors,
-                language = m.Language,
-                ageRating = m.AgeRating,
-                status = m.Status,
-                isExpired = m.EndDate.HasValue && m.EndDate.Value < VietnamToday,
-                genres = m.Genres.Select(g => new { id = g.GenreId, name = g.GenreName }).ToList()
-            }));
+        return Ok(await _movieService.GetAdminMovieResponsesAsync(search, page));
     }
 
     [HttpGet("search")]
@@ -81,27 +42,9 @@ public class AdminMovieController : AdminBaseController
             return Unauthorized(new { message = "Bạn cần đăng nhập bằng tài khoản Admin." });
         }
 
-        var movie = await _movieService.GetMovieByIdAsync(id, includeExpired: true);
+        var movie = await _movieService.GetAdminMovieResponseByIdAsync(id);
         if (movie == null) return NotFound(new { message = "Không tìm thấy phim." });
-
-        return Ok(new
-        {
-            id = movie.MovieId,
-            title = movie.Title,
-            description = movie.Description,
-            duration = movie.Duration,
-            releaseDate = movie.ReleaseDate?.ToString("yyyy-MM-dd"),
-            endDate = movie.EndDate?.ToString("yyyy-MM-dd"),
-            posterUrl = movie.PosterUrl,
-            trailerUrl = movie.TrailerUrl,
-            director = movie.Director,
-            actors = movie.Actors,
-            language = movie.Language,
-            ageRating = movie.AgeRating,
-            status = movie.Status,
-            isExpired = movie.EndDate.HasValue && movie.EndDate.Value < VietnamToday,
-            genres = movie.Genres.Select(g => new { id = g.GenreId, name = g.GenreName }).ToList()
-        });
+        return Ok(movie);
     }
 
     [HttpPost("movies")]
@@ -171,13 +114,12 @@ public class AdminMovieController : AdminBaseController
             return Unauthorized(new { message = "Bạn cần đăng nhập bằng tài khoản Admin." });
         }
 
-        if (!await _context.Movies.AnyAsync(m => m.MovieId == id))
+        if (!await _movieService.MovieExistsAsync(id))
         {
             return NotFound(new { message = "Không tìm thấy phim." });
         }
 
-        if (await _context.Showtimes.AnyAsync(s => s.MovieId == id) ||
-            await _context.Reviews.AnyAsync(r => r.MovieId == id))
+        if (await _movieService.HasShowtimesOrReviewsAsync(id))
         {
             return Conflict(new { message = "Không thể xóa phim đã có suất chiếu hoặc đánh giá." });
         }

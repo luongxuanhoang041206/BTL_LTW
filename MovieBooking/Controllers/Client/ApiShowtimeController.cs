@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
+using MovieBooking.DTOs.Showtime;
 using MovieBooking.Filters;
+using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Client;
 
@@ -10,40 +10,16 @@ namespace MovieBooking.Controllers.Client;
 [SessionAuthorizeRole("Admin")]
 public class ApiShowtimeController : ControllerBase
 {
-    private readonly MovieBookingContext _context;
+    private readonly IShowtimeService _showtimeService;
 
-    public ApiShowtimeController(MovieBookingContext context)
+    public ApiShowtimeController(IShowtimeService showtimeService)
     {
-        _context = context;
+        _showtimeService = showtimeService;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] ShowtimeQueryDto filter)
     {
-        var showtimes = await _context.Showtimes
-            .AsNoTracking()
-            .Include(showtime => showtime.Movie)
-            .Include(showtime => showtime.Room)
-                .ThenInclude(room => room.Cinema)
-            .OrderByDescending(showtime => showtime.ShowDate)
-            .ThenByDescending(showtime => showtime.StartTime)
-            .Select(showtime => new
-            {
-                showtimeId = showtime.ShowtimeId,
-                movieId = showtime.MovieId,
-                movieTitle = showtime.Movie.Title,
-                cinemaId = showtime.Room.CinemaId,
-                cinemaName = showtime.Room.Cinema.Name,
-                roomId = showtime.RoomId,
-                roomName = showtime.Room.RoomName,
-                showDate = showtime.ShowDate.ToString("yyyy-MM-dd"),
-                startTime = showtime.StartTime.ToString("HH:mm"),
-                endTime = showtime.EndTime.ToString("HH:mm"),
-                price = showtime.Price,
-                status = showtime.Status
-            })
-            .ToListAsync();
-
-        return Ok(showtimes);
+        return Ok(await _showtimeService.GetAdminShowtimesAsync(filter));
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -171,6 +172,7 @@ public class BookingService : IBookingService
             .FirstOrDefaultAsync(s => s.ShowtimeId == showtimeId);
 
         if (showtime == null) return null;
+        if (showtime.Status != "Active") return null;
 
         // Build seat item list
         var seatItems = showtime.ShowtimeSeats
@@ -233,39 +235,50 @@ public class BookingService : IBookingService
         // 1. Giải phóng expired holds
         await ReleaseExpiredHoldsAsync(showtimeId);
 
-        // 2. Re-read từ DB — không tin client data
-        var seats = await _context.ShowtimeSeats
-            .Where(ss => ss.ShowtimeId == showtimeId && seatIds.Contains(ss.SeatId))
-            .ToListAsync();
-
-        if (seats.Count != seatIds.Count)
-            return (false, "Một hoặc nhiều ghế không hợp lệ.");
-
-        // Allow the same user to resume the food step without losing their hold.
-        var unavailable = seats.Where(s =>
-            s.Status != "Available" &&
-            !(s.Status == "Holding" && s.LockedByUserId == userId &&
-              s.HoldExpiresAt != null && s.HoldExpiresAt >= DateTime.Now)).ToList();
-        if (unavailable.Count > 0)
-            return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.");
-
-        // 4. Atomic update
-        var expiresAt = DateTime.Now.AddMinutes(HoldMinutes);
-        foreach (var seat in seats)
-        {
-            seat.Status         = "Holding";
-            seat.LockedByUserId = userId;
-            seat.HoldExpiresAt  = expiresAt;
-        }
-
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
+            var showtimeIsActive = await _context.Showtimes
+                .AnyAsync(s => s.ShowtimeId == showtimeId && s.Status == "Active");
+            if (!showtimeIsActive)
+                return (false, "Suất chiếu không tồn tại hoặc đã ngừng nhận đặt vé.");
+
+            // Re-read from the database; client seat data is never trusted.
+            var seats = await _context.ShowtimeSeats
+                .Where(ss => ss.ShowtimeId == showtimeId && seatIds.Contains(ss.SeatId))
+                .ToListAsync();
+
+            if (seats.Count != seatIds.Count)
+                return (false, "Một hoặc nhiều ghế không hợp lệ.");
+
+            var unavailable = seats.Where(s =>
+                s.Status != "Available" &&
+                !(s.Status == "Holding" && s.LockedByUserId == userId &&
+                  s.HoldExpiresAt != null && s.HoldExpiresAt >= DateTime.Now)).ToList();
+            if (unavailable.Count > 0)
+                return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.");
+
+            var expiresAt = DateTime.Now.AddMinutes(HoldMinutes);
+            foreach (var seat in seats)
+            {
+                seat.Status = "Holding";
+                seat.LockedByUserId = userId;
+                seat.HoldExpiresAt = expiresAt;
+            }
+
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return (true, null);
         }
         catch (DbUpdateException)
         {
+            await transaction.RollbackAsync();
             return (false, "Không thể giữ ghế. Vui lòng thử lại.");
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return (false, "Không thể giữ ghế lúc này. Vui lòng thử lại.");
         }
     }
 
@@ -284,26 +297,32 @@ public class BookingService : IBookingService
 
         var now = DateTime.Now;
 
-        // Lấy showtime để biết giá
-        var showtime = await _context.Showtimes
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.ShowtimeId == showtimeId);
-
-        if (showtime == null)
-            return (false, null, "Suất chiếu không tồn tại.");
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        var transaction = _context.Database.CurrentTransaction;
+        var ownsTransaction = transaction == null;
+        transaction ??= await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
+            // Read the status in the same transaction as seat and booking writes.
+            var showtime = await _context.Showtimes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.ShowtimeId == showtimeId);
+            if (showtime == null || showtime.Status != "Active")
+            {
+                if (ownsTransaction) await transaction.RollbackAsync();
+                return (false, null, showtime == null
+                    ? "Suất chiếu không tồn tại."
+                    : "Suất chiếu đã ngừng nhận đặt vé.");
+            }
+
             // 1. Re-read và lock ShowtimeSeats — Include Seat để lấy SeatType tính giá VIP
             var seats = await _context.ShowtimeSeats
                 .Include(ss => ss.Seat)
-                .Where(ss => showtimeSeatIds.Contains(ss.ShowtimeSeatId))
+                .Where(ss => ss.ShowtimeId == showtimeId && showtimeSeatIds.Contains(ss.ShowtimeSeatId))
                 .ToListAsync();
 
             if (seats.Count != showtimeSeatIds.Count)
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction) await transaction.RollbackAsync();
                 return (false, null, "Dữ liệu ghế không hợp lệ.");
             }
 
@@ -315,7 +334,7 @@ public class BookingService : IBookingService
                     || seat.HoldExpiresAt == null
                     || seat.HoldExpiresAt < now)
                 {
-                    await transaction.RollbackAsync();
+                    if (ownsTransaction) await transaction.RollbackAsync();
                     return (false, null, "Thời gian giữ ghế đã hết. Vui lòng chọn lại.");
                 }
             }
@@ -379,7 +398,7 @@ public class BookingService : IBookingService
             }
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            if (ownsTransaction) await transaction.CommitAsync();
 
             return (true, booking.BookingId, null);
         }
@@ -387,13 +406,17 @@ public class BookingService : IBookingService
             ex.InnerException?.Message.Contains("UQ_BookingDetail_Seat") == true
             || ex.InnerException?.Message.Contains("unique") == true)
         {
-            await transaction.RollbackAsync();
+            if (ownsTransaction) await transaction.RollbackAsync();
             return (false, null, "Một hoặc nhiều ghế vừa được đặt bởi người khác. Vui lòng chọn lại.");
         }
         catch (Exception)
         {
-            await transaction.RollbackAsync();
+            if (ownsTransaction) await transaction.RollbackAsync();
             return (false, null, "Đã xảy ra lỗi. Vui lòng thử lại.");
+        }
+        finally
+        {
+            if (ownsTransaction) await transaction.DisposeAsync();
         }
     }
 
@@ -484,6 +507,7 @@ public class BookingService : IBookingService
                     .ThenInclude(ss => ss.Seat)
             .Include(b => b.BookingCombos)
                 .ThenInclude(bc => bc.Combo)
+            .Include(b => b.BookingFoods)
             .Include(b => b.Payments)
             .Include(b => b.Promotion)
             .AsNoTracking()
@@ -505,12 +529,25 @@ public class BookingService : IBookingService
             .OrderBy(s => s.SeatLabel)
             .ToList();
 
+        if ((booking.Status == "Paid" || booking.Status == "Confirmed") && string.IsNullOrEmpty(booking.TicketCode))
+        {
+            var trackedBooking = await _context.Bookings.FindAsync(booking.BookingId);
+            if (trackedBooking != null)
+            {
+                trackedBooking.TicketCode = $"TK-{booking.BookingId:D6}-{DateTime.UtcNow:yyyyMMdd}";
+                await _context.SaveChangesAsync();
+                booking.TicketCode = trackedBooking.TicketCode;
+            }
+        }
+
         var subTotal = seats.Sum(s => s.Price);
 
         return new BookingDetailViewModel
         {
             BookingId      = booking.BookingId,
             MovieTitle     = booking.Showtime.Movie.Title,
+            TicketCode     = booking.TicketCode,
+            QrCodeUrl      = $"/api/booking/{booking.BookingId}/ticket-qr",
             PosterUrl      = booking.Showtime.Movie.PosterUrl,
             Duration       = booking.Showtime.Movie.Duration,
             ShowDate       = booking.Showtime.ShowDate,
@@ -530,6 +567,13 @@ public class BookingService : IBookingService
                 Quantity       = bc.Quantity,
                 UnitPrice      = bc.UnitPrice
             }).ToList(),
+            Foods          = booking.BookingFoods.Select(bf => new BookingFoodDetailDto
+            {
+                FoodItemId = bf.FoodItemId,
+                FoodName   = bf.FoodName,
+                Quantity   = bf.Quantity,
+                UnitPrice  = bf.UnitPrice
+            }).ToList(),
             SubTotal       = subTotal,
             PromoCode      = booking.Promotion?.Code,
             DiscountPercent = booking.Promotion?.DiscountPercent ?? 0,
@@ -542,39 +586,268 @@ public class BookingService : IBookingService
         };
     }
 
+    public async Task<string?> GetTicketCodeAsync(int bookingId, int userId)
+    {
+        var booking = await _context.Bookings.FirstOrDefaultAsync(candidate =>
+            candidate.BookingId == bookingId && candidate.UserId == userId &&
+            (candidate.Status == "Paid" || candidate.Status == "Confirmed"));
+        if (booking == null) return null;
+
+        if (string.IsNullOrEmpty(booking.TicketCode))
+        {
+            booking.TicketCode = $"TK-{booking.BookingId:D6}-{DateTime.UtcNow:yyyyMMdd}";
+            await _context.SaveChangesAsync();
+        }
+
+        return booking.TicketCode;
+    }
+
+    public async Task<List<AdminBookingDto>> GetAdminBookingsAsync() => await _context.Bookings
+        .AsNoTracking()
+        .OrderByDescending(booking => booking.BookingDate)
+        .Select(booking => new AdminBookingDto(
+            booking.BookingId,
+            "MB-" + booking.BookingId.ToString("D6"),
+            booking.User.FullName,
+            booking.User.Email,
+            booking.Showtime.Movie.Title,
+            booking.Showtime.Movie.PosterUrl,
+            booking.Showtime.ShowDate.ToString("yyyy-MM-dd"),
+            booking.Showtime.StartTime.ToString("HH:mm"),
+            booking.BookingDate.ToString("yyyy-MM-dd HH:mm"),
+            booking.BookingDetails.Count,
+            booking.BookingDetails.Select(detail => detail.ShowtimeSeat.Seat.SeatRow + detail.ShowtimeSeat.Seat.SeatNumber).ToList(),
+            booking.TotalAmount,
+            booking.Status))
+        .ToListAsync();
+
+    public async Task<PaginationResponseDto<AdminBookingDto>> GetAdminBookingsPagedAsync(AdminBookingQueryDto query)
+    {
+        var q = _context.Bookings.AsNoTracking().AsQueryable();
+
+        // Filter keyword: bookingCode pattern "MB-XXXXXX", customerName, email
+        if (!string.IsNullOrWhiteSpace(query.Keyword))
+        {
+            var kw = query.Keyword.Trim().ToLower();
+            // Nếu keyword dạng MB-XXXXXX → lấy phần số
+            if (kw.StartsWith("mb-") && int.TryParse(kw[3..], out var codeNum))
+                q = q.Where(b => b.BookingId == codeNum);
+            else
+                q = q.Where(b =>
+                    b.User.FullName.ToLower().Contains(kw) ||
+                    b.User.Email.ToLower().Contains(kw));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(b => b.Status == query.Status);
+
+        if (query.CinemaId.HasValue)
+            q = q.Where(b => b.Showtime.Room.CinemaId == query.CinemaId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.FromDate) && DateOnly.TryParse(query.FromDate, out var from))
+            q = q.Where(b => DateOnly.FromDateTime(b.BookingDate) >= from);
+
+        if (!string.IsNullOrWhiteSpace(query.ToDate) && DateOnly.TryParse(query.ToDate, out var to))
+            q = q.Where(b => DateOnly.FromDateTime(b.BookingDate) <= to);
+
+        // Sort
+        q = (query.SortBy?.ToLower(), query.SortOrder?.ToLower()) switch
+        {
+            ("totalamount", "asc")  => q.OrderBy(b => b.TotalAmount),
+            ("totalamount", _)      => q.OrderByDescending(b => b.TotalAmount),
+            ("status", "asc")       => q.OrderBy(b => b.Status),
+            ("status", _)           => q.OrderByDescending(b => b.Status),
+            (_, "asc")              => q.OrderBy(b => b.BookingDate),
+            _                       => q.OrderByDescending(b => b.BookingDate),
+        };
+
+        var totalItems = await q.CountAsync();
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var page = Math.Max(query.Page, 1);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var data = await q
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(b => new AdminBookingDto(
+                b.BookingId,
+                "MB-" + b.BookingId.ToString("D6"),
+                b.User.FullName,
+                b.User.Email,
+                b.Showtime.Movie.Title,
+                b.Showtime.Movie.PosterUrl,
+                b.Showtime.ShowDate.ToString("yyyy-MM-dd"),
+                b.Showtime.StartTime.ToString("HH:mm"),
+                b.BookingDate.ToString("yyyy-MM-dd HH:mm"),
+                b.BookingDetails.Count,
+                b.BookingDetails
+                    .Select(d => d.ShowtimeSeat.Seat.SeatRow + d.ShowtimeSeat.Seat.SeatNumber.ToString())
+                    .ToList(),
+                b.TotalAmount,
+                b.Status))
+            .ToListAsync();
+
+        return new PaginationResponseDto<AdminBookingDto>
+        {
+            Data = data,
+            CurrentPage = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalPages,
+        };
+    }
+
+    public async Task<AdminBookingSummaryDto> GetAdminBookingSummaryAsync(AdminBookingQueryDto query)
+    {
+        var q = _context.Bookings.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.Keyword))
+        {
+            var kw = query.Keyword.Trim().ToLower();
+            if (kw.StartsWith("mb-") && int.TryParse(kw[3..], out var codeNum))
+                q = q.Where(b => b.BookingId == codeNum);
+            else
+                q = q.Where(b =>
+                    b.User.FullName.ToLower().Contains(kw) ||
+                    b.User.Email.ToLower().Contains(kw));
+        }
+        if (query.CinemaId.HasValue)
+            q = q.Where(b => b.Showtime.Room.CinemaId == query.CinemaId.Value);
+        if (!string.IsNullOrWhiteSpace(query.FromDate) && DateOnly.TryParse(query.FromDate, out var from))
+            q = q.Where(b => DateOnly.FromDateTime(b.BookingDate) >= from);
+        if (!string.IsNullOrWhiteSpace(query.ToDate) && DateOnly.TryParse(query.ToDate, out var to))
+            q = q.Where(b => DateOnly.FromDateTime(b.BookingDate) <= to);
+
+        var groups = await q
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total     = g.Count(),
+                Paid      = g.Count(b => b.Status == "Paid"),
+                Pending   = g.Count(b => b.Status == "Pending"),
+                Cancelled = g.Count(b => b.Status == "Cancelled"),
+                Revenue   = g.Where(b => b.Status == "Paid").Sum(b => (decimal?)b.TotalAmount) ?? 0m,
+            })
+            .FirstOrDefaultAsync();
+
+        return new AdminBookingSummaryDto
+        {
+            Total         = groups?.Total     ?? 0,
+            Paid          = groups?.Paid      ?? 0,
+            Pending       = groups?.Pending   ?? 0,
+            Cancelled     = groups?.Cancelled ?? 0,
+            TotalRevenue  = groups?.Revenue   ?? 0m,
+        };
+    }
+
+    public async Task<AdminBookingDetailDto?> GetAdminBookingDetailAsync(int bookingId)
+    {
+        var b = await _context.Bookings
+            .AsNoTracking()
+            .Include(x => x.User)
+            .Include(x => x.Showtime).ThenInclude(s => s.Movie)
+            .Include(x => x.Showtime).ThenInclude(s => s.Room).ThenInclude(r => r.Cinema)
+            .Include(x => x.BookingDetails).ThenInclude(d => d.ShowtimeSeat).ThenInclude(ss => ss.Seat)
+            .Include(x => x.Promotion)
+            .Include(x => x.Payments)
+            .FirstOrDefaultAsync(x => x.BookingId == bookingId);
+
+        if (b == null) return null;
+
+        var seats = b.BookingDetails.Select(d => new AdminBookingDetailSeatDto
+        {
+            SeatLabel = d.ShowtimeSeat.Seat.SeatRow + d.ShowtimeSeat.Seat.SeatNumber.ToString(),
+            SeatType  = d.ShowtimeSeat.Seat.SeatType ?? "Normal",
+            Price     = d.Price,
+        }).ToList();
+
+        var discountPct  = b.Promotion?.DiscountPercent ?? 0m;
+        var subTotal     = seats.Sum(s => s.Price);
+        var discountAmt  = Math.Round(subTotal * discountPct / 100, 0);
+
+        return new AdminBookingDetailDto
+        {
+            BookingId       = b.BookingId,
+            BookingCode     = "MB-" + b.BookingId.ToString("D6"),
+            Status          = b.Status,
+            BookingDate     = b.BookingDate,
+            CustomerId      = b.UserId,
+            CustomerName    = b.User.FullName,
+            CustomerEmail   = b.User.Email,
+            MovieId         = b.Showtime.MovieId,
+            MovieTitle      = b.Showtime.Movie.Title,
+            PosterUrl       = b.Showtime.Movie.PosterUrl,
+            ShowDate        = b.Showtime.ShowDate.ToString("yyyy-MM-dd"),
+            StartTime       = b.Showtime.StartTime.ToString("HH:mm"),
+            EndTime         = b.Showtime.EndTime.ToString("HH:mm"),
+            CinemaName      = b.Showtime.Room.Cinema.Name,
+            RoomName        = b.Showtime.Room.RoomName,
+            Seats           = seats,
+            SubTotal        = subTotal,
+            PromoCode       = b.Promotion?.Code,
+            DiscountPercent = discountPct,
+            DiscountAmount  = discountAmt,
+            TotalAmount     = b.TotalAmount,
+            Payments        = b.Payments.Select(p => new AdminBookingPaymentDto
+            {
+                PaymentId       = p.PaymentId,
+                Method          = p.Method,
+                Amount          = p.Amount,
+                Status          = p.PaymentStatus,
+                TransactionCode = p.TransactionCode,
+                PaidAt          = p.PaidAt?.ToString("yyyy-MM-dd HH:mm"),
+            }).ToList(),
+        };
+    }
+
     // -----------------------------------------------------------------------
     // CANCEL
     // -----------------------------------------------------------------------
 
     public async Task<(bool Success, string? Error)> CancelBookingAsync(int bookingId, int userId)
     {
-        var booking = await _context.Bookings
-            .Include(b => b.BookingDetails)
-                .ThenInclude(bd => bd.ShowtimeSeat)
-            .FirstOrDefaultAsync(b => b.BookingId == bookingId && b.UserId == userId);
-
-        if (booking == null)
-            return (false, "Booking không tồn tại.");
-
-        if (booking.Status != "Pending")
-            return (false, "Chỉ có thể hủy booking ở trạng thái Pending (chưa thanh toán).");
-
-        booking.Status = "Cancelled";
-
-        foreach (var detail in booking.BookingDetails)
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        try
         {
-            var seat = detail.ShowtimeSeat;
-            if (seat.Status == "Holding" && seat.LockedByUserId == userId)
-            {
-                seat.Status = "Available";
-                seat.HoldExpiresAt = null;
-                seat.LockedByUserId = null;
-            }
-        }
+            var booking = await _context.Bookings
+                .Include(b => b.Showtime)
+                .Include(b => b.BookingDetails)
+                    .ThenInclude(bd => bd.ShowtimeSeat)
+                .Include(b => b.Payments)
+                .FirstOrDefaultAsync(b => b.BookingId == bookingId && b.UserId == userId);
 
-        _context.BookingDetails.RemoveRange(booking.BookingDetails);
-        await _context.SaveChangesAsync();
-        return (true, null);
+            if (booking == null)
+                return (false, "Booking không tồn tại.");
+            if (booking.Showtime.Status != "Active")
+                return (false, "Suất chiếu đã ngừng nhận đặt vé.");
+            if (booking.Status != "Pending")
+                return (false, "Chỉ có thể hủy booking ở trạng thái Pending (chưa thanh toán).");
+            if (booking.Payments.Any(payment => payment.PaymentStatus is "Success" or "Completed" or "PaidNeedRefund"))
+                return (false, "Booking có giao dịch đã nhận tiền và cần xử lý hoàn tiền riêng.");
+
+            booking.Status = "Cancelled";
+
+            foreach (var detail in booking.BookingDetails)
+            {
+                var seat = detail.ShowtimeSeat;
+                if (seat.Status == "Holding" && seat.LockedByUserId == userId)
+                {
+                    seat.Status = "Available";
+                    seat.HoldExpiresAt = null;
+                    seat.LockedByUserId = null;
+                }
+            }
+
+            _context.BookingDetails.RemoveRange(booking.BookingDetails);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return (true, null);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return (false, "Không thể hủy booking lúc này. Vui lòng thử lại.");
+        }
     }
 
     // -----------------------------------------------------------------------

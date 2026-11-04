@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using MovieBooking.DTOs;
 using MovieBooking.Services.Interfaces;
 using QRCoder;
@@ -16,28 +13,20 @@ namespace MovieBooking.Controllers.Client;
 public class ApiBookingController : ControllerBase
 {
     private readonly IBookingService _bookingService;
-    private readonly IFoodService _foodService;
-    private readonly MovieBooking.Data.MovieBookingContext _context;
+    private readonly IBookingCheckoutService _checkoutService;
 
     public ApiBookingController(
         IBookingService bookingService,
-        IFoodService foodService,
-        MovieBooking.Data.MovieBookingContext context)
+        IBookingCheckoutService checkoutService)
     {
         _bookingService = bookingService;
-        _foodService = foodService;
-        _context = context;
+        _checkoutService = checkoutService;
     }
 
     private int? GetCurrentUserId() => HttpContext.Session.GetInt32("UserId");
 
-    public class PromoRequest
-    {
-        public string? PromoCode { get; set; }
-    }
-
     [HttpPost("promo")]
-    public async Task<IActionResult> ValidatePromo([FromBody] PromoRequest request)
+    public async Task<IActionResult> ValidatePromo([FromBody] PromoRequestDto request)
     {
         if (GetCurrentUserId() == null)
         {
@@ -78,14 +67,8 @@ public class ApiBookingController : ControllerBase
         return Ok(vm);
     }
 
-    public class ApiHoldSeatsRequest
-    {
-        public int ShowtimeId { get; set; }
-        public List<int> SeatIds { get; set; } = new();
-    }
-
     [HttpPost("hold")]
-    public async Task<IActionResult> HoldSeats([FromBody] ApiHoldSeatsRequest request)
+    public async Task<IActionResult> HoldSeats([FromBody] ApiHoldSeatsRequestDto request)
     {
         var userId = GetCurrentUserId();
         if (userId == null)
@@ -114,18 +97,8 @@ public class ApiBookingController : ControllerBase
         });
     }
 
-    public class ApiCheckoutRequest
-    {
-        public int ShowtimeId { get; set; }
-        public List<int> SeatIds { get; set; } = new();
-        public string? PromoCode { get; set; }
-        public string PaymentMethod { get; set; } = "VNPay";
-        public List<BookingComboItemRequest>? Combos { get; set; }
-        public List<BookingFoodItemRequest>? Foods { get; set; }
-    }
-
     [HttpPost("checkout")]
-    public async Task<IActionResult> Checkout([FromBody] ApiCheckoutRequest request)
+    public async Task<IActionResult> Checkout([FromBody] ApiCheckoutRequestDto request)
     {
         var userId = GetCurrentUserId();
         if (userId == null)
@@ -138,109 +111,17 @@ public class ApiBookingController : ControllerBase
             return BadRequest(new { message = "Vui lòng chọn ghế trước khi thanh toán." });
         }
 
-        // 1. Validate Combos trước (nếu có gửi kèm) để không lưu dữ liệu dở dang
-        decimal totalComboPrice = 0m;
-        if (request.Combos != null && request.Combos.Count > 0)
+        var result = await _checkoutService.CheckoutAsync(request, userId.Value);
+        if (!result.Success)
         {
-            var (comboValid, comboTotal, _, comboError) = await _foodService.ValidateAndCalculateCombosAsync(request.Combos);
-            if (!comboValid)
-            {
-                return BadRequest(new { success = false, message = comboError ?? "Combo bắp nước không hợp lệ." });
-            }
-            totalComboPrice = comboTotal;
-        }
-
-        decimal totalFoodPrice = 0m;
-        var foodsToSave = new List<MovieBooking.Models.BookingFood>();
-        if (request.Foods != null && request.Foods.Count > 0)
-        {
-            if (request.Foods.Any(x => x.Quantity <= 0 || x.Quantity > 50) ||
-                request.Foods.GroupBy(x => x.FoodItemId).Any(g => g.Count() > 1))
-                return BadRequest(new { success = false, message = "Số lượng món không hợp lệ." });
-
-            var foodIds = request.Foods.Select(x => x.FoodItemId).ToList();
-            var activeFoods = await _context.FoodItems
-                .Where(f => foodIds.Contains(f.FoodItemId) && f.IsActive)
-                .ToDictionaryAsync(f => f.FoodItemId);
-            if (activeFoods.Count != foodIds.Count)
-                return BadRequest(new { success = false, message = "Một hoặc nhiều món đã ngừng kinh doanh." });
-
-            foreach (var item in request.Foods)
-            {
-                var food = activeFoods[item.FoodItemId];
-                totalFoodPrice += food.Price * item.Quantity;
-                foodsToSave.Add(new MovieBooking.Models.BookingFood
-                {
-                    FoodItemId = food.FoodItemId,
-                    FoodName = food.Name,
-                    Quantity = item.Quantity,
-                    UnitPrice = food.Price
-                });
-            }
-        }
-
-        // Lấy thông tin sơ đồ ghế để tìm ShowtimeSeatId
-        var seatMap = await _bookingService.GetSeatMapAsync(request.ShowtimeId, userId.Value);
-        if (seatMap == null)
-        {
-            return BadRequest(new { message = "Không tìm thấy suất chiếu." });
-        }
-
-        var showtimeSeatIds = new List<int>();
-        foreach (var row in seatMap.Rows)
-        {
-            foreach (var seat in row.Seats)
-            {
-                if (request.SeatIds.Contains(seat.SeatId))
-                {
-                    // Nếu chưa hold thì tự động hold
-                    if (!seat.IsHeldByCurrentUser && seat.Status == "Available")
-                    {
-                        await _bookingService.HoldSeatsAsync(request.ShowtimeId, new List<int> { seat.SeatId }, userId.Value);
-                    }
-                    showtimeSeatIds.Add(seat.ShowtimeSeatId);
-                }
-            }
-        }
-
-        if (showtimeSeatIds.Count == 0)
-        {
-            return BadRequest(new { message = "Không tìm thấy thông tin ghế đã chọn." });
-        }
-
-        // Xác nhận tạo Booking (vé)
-        var (confirmSuccess, bookingId, confirmError) = await _bookingService.ConfirmBookingAsync(
-            request.ShowtimeId, showtimeSeatIds, userId.Value, request.PromoCode);
-
-        if (!confirmSuccess || bookingId == null)
-        {
-            return BadRequest(new { success = false, message = confirmError ?? "Đặt vé thất bại." });
-        }
-
-        // Save selected extras using current server prices.
-        if (request.Combos != null && request.Combos.Count > 0)
-        {
-            var (saveComboSuccess, saveComboError) = await _foodService.SaveBookingCombosAsync(bookingId.Value, request.Combos);
-            if (!saveComboSuccess)
-            {
-                return BadRequest(new { success = false, message = saveComboError ?? "Lỗi lưu thông tin combo." });
-            }
-
-        }
-
-        var bookingRecord = await _context.Bookings.FindAsync(bookingId.Value);
-        if (bookingRecord != null)
-        {
-            bookingRecord.TotalAmount += totalComboPrice + totalFoodPrice;
-            foreach (var food in foodsToSave) food.BookingId = bookingId.Value;
-            _context.BookingFoods.AddRange(foodsToSave);
-            await _context.SaveChangesAsync();
+            if (result.IncludeSuccessFlag) return BadRequest(new { success = false, message = result.Error });
+            return BadRequest(new { message = result.Error });
         }
 
         return Ok(new
         {
             success = true,
-            bookingId = bookingId.Value,
+            bookingId = result.BookingId!.Value,
             isPaid = false,
             message = "Đã tạo đơn đặt vé. Vui lòng hoàn tất thanh toán."
         });
@@ -298,17 +179,13 @@ public class ApiBookingController : ControllerBase
     public async Task<IActionResult> GetTicketQr(int bookingId)
     {
         var userId = GetCurrentUserId();
-        if (userId == null) return Unauthorized();
+        if (userId == null) return Unauthorized(new { message = "Vui lòng đăng nhập." });
 
-        var code = await _context.Bookings
-            .Where(b => b.BookingId == bookingId && b.UserId == userId && b.Status == "Paid")
-            .Select(b => b.TicketCode)
-            .FirstOrDefaultAsync();
-
-        if (string.IsNullOrEmpty(code)) return NotFound();
+        var ticketCode = await _bookingService.GetTicketCodeAsync(bookingId, userId.Value);
+        if (ticketCode == null) return NotFound(new { message = "Không tìm thấy vé hoặc vé chưa thanh toán." });
 
         using var generator = new QRCodeGenerator();
-        using var data = generator.CreateQrCode(code, QRCodeGenerator.ECCLevel.Q);
+        using var data = generator.CreateQrCode(ticketCode, QRCodeGenerator.ECCLevel.Q);
         var png = new PngByteQRCode(data).GetGraphic(10);
         return File(png, "image/png");
     }

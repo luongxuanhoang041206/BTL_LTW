@@ -41,7 +41,6 @@ export function AdminSideBar() {
       items: [
         { name: "Danh sách rạp", path: "/admin/cinemas", icon: Building2 },
         { name: "Phòng chiếu", path: "/admin/rooms", icon: Gauge },
-        { name: "Sơ đồ ghế", path: "/admin/seat-map", icon: Activity },
       ],
     },
     {

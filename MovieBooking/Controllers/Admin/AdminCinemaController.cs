@@ -1,95 +1,75 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
-using MovieBooking.Models;
+using MovieBooking.DTOs.Cinema;
+using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Admin;
 
 public class AdminCinemaController : AdminBaseController
 {
-    public AdminCinemaController(MovieBookingContext context) : base(context) { }
+    private readonly ICinemaService _cinemaService;
 
-    public class CinemaRequest
+    public AdminCinemaController(ICinemaService cinemaService) : base()
     {
-        public string Name { get; set; } = string.Empty;
-        public string? Address { get; set; }
-        public string? City { get; set; }
-        public string? Phone { get; set; }
+        _cinemaService = cinemaService;
     }
 
     [HttpGet("cinemas")]
-    public async Task<IActionResult> GetCinemas()
+    public async Task<IActionResult> GetCinemas(
+       [FromQuery] CinemaQueryDto filter )
     {
-        var cinemas = await _context.Cinemas
-            .AsNoTracking()
-            .Select(c => new
-            {
-                id = c.CinemaId,
-                name = c.Name,
-                address = c.Address ?? "",
-                city = c.City ?? "",
-                phone = c.Phone ?? "",
-                roomCount = c.Rooms.Count,
-                activeShowsCount = c.Rooms.SelectMany(r => r.Showtimes).Count(s => s.Status == "Active")
-            })
-            .OrderBy(c => c.name)
-            .ToListAsync();
+        var cinemas = await _cinemaService.GetAdminCinemasAsync(filter);
 
         return Ok(cinemas);
     }
 
     [HttpPost("cinemas")]
-    public async Task<IActionResult> CreateCinema([FromBody] CinemaRequest request)
+    public async Task<IActionResult> CreateCinema([FromBody] CinemaRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(new { message = "Tên rạp không được để trống." });
 
-        var cinema = new Cinema
-        {
-            Name = request.Name.Trim(),
-            Address = request.Address?.Trim(),
-            City = request.City?.Trim(),
-            Phone = request.Phone?.Trim()
-        };
-
-        _context.Cinemas.Add(cinema);
-        await _context.SaveChangesAsync();
+        var cinema = await _cinemaService.CreateCinemaAsync(request);
 
         return Ok(new { success = true, message = "Thêm rạp chiếu phim thành công!", id = cinema.CinemaId });
     }
 
     [HttpPut("cinemas/{id}")]
-    public async Task<IActionResult> UpdateCinema(int id, [FromBody] CinemaRequest request)
+    public async Task<IActionResult> UpdateCinema(int id, [FromBody] CinemaRequestDto request)
     {
-        var cinema = await _context.Cinemas.FindAsync(id);
-        if (cinema == null) return NotFound(new { message = "Không tìm thấy rạp chiếu." });
-
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(new { message = "Tên rạp không được để trống." });
 
-        cinema.Name = request.Name.Trim();
-        cinema.Address = request.Address?.Trim();
-        cinema.City = request.City?.Trim();
-        cinema.Phone = request.Phone?.Trim();
+        var cinema = await _cinemaService.UpdateCinemaAsync(id, request);
+        if (cinema == null) return NotFound(new { message = "Không tìm thấy rạp chiếu." });
 
-        await _context.SaveChangesAsync();
         return Ok(new { success = true, message = "Cập nhật thông tin rạp thành công!" });
     }
 
     [HttpDelete("cinemas/{id}")]
     public async Task<IActionResult> DeleteCinema(int id)
     {
-        var cinema = await _context.Cinemas
-            .Include(c => c.Rooms)
-            .FirstOrDefaultAsync(c => c.CinemaId == id);
+        var (success, error, roomCount) = await _cinemaService.DeleteCinemaAsync(id);
+        if (!success && error == "NotFound")
+            return NotFound(new { message = "Không tìm thấy rạp chiếu." });
 
-        if (cinema == null) return NotFound(new { message = "Không tìm thấy rạp chiếu." });
+        if (!success && error == "HasRooms")
+            return BadRequest(new { message = $"Không thể xóa rạp vì đang có {roomCount} phòng chiếu. Vui lòng chuyển hoặc xóa phòng trước." });
 
-        if (cinema.Rooms.Count > 0)
-            return BadRequest(new { message = $"Không thể xóa rạp vì đang có {cinema.Rooms.Count} phòng chiếu. Vui lòng chuyển hoặc xóa phòng trước." });
-
-        _context.Cinemas.Remove(cinema);
-        await _context.SaveChangesAsync();
         return Ok(new { success = true, message = "Xóa rạp thành công!" });
+    }
+
+    [HttpGet("cinemas/{id:int}")]
+    public async Task<IActionResult> GetCinemaDetail(int id)
+    {
+        var cinema = await _cinemaService.GetAdminCinemaDetailAsync(id);
+
+        if(cinema == null)
+        {
+            return NotFound(new
+            {
+                message = "Cinema not found"
+            });
+        }
+        return Ok(cinema);
     }
 }

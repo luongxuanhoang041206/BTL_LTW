@@ -19,6 +19,11 @@ public class GenreService : IGenreService
         _context = context;
     }
 
+    public async Task<IEnumerable<GenreResponseDto>> GetGenreResponsesAsync(string? search = null, int? page = null, int pageSize = 10)
+        => (await GetAllGenresAsync(search, page, pageSize))
+            .Select(genre => new GenreResponseDto(genre.GenreId, genre.Name, genre.MovieCount))
+            .ToList();
+
     public async Task<IEnumerable<GenreMovieCountDto>> GetAllGenresAsync(string? search = null, int? page = null, int pageSize = 10)
     {
         var query = _context.Genres.AsNoTracking().AsQueryable();

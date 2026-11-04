@@ -4,7 +4,6 @@ using MovieBooking.DTOs;
 using MovieBooking.Services.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 
 namespace MovieBooking.Controllers.Client
 {
@@ -13,13 +12,11 @@ namespace MovieBooking.Controllers.Client
     public class ApiPaymentController : ControllerBase
     {
         private readonly IPaymentService _paymentService;
-        private readonly MovieBookingContext _context;
         private readonly IConfiguration _config;
 
-        public ApiPaymentController(IPaymentService paymentService, MovieBookingContext context, IConfiguration config)
+        public ApiPaymentController(IPaymentService paymentService, IConfiguration config)
         {
             _paymentService = paymentService;
-            _context = context;
             _config = config;
         }
 
@@ -112,12 +109,8 @@ namespace MovieBooking.Controllers.Client
             var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
-            var payment = await _context.Payments
-                .Where(p => p.PaymentId == paymentId && p.Booking.UserId == userId)
-                .Select(p => new { Status = p.PaymentStatus, p.BookingId })
-                .FirstOrDefaultAsync();
-
-            if (payment == null) return NotFound();
+            var payment = await _paymentService.GetPaymentStatusAsync(paymentId, userId.Value);
+            if (!payment.Found) return NotFound();
             return Ok(new { status = payment.Status, bookingId = payment.BookingId });
         }
 
@@ -146,19 +139,15 @@ namespace MovieBooking.Controllers.Client
             var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
-            var payment = await _context.Payments
-                .Where(p => p.PaymentId == paymentId && p.Booking.UserId == userId)
-                .Select(p => new { p.Amount })
-                .FirstOrDefaultAsync();
-
-            if (payment == null) return NotFound();
+            var amount = await _paymentService.GetPaymentAmountAsync(paymentId, userId.Value);
+            if (amount == null) return NotFound();
 
             var dto = new SePayWebhookDto
             {
                 Id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 Gateway = "Simulator",
                 TransferType = "in",
-                TransferAmount = payment.Amount,
+                TransferAmount = amount.Value,
                 Content = $"MBPAY{paymentId}",
                 Code = $"MBPAY{paymentId}",
                 ReferenceCode = $"SIM{DateTime.Now:yyyyMMddHHmmss}"

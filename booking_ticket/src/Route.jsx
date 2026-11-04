@@ -4,18 +4,18 @@ import { MovieDetails } from "./pages/MovieDetail.jsx";
 import { Bookings } from "./pages/Bookings.jsx";
 import { Favourite } from "./pages/Favourites.jsx";
 import App from "./App.jsx";
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { SeatLayout } from "./pages/SeatLayout.jsx";
 import { Payment } from "./pages/Payment.jsx";
 import { FoodSelection } from "./pages/FoodSelection.jsx";
 import { Layout } from "./pages/admin/Layout.jsx";
 import { DashBoard } from "./pages/admin/DashBoard.jsx";
-import { AddShows } from "./pages/admin/AddShows.jsx";
 import { ListShows } from "./pages/admin/ListShows.jsx";
 import { ListBookings } from "./pages/admin/ListBookings.jsx";
 import { ManageMovies } from "./pages/admin/ManageMovies.jsx";
 import { ManageGenres } from "./pages/admin/ManageGenres.jsx";
 import { ManageCinemas } from "./pages/admin/ManageCinemas.jsx";
+import { CinemaDetail } from "./pages/admin/CinemaDetail.jsx";
 import { ManageRooms } from "./pages/admin/ManageRooms.jsx";
 import { SeatLayoutManagement } from "./pages/admin/SeatLayoutManagement.jsx";
 import { ManagePayments } from "./pages/admin/ManagePayments.jsx";
@@ -110,6 +110,10 @@ export const route = createBrowserRouter([
             element: <ManageCinemas />,
           },
           {
+            path: "cinemas/:id",
+            element: <CinemaDetail />,
+          },
+          {
             path: "rooms",
             element: <ManageRooms />,
           },
@@ -128,7 +132,7 @@ export const route = createBrowserRouter([
           },
           {
             path: "add-shows",
-            element: <AddShows />,
+            element: <Navigate to="/admin/shows" replace />,
           },
           {
             path: "bookings",

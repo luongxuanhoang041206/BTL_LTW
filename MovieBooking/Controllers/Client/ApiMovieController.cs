@@ -1,9 +1,4 @@
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using MovieBooking.Data;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Models;
 using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Client;
@@ -15,37 +10,16 @@ public class ApiMovieController : ControllerBase
     private readonly IMovieService _movieService;
     private readonly IBookingService _bookingService;
     private readonly IGenreService _genreService;
-    private readonly MovieBookingContext _context;
 
     public ApiMovieController(
         IMovieService movieService,
         IBookingService bookingService,
-        IGenreService genreService,
-        MovieBookingContext context)
+        IGenreService genreService)
     {
         _movieService = movieService;
         _bookingService = bookingService;
         _genreService = genreService;
-        _context = context;
     }
-
-    private static object MapMovie(Movie m) => new
-    {
-        id = m.MovieId,
-        title = m.Title,
-        description = m.Description,
-        duration = m.Duration,
-        releaseDate = m.ReleaseDate?.ToString("yyyy-MM-dd"),
-        endDate = m.EndDate?.ToString("yyyy-MM-dd"),
-        posterUrl = m.PosterUrl,
-        trailerUrl = m.TrailerUrl,
-        director = m.Director,
-        actors = m.Actors,
-        language = m.Language,
-        ageRating = m.AgeRating,
-        status = m.Status,
-        genres = m.Genres?.Select(g => new { id = g.GenreId, name = g.GenreName }).ToList() ?? new()
-    };
 
     [HttpGet]
     public async Task<IActionResult> GetAll(
@@ -54,41 +28,37 @@ public class ApiMovieController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] int page = 1)
     {
-        var movies = await _movieService.GetAllMoviesAsync(status, genre, search, page);
-        return Ok(movies.Select(MapMovie));
+        return Ok(await _movieService.GetMovieResponsesAsync(status, genre, search, page));
     }
 
     [HttpGet("now-showing")]
     public async Task<IActionResult> GetNowShowing()
     {
-        var movies = await _movieService.GetNowShowingMoviesAsync();
-        return Ok(movies.Select(MapMovie));
+        return Ok(await _movieService.GetNowShowingMovieResponsesAsync());
     }
 
     [HttpGet("coming-soon")]
     public async Task<IActionResult> GetComingSoon()
     {
-        var movies = await _movieService.GetComingSoonMoviesAsync();
-        return Ok(movies.Select(MapMovie));
+        return Ok(await _movieService.GetComingSoonMovieResponsesAsync());
     }
 
     [HttpGet("genres")]
     public async Task<IActionResult> GetGenres([FromQuery] string? search = null)
     {
-        var genres = await _genreService.GetAllGenresAsync(search);
-        return Ok(genres.Select(g => new { id = g.GenreId, name = g.Name, movieCount = g.MovieCount }));
+        return Ok(await _genreService.GetGenreResponsesAsync(search));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var movie = await _movieService.GetMovieByIdAsync(id);
+        var movie = await _movieService.GetMovieResponseByIdAsync(id);
         if (movie == null)
         {
             return NotFound(new { message = "Không tìm thấy phim." });
         }
 
-        return Ok(MapMovie(movie));
+        return Ok(movie);
     }
 
     [HttpGet("{id}/cinemas")]
@@ -113,19 +83,8 @@ public class ApiMovieController : ControllerBase
     [HttpGet("{id}/showtimes/dates")]
     public async Task<IActionResult> GetShowtimeDates(int id)
     {
-        var movieExists = await _context.Movies.AsNoTracking().AnyAsync(m => m.MovieId == id);
-        if (!movieExists) return NotFound(new { message = "Không tìm thấy phim." });
-
-        var now = DateTime.Now;
-        var today = DateOnly.FromDateTime(now);
-        var currentTime = TimeOnly.FromDateTime(now);
-        var dates = await _context.Showtimes.AsNoTracking()
-            .Where(s => s.MovieId == id && s.Status == "Active"
-                && (s.ShowDate > today || (s.ShowDate == today && s.EndTime > currentTime)))
-            .Select(s => s.ShowDate)
-            .Distinct()
-            .OrderBy(d => d)
-            .ToListAsync();
+        var dates = await _movieService.GetUpcomingShowtimeDatesAsync(id);
+        if (dates == null) return NotFound(new { message = "Không tìm thấy phim." });
 
         return Ok(new { movieId = id, dates = dates.Select(d => new { date = d.ToString("yyyy-MM-dd"), hasShowtimes = true }) });
     }

@@ -1,241 +1,240 @@
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
-using MovieBooking.Models;
+using MovieBooking.DTOs.Showtime;
+using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Admin;
 
 public class AdminShowController : AdminBaseController
 {
-    public AdminShowController(MovieBookingContext context) : base(context) { }
+    private readonly IShowtimeService _showtimeService;
+
+    public AdminShowController(IShowtimeService showtimeService) : base()
+    {
+        _showtimeService = showtimeService;
+    }
 
     public class AddShowRequest
     {
+        [Range(1, int.MaxValue)]
         public int MovieId { get; set; }
+
+        [Range(1, int.MaxValue)]
         public int RoomId { get; set; }
-        public string Date { get; set; } = string.Empty; // yyyy-MM-dd
-        public string StartTime { get; set; } = string.Empty; // HH:mm
+
+        public string? ShowDate { get; set; }
+
+        [JsonPropertyName("date")]
+        public string? Date { get; set; }
+
+        public string? StartTime { get; set; }
+
+        [Range(typeof(decimal), "0.01", "99999999.99")]
         public decimal Price { get; set; }
+
+        [Range(typeof(decimal), "0.01", "999.99")]
         public decimal? VipMultiplier { get; set; }
     }
 
     public class UpdateShowRequest
     {
         public int? MovieId { get; set; }
-        public int? RoomId { get; set; } 
+        public int? RoomId { get; set; }
+        public string? ShowDate { get; set; }
 
-        public string? Date {get; set;} = string.Empty;
+        [JsonPropertyName("date")]
+        public string? Date { get; set; }
         public string? StartTime { get; set; } = string.Empty;
 
+        [Range(typeof(decimal), "0.01", "99999999.99")]
         public decimal? Price { get; set; }
-        public string? Status {get; set; } 
+
+        [Range(typeof(decimal), "0.01", "999.99")]
+        public decimal? VipMultiplier { get; set; }
+        public string? Status { get; set; }
+    }
+
+    public class ChangeShowtimeStatusRequest
+    {
+        [Required]
+        public string Status { get; set; } = string.Empty;
     }
 
     [HttpGet("shows")]
-    public async Task<IActionResult> GetShows()
+    public async Task<IActionResult> GetShows([FromQuery] ShowtimeQueryDto filter)
     {
-        var shows = await _context.Showtimes
-            .Include(s => s.Movie)
-            .Include(s => s.Room)
-                .ThenInclude(r => r.Cinema)
-            .Include(s => s.ShowtimeSeats)
-            .OrderByDescending(s => s.ShowDate)
-            .ThenByDescending(s => s.StartTime)
-            .Select(s => new
-            {
-                showtimeId = s.ShowtimeId,
-                movieId = s.MovieId,
-                movieTitle = s.Movie.Title,
-                posterUrl = s.Movie.PosterUrl,
-                showDateTime = $"{s.ShowDate:yyyy-MM-dd}T{s.StartTime:HH:mm:ss}",
-                cinemaName = s.Room.Cinema.Name,
-                roomName = s.Room.RoomName,
-                price = s.Price,
-                totalBookings = s.ShowtimeSeats.Count(ss => ss.Status == "Booked"),
-                totalSeats = s.ShowtimeSeats.Count,
-                earnings = s.ShowtimeSeats.Count(ss => ss.Status == "Booked") * s.Price
-            })
-            .ToListAsync();
-
+        var shows = await _showtimeService.GetAdminShowtimesAsync(filter);
         return Ok(shows);
     }
 
     [HttpPost("shows")]
+    [HttpPost("showtimes")]
     public async Task<IActionResult> AddShow([FromBody] AddShowRequest request)
     {
-        if (!DateOnly.TryParse(request.Date, out var showDate) ||
-            !TimeOnly.TryParse(request.StartTime, out var startTime))
+        var result = await _showtimeService.CreateShowtimeAsync(
+            request.MovieId, request.RoomId, request.ShowDate ?? request.Date ?? string.Empty,
+            request.StartTime ?? string.Empty,
+            request.Price, request.VipMultiplier);
+
+        if (!result.Success)
         {
-            return BadRequest(new { message = "Định dạng ngày hoặc giờ không hợp lệ." });
+            if (result.Error is "Không tìm thấy phim." or "Không tìm thấy phòng chiếu.")
+                return NotFound(new { message = result.Error });
+            if (result.Error?.Contains("trùng", StringComparison.OrdinalIgnoreCase) == true)
+                return Conflict(new { message = result.Error });
+            return BadRequest(new { message = result.Error });
         }
 
-        var movie = await _context.Movies.FindAsync(request.MovieId);
-        if (movie == null) return BadRequest(new { message = "Không tìm thấy phim." });
-
-        // Mặc định chọn Room đầu tiên nếu roomId = 0
-        var room = request.RoomId > 0
-            ? await _context.Rooms.FindAsync(request.RoomId)
-            : await _context.Rooms.FirstOrDefaultAsync();
-
-        if (room == null) return BadRequest(new { message = "Không tìm thấy phòng chiếu." });
-
-        var endTime = startTime.AddMinutes(movie.Duration + 15); // Thời lượng + 15p dọn phòng
-
-        var showtime = new Showtime
-        {
-            MovieId = movie.MovieId,
-            RoomId = room.RoomId,
-            ShowDate = showDate,
-            StartTime = startTime,
-            EndTime = endTime,
-            Price = request.Price > 0 ? request.Price : 75000,
-            VipMultiplier = (request.VipMultiplier.HasValue && request.VipMultiplier.Value > 0) ? request.VipMultiplier.Value : 1.2m,
-            Status = "Active"
-        };
-
-        _context.Showtimes.Add(showtime);
-        await _context.SaveChangesAsync();
-
-        // Tự động sinh ShowtimeSeat từ Seat của Room
-        var roomSeats = await _context.Seats.Where(s => s.RoomId == room.RoomId).ToListAsync();
-        foreach (var seat in roomSeats)
-        {
-            _context.ShowtimeSeats.Add(new ShowtimeSeat
-            {
-                ShowtimeId = showtime.ShowtimeId,
-                SeatId = seat.SeatId,
-                Status = "Available"
-            });
-        }
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, message = "Thêm suất chiếu thành công!", showtimeId = showtime.ShowtimeId });
+        return Ok(new { success = true, message = "Thêm suất chiếu thành công!", showtimeId = result.ShowtimeId });
     }
 
     [HttpPatch("shows/{id}")]
-    public async Task<IActionResult> UpdateShow(
-        int id,
-        [FromBody] UpdateShowRequest request
-    )
+    [HttpPut("showtimes/{id}")]
+    public async Task<IActionResult> UpdateShow(int id, [FromBody] UpdateShowRequest request)
     {
-        var showtime = await _context.Showtimes
-            .Include(s => s.Movie)
-            .FirstOrDefaultAsync(s => s.ShowtimeId == id);
+        var result = await _showtimeService.UpdateShowtimeAsync(
+            id, request.MovieId, request.RoomId, request.ShowDate ?? request.Date, request.StartTime,
+            request.Price, request.VipMultiplier, request.Status);
 
-        if(showtime == null)
+        if (!result.Success)
         {
-            return NotFound(new
+            if (result.Error == "Không tìm thấy suất chiếu.")
+                return NotFound(new { message = result.Error });
+            if (result.Error is "Không tìm thấy phim." or "Không tìm thấy phòng chiếu.")
+                return NotFound(new { message = result.Error });
+            if (result.Error?.Contains("trùng", StringComparison.OrdinalIgnoreCase) == true ||
+                result.Error?.Contains("đã có", StringComparison.OrdinalIgnoreCase) == true ||
+                result.Error?.Contains("đang được giữ", StringComparison.OrdinalIgnoreCase) == true)
+                return Conflict(new { message = result.Error });
+            return BadRequest(new { message = result.Error });
+        }
+
+        return Ok(new { success = true, message = "Cập nhật suất chiếu thành công!" });
+    }
+
+    [HttpPatch("showtimes/{id}/status")]
+    public async Task<IActionResult> ChangeShowtimeStatus(int id, [FromBody] ChangeShowtimeStatusRequest request)
+    {
+        var result = await _showtimeService.ChangeShowtimeStatusAsync(id, request.Status);
+        return ShowtimeLifecycleResponse(result);
+    }
+
+    [HttpPatch("showtimes/{id}/cancel")]
+    public async Task<IActionResult> CancelShowtime(int id)
+    {
+        var result = await _showtimeService.CancelShowtimeAsync(id);
+        return ShowtimeLifecycleResponse(result);
+    }
+
+    [HttpPatch("showtimes/{id}/complete")]
+    public async Task<IActionResult> CompleteShowtime(int id)
+    {
+        var result = await _showtimeService.CompleteShowtimeAsync(id);
+        return ShowtimeLifecycleResponse(result);
+    }
+
+    private IActionResult ShowtimeLifecycleResponse((bool Success, string? Error) result)
+    {
+        if (result.Success)
+            return Ok(new
             {
-                message = "Không tìm thấy suất chiếu."
+                success = true,
+                message = result.Error ?? "Cập nhật vòng đời suất chiếu thành công.",
+                requiresManualRefund = result.Error != null
             });
-        }
 
-         // Sua phong 
-        if(request.RoomId.HasValue)
-        {
-            var room = await _context.Rooms.FirstOrDefaultAsync
-            (r => r.RoomId == request.RoomId.Value);
+        if (result.Error == "Không tìm thấy suất chiếu.")
+            return NotFound(new { success = false, message = result.Error });
+        if (result.Error?.Contains("không hợp lệ", StringComparison.OrdinalIgnoreCase) == true)
+            return BadRequest(new { success = false, message = result.Error });
 
-            if(room == null)
-            {
-                return BadRequest(new
-                {
-                        message = "Không tìm thấy phòng chiếu."
-                });
-            }
-
-            showtime.RoomId = room.RoomId;
-        } 
-
-        // Sua ngay 
-        if(!string.IsNullOrEmpty(request.Date))
-        {
-            if(!DateOnly.TryParse(request.Date, out var showDate))
-            {
-                return BadRequest(new
-                {
-                    message = "Ngày không hợp lệ."
-                });
-            }
-
-            showtime.ShowDate = showDate;
-        }
-
-        // Sua gio bat dau 
-        if(!string.IsNullOrEmpty(request.StartTime))
-        {
-            if(!TimeOnly.TryParse(request.StartTime, out var startTime))
-            {
-                return BadRequest(new
-                    {
-                        message = "Giờ không hợp lệ."
-                    });
-            }
-            showtime.StartTime = startTime;
-            // Tinh lai gio ket thuc 
-            showtime.EndTime = startTime.AddMinutes(showtime.Movie.Duration + 15);
-        }
-
-        // Sua gia 
-        if(request.Price.HasValue)
-        {
-            if(request.Price.Value <= 0)
-            {
-                return BadRequest(new
-                {
-                    message = "Giá vé phải lớn hơn 0."
-                });
-            }
-            showtime.Price = request.Price.Value;
-        }
-
-        if(!string.IsNullOrEmpty(request.Status))
-        {
-            showtime.Status = request.Status;
-        }
-
-        // luu DB 
-        await _context.SaveChangesAsync();
-        return Ok(new
-        {
-            success = true,
-            message = "Cập nhật suất chiếu thành công!"
-        });
+        return Conflict(new { success = false, message = result.Error });
     }
 
     [HttpDelete("shows/{id}")]
+    [HttpDelete("showtimes/{id}")]
     public async Task<IActionResult> DeleteShow(int id)
     {
-        var showtime = await _context.Showtimes.FirstOrDefaultAsync(s => s.ShowtimeId == id);
-
-        if(showtime == null)
+        var result = await _showtimeService.DeleteShowtimeAsync(id);
+        if (!result.Success)
         {
-             return NotFound(new
-            {
-                message = "Không tìm thấy suất chiếu."
-            });
+            if (result.Error == "Không tìm thấy suất chiếu.")
+                return NotFound(new { message = result.Error });
+            if (result.Error?.Contains("Không thể xóa", StringComparison.OrdinalIgnoreCase) == true)
+                return Conflict(new { message = result.Error });
+            return BadRequest(new { message = result.Error });
         }
 
-        // Check da booking chua 
-        var hasBooking = await _context.Bookings.AnyAsync(b => b.ShowtimeId == id);
-        
-        if(hasBooking)
+        return Ok(new { success = true, message = "Xóa suất chiếu thành công!" });
+    }
+
+    // detail showtime
+    [HttpGet("showtimes/{id}")]
+    public async Task<IActionResult> GetShowtimeById(int id)
+    {
+        if (id <= 0)
         {
             return BadRequest(new
             {
-                message = "Không thể xóa suất chiếu vì đã có người đặt vé."
+                message = "Invalid showtime ID"
             });
         }
 
-        // Xoa showTimeSeat truoc 
-        var showTimeSeat = await _context.ShowtimeSeats.Where(s => s.ShowtimeId == id).ToListAsync();
-        _context.Showtimes.Remove(showtime);
-        await _context.SaveChangesAsync();
-        
-        return Ok(new
+        var showtime = await _showtimeService.GetShowtimeByIdAsync(id);
+
+        if (showtime == null)
         {
-           success = true,
-           message =  "Xóa suất chiếu thành công!"
-        });
+            return NotFound(new
+            {
+                message = "Showtime not found"
+            });
+        }
+
+        return Ok(showtime);
+    }
+
+    [HttpGet("showtimes/calendar")]
+    public async Task<IActionResult> GetCalendar(
+    [FromQuery] ShowtimeCalendarQueryDto filter)
+    {
+        if (!filter.StartDate.HasValue || !filter.EndDate.HasValue)
+        {
+            return BadRequest(new
+            {
+                message = "StartDate and EndDate are required."
+            });
+        }
+
+        if (filter.StartDate.Value > filter.EndDate.Value)
+        {
+            return BadRequest(new
+            {
+                message = "StartDate cannot be greater than EndDate."
+            });
+        }
+
+        if ((filter.EndDate.Value.DayNumber -
+             filter.StartDate.Value.DayNumber) > 30)
+        {
+            return BadRequest(new
+            {
+                message = "Calendar date range cannot exceed 31 days."
+            });
+        }
+
+        if (filter.CinemaId <= 0 && filter.CinemaId.HasValue ||
+            filter.RoomId <= 0 && filter.RoomId.HasValue ||
+            filter.MovieId <= 0 && filter.MovieId.HasValue)
+        {
+            return BadRequest(new
+            {
+                message = "Invalid filter ID."
+            });
+        }
+
+        var result = await _showtimeService.GetCalendarAsync(filter);
+
+        return Ok(result);
     }
 }

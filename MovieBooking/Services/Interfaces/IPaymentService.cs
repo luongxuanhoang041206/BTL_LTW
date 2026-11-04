@@ -5,6 +5,12 @@ namespace MovieBooking.Services.Interfaces;
 
 public interface IPaymentService
 {
+    Task<List<AdminPaymentDto>> GetAdminPaymentsAsync(string? status, string? method);
+    Task<bool> VerifyAdminPaymentAsync(int paymentId);
+    Task<PaginationResponseDto<AdminPaymentDto>> GetAdminPaymentsPagedAsync(AdminPaymentQueryDto query);
+    Task<AdminPaymentSummaryDto> GetAdminPaymentSummaryAsync(AdminPaymentQueryDto query);
+    Task<AdminPaymentDetailDto?> GetAdminPaymentDetailAsync(int paymentId);
+
     Task<(bool Success, int? PaymentId, string? Error)> ProcessPaymentAsync(
         int bookingId,
         int userId,
@@ -30,4 +36,7 @@ public interface IPaymentService
     Task ProcessBankTransferAsync(SePayWebhookDto dto);
 
     Task<(bool Success, BankPaymentInfo? Info, string? Error)> CreateBankPaymentAsync(int bookingId, int userId);
+
+    Task<(bool Found, string? Status, int? BookingId)> GetPaymentStatusAsync(int paymentId, int userId);
+    Task<decimal?> GetPaymentAmountAsync(int paymentId, int userId);
 }
