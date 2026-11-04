@@ -225,7 +225,7 @@ public partial class MovieBookingContext : DbContext
         {
             entity.HasKey(e => e.ReviewId).HasName("PK__Reviews__74BC79CE07515B37");
 
-            entity.Property(e => e.Comment).HasMaxLength(500);
+            entity.Property(e => e.Comment).HasColumnType("nvarchar(max)");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");

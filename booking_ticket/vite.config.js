@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     proxy: {
       "/api": "http://localhost:5080",
+      "/uploads": "http://localhost:5080",
       "/seatHub": {
         target: "http://localhost:5080",
         ws: true,

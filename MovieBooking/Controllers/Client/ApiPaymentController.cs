@@ -22,6 +22,12 @@ namespace MovieBooking.Controllers.Client
 
         private int? GetCurrentUserId() => HttpContext.Session.GetInt32("UserId");
 
+        [HttpGet("dev-mode")]
+        public IActionResult GetDevelopmentMode([FromServices] IWebHostEnvironment environment)
+        {
+            return Ok(new { enabled = environment.IsDevelopment() });
+        }
+
         public class PaymentReturnRequest
         {
             public int PaymentId { get; set; }
