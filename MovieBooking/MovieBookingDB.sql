@@ -201,8 +201,8 @@ CREATE TABLE Reviews (
     ReviewId        INT IDENTITY(1,1) PRIMARY KEY,
     UserId          INT NOT NULL,
     MovieId         INT NOT NULL,
-    Rating          INT NOT NULL CHECK (Rating BETWEEN 1 AND 5),
-    Comment         NVARCHAR(500),
+    Rating          INT NOT NULL CHECK (Rating BETWEEN 1 AND 10),
+    Comment         NVARCHAR(MAX),
     CreatedAt       DATETIME NOT NULL DEFAULT GETDATE(),
     FOREIGN KEY (UserId) REFERENCES Users(UserId),
     FOREIGN KEY (MovieId) REFERENCES Movies(MovieId)

@@ -13,6 +13,7 @@
 **/node_modules/
 **/dist/
 MovieBooking/wwwroot/app/
+MovieBooking/wwwroot/uploads/reviews/
 **/.env
 **/.env.local
 

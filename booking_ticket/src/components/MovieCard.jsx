@@ -16,7 +16,8 @@ export function MovieCard({ movie }) {
   const genresList = Array.isArray(movie.genres)
     ? movie.genres.slice(0, 2).map((g) => (typeof g === "string" ? g : g.name)).join(" | ")
     : "Hành động";
-  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : "8.5";
+  const movieRating = movie.averageRating ?? movie.vote_average;
+  const rating = Number.isFinite(movieRating) ? movieRating.toFixed(1) : "—";
 
   return (
     <div className="flex flex-col justify-between p-3 bg-gray-800/90 border border-white/5 rounded-2xl hover:-translate-y-1.5 hover:border-primary/40 transition duration-300 w-64 shadow-xl">
@@ -53,7 +54,7 @@ export function MovieCard({ movie }) {
         </button>
         <p className="flex items-center gap-1 text-xs text-yellow-400 font-medium mt-1 pr-1">
           <StarIcon className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-          {rating}
+          {rating}<span className="text-[10px] text-gray-500">/10</span>
         </p>
       </div>
     </div>

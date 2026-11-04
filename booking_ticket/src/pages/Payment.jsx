@@ -15,6 +15,7 @@ export function Payment() {
   const [status, setStatus] = useState("Pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [devToolsEnabled, setDevToolsEnabled] = useState(false);
 
   // -------------------------------------------------------------------------
   // Tạo phiên thanh toán SePay
@@ -34,9 +35,27 @@ export function Payment() {
     }
   }, [bookingId]);
 
+  const simulatePayment = async () => {
+    if (!info?.paymentId) return;
+    try {
+      const result = await api.post(`/api/payment/simulate/${info.paymentId}`, {});
+      setStatus("Success");
+      toast.success(result.message || "Thanh toán mẫu thành công.");
+      window.setTimeout(() => navigate("/booking"), 1500);
+    } catch (err) {
+      toast.error(err.message || "Không thể giả lập thanh toán.");
+    }
+  };
+
   useEffect(() => {
     if (user) createPayment();
   }, [user, createPayment]);
+
+  useEffect(() => {
+    api.get("/api/payment/dev-mode")
+      .then((result) => setDevToolsEnabled(Boolean(result.enabled)))
+      .catch(() => setDevToolsEnabled(false));
+  }, []);
 
   // -------------------------------------------------------------------------
   // Poll trạng thái thanh toán mỗi 3s
@@ -196,6 +215,16 @@ export function Payment() {
                   Mã thanh toán #{info.paymentId} · Không đóng trang trong khi chờ
                   xác nhận.
                 </p>
+
+                {devToolsEnabled && status !== "Success" && (
+                  <button
+                    type="button"
+                    onClick={simulatePayment}
+                    className="w-full rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-medium text-amber-200 hover:bg-amber-400/20"
+                  >
+                    Giả lập thanh toán thành công (local)
+                  </button>
+                )}
               </div>
             </div>
           )
