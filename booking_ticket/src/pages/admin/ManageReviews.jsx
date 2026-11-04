@@ -5,6 +5,21 @@ import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
 
+function getReviewPreview(comment) {
+  if (!comment) return "Không có bình luận chữ";
+  try {
+    const doc = JSON.parse(comment);
+    if (doc?.format !== "review-v1" || !Array.isArray(doc.blocks)) return comment;
+    return doc.blocks.map((block) => {
+      if (block.type === "image") return "[Ảnh]";
+      if (block.type === "list") return (block.items || []).map((item) => item.map((run) => run.text).join("")).join(" · ");
+      return (block.runs || []).map((run) => run.text).join("");
+    }).filter(Boolean).join(" ");
+  } catch {
+    return comment;
+  }
+}
+
 export function ManageReviews() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,11 +65,9 @@ export function ManageReviews() {
             className="bg-transparent text-white outline-none cursor-pointer"
           >
             <option value="" className="bg-gray-900 text-white">Tất cả số sao</option>
-            <option value="5" className="bg-gray-900 text-white">⭐⭐⭐⭐⭐ (5 sao)</option>
-            <option value="4" className="bg-gray-900 text-white">⭐⭐⭐⭐ (4 sao)</option>
-            <option value="3" className="bg-gray-900 text-white">⭐⭐⭐ (3 sao)</option>
-            <option value="2" className="bg-gray-900 text-white">⭐⭐ (2 sao)</option>
-            <option value="1" className="bg-gray-900 text-white">⭐ (1 sao)</option>
+            {Array.from({ length: 10 }, (_, index) => 10 - index).map((score) => (
+              <option key={score} value={score} className="bg-gray-900 text-white">{score} / 10 điểm</option>
+            ))}
           </select>
         </div>
       </div>
@@ -99,7 +112,7 @@ export function ManageReviews() {
                 </div>
 
                 <div className="mt-3.5 flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
+                  {Array.from({ length: 10 }, (_, index) => index + 1).map((star) => (
                     <Star
                       key={star}
                       className={`w-4 h-4 ${
@@ -107,11 +120,11 @@ export function ManageReviews() {
                       }`}
                     />
                   ))}
-                  <span className="text-xs font-bold text-amber-400 ml-1.5 font-mono">{r.rating}.0</span>
+                  <span className="text-xs font-bold text-amber-400 ml-1.5 font-mono">{r.rating}/10</span>
                 </div>
 
                 <p className="mt-2.5 text-sm text-gray-300 italic bg-black/40 p-3 rounded-xl border border-gray-800">
-                  "{r.comment || "Không có bình luận chữ"}"
+                  "{getReviewPreview(r.comment)}"
                 </p>
               </div>
 

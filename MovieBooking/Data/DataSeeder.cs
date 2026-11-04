@@ -9,8 +9,12 @@ namespace MovieBooking.Data;
 
 public static class DataSeeder
 {
+    private const string ReviewTestEmail = "reviewtester@moviebooking.test";
+
     public static void Seed(MovieBookingContext context)
     {
+        SeedReviewTestAccount(context);
+
         // Kiểm tra nếu chưa có FoodItems thì seed F&B và Combos
         if (!context.FoodItems.Any())
         {
@@ -20,7 +24,7 @@ public static class DataSeeder
         // (removed duplicate quick-initialization) The main seeding below will create Cinemas/Rooms/Seats/Showtimes
 
         // Kiểm tra nếu đã có dữ liệu phim/user thì không seed lại phần core
-        if (context.Users.Any() || context.Movies.Any())
+        if (context.Users.Any(user => user.Email != ReviewTestEmail) || context.Movies.Any())
         {
             return;
         }
@@ -383,6 +387,24 @@ public static class DataSeeder
             }
         };
         context.Promotions.AddRange(promotions);
+        context.SaveChanges();
+    }
+
+    private static void SeedReviewTestAccount(MovieBookingContext context)
+    {
+        const string email = ReviewTestEmail;
+        if (context.Users.Any(user => user.Email == email)) return;
+
+        context.Users.Add(new User
+        {
+            FullName = "Review Test",
+            Email = email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Review@123"),
+            Phone = "0900000001",
+            Role = "Customer",
+            Status = true,
+            CreatedAt = DateTime.Now
+        });
         context.SaveChanges();
     }
 
