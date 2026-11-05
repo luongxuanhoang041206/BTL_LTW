@@ -88,6 +88,9 @@ public partial class MovieBookingContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasDefaultValue("Pending");
+            entity.Property(e => e.TicketCode)
+                .HasMaxLength(30)
+                .IsUnicode(false);
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.Promotion).WithMany(p => p.Bookings)

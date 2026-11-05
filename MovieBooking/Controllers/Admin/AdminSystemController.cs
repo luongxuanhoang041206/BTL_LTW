@@ -28,14 +28,6 @@ public class AdminSystemController(IAdminSystemService systemService) : AdminBas
         return Ok(new { success = true, message = "Cập nhật tài khoản thành công!" });
     }
 
-    [HttpGet("system/roles")]
-    public async Task<IActionResult> GetSystemRoles()
-        => Ok(await systemService.GetSystemRolesAsync());
-
-    [HttpGet("system/audit-logs")]
-    public async Task<IActionResult> GetAuditLogs()
-        => Ok(await systemService.GetAuditLogsAsync());
-
     [HttpGet("system/settings")]
     public IActionResult GetSystemSettings()
         => Ok(systemService.GetSystemSettings());

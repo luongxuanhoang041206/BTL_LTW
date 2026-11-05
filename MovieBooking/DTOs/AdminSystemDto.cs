@@ -23,5 +23,3 @@ public sealed class SystemSettingsDto
 }
 
 public sealed record AdminStaffUserDto(int Id, string FullName, string Email, string Phone, string Role, bool Status, string CreatedAt);
-public sealed record SystemRoleDto(string RoleName, string Description, int UserCount, string[] Permissions);
-public sealed record SystemAuditLogDto(string Action, string PerformedBy, string Target, string Timestamp, string Status, string Details);

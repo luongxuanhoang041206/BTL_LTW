@@ -58,40 +58,4 @@ public sealed class AdminReportingService(MovieBookingContext context) : IAdminR
             dailyRevenue, topMovies, cinemaRevenue);
     }
 
-    public async Task<List<ShowtimePerformanceDto>> GetShowtimePerformanceAsync() => await context.Showtimes
-        .AsNoTracking()
-        .OrderByDescending(showtime => showtime.ShowDate)
-        .ThenByDescending(showtime => showtime.StartTime)
-        .Take(50)
-        .Select(showtime => new ShowtimePerformanceDto(
-            showtime.ShowtimeId,
-            showtime.Movie.Title,
-            showtime.Room.Cinema.Name,
-            showtime.Room.RoomName,
-            showtime.ShowDate.ToString("yyyy-MM-dd"),
-            showtime.StartTime.ToString("HH:mm"),
-            showtime.Price,
-            showtime.ShowtimeSeats.Count,
-            showtime.ShowtimeSeats.Count(seat => seat.Status == "Booked"),
-            showtime.ShowtimeSeats.Count > 0
-                ? Math.Round((double)showtime.ShowtimeSeats.Count(seat => seat.Status == "Booked") / showtime.ShowtimeSeats.Count * 100, 1)
-                : 0,
-            showtime.ShowtimeSeats.Count(seat => seat.Status == "Booked") * showtime.Price))
-        .ToListAsync();
-
-    public async Task<List<SeatOccupancyDto>> GetSeatOccupancyAsync() => await context.Rooms
-        .AsNoTracking()
-        .Select(room => new SeatOccupancyDto(
-            room.Cinema.Name,
-            room.RoomName,
-            room.RoomType,
-            room.TotalSeats,
-            room.Showtimes.Count,
-            room.Showtimes.SelectMany(showtime => showtime.ShowtimeSeats).Count(),
-            room.Showtimes.SelectMany(showtime => showtime.ShowtimeSeats).Count(seat => seat.Status == "Booked"),
-            room.Showtimes.SelectMany(showtime => showtime.ShowtimeSeats).Any()
-                ? Math.Round((double)room.Showtimes.SelectMany(showtime => showtime.ShowtimeSeats).Count(seat => seat.Status == "Booked") /
-                    room.Showtimes.SelectMany(showtime => showtime.ShowtimeSeats).Count() * 100, 1)
-                : 0))
-        .ToListAsync();
 }

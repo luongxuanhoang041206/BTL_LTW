@@ -8,12 +8,4 @@ public class AdminAnalyticsController(IAdminReportingService reportingService) :
     [HttpGet("analytics/revenue")]
     public async Task<IActionResult> GetRevenueAnalytics()
         => Ok(await reportingService.GetRevenueAnalyticsAsync());
-
-    [HttpGet("analytics/showtime-performance")]
-    public async Task<IActionResult> GetShowtimePerformance()
-        => Ok(await reportingService.GetShowtimePerformanceAsync());
-
-    [HttpGet("analytics/seat-occupancy")]
-    public async Task<IActionResult> GetSeatOccupancy()
-        => Ok(await reportingService.GetSeatOccupancyAsync());
 }

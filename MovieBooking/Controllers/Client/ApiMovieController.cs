@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-using Microsoft.AspNetCore.Mvc;
-=======
 using System.Linq;
 using System.IO;
 using System.Text.Json;
@@ -12,7 +9,6 @@ using Microsoft.AspNetCore.Hosting;
 using MovieBooking.Data;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Models;
->>>>>>> 55ee1a6d74392093df4a7390cd7344ce79f84039
 using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Client;
@@ -71,19 +67,20 @@ public class ApiMovieController : ControllerBase
     private readonly IMovieService _movieService;
     private readonly IBookingService _bookingService;
     private readonly IGenreService _genreService;
+    private readonly MovieBookingContext _context;
 
     public ApiMovieController(
         IMovieService movieService,
         IBookingService bookingService,
-        IGenreService genreService)
+        IGenreService genreService,
+        MovieBookingContext context)
     {
         _movieService = movieService;
         _bookingService = bookingService;
         _genreService = genreService;
+        _context = context;
     }
 
-<<<<<<< HEAD
-=======
     private static object MapMovie(Movie m, double? averageRating, int reviewCount) => new
     {
         id = m.MovieId,
@@ -124,7 +121,6 @@ public class ApiMovieController : ControllerBase
             : MapMovie(movie, null, 0));
     }
 
->>>>>>> 55ee1a6d74392093df4a7390cd7344ce79f84039
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? status,
@@ -132,34 +128,22 @@ public class ApiMovieController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] int page = 1)
     {
-<<<<<<< HEAD
-        return Ok(await _movieService.GetMovieResponsesAsync(status, genre, search, page));
-=======
         var movies = await _movieService.GetAllMoviesAsync(status, genre, search, page);
         return Ok(await MapMoviesWithRatingsAsync(movies));
->>>>>>> 55ee1a6d74392093df4a7390cd7344ce79f84039
     }
 
     [HttpGet("now-showing")]
     public async Task<IActionResult> GetNowShowing()
     {
-<<<<<<< HEAD
-        return Ok(await _movieService.GetNowShowingMovieResponsesAsync());
-=======
         var movies = await _movieService.GetNowShowingMoviesAsync();
         return Ok(await MapMoviesWithRatingsAsync(movies));
->>>>>>> 55ee1a6d74392093df4a7390cd7344ce79f84039
     }
 
     [HttpGet("coming-soon")]
     public async Task<IActionResult> GetComingSoon()
     {
-<<<<<<< HEAD
-        return Ok(await _movieService.GetComingSoonMovieResponsesAsync());
-=======
         var movies = await _movieService.GetComingSoonMoviesAsync();
         return Ok(await MapMoviesWithRatingsAsync(movies));
->>>>>>> 55ee1a6d74392093df4a7390cd7344ce79f84039
     }
 
     [HttpGet("genres")]
@@ -171,20 +155,16 @@ public class ApiMovieController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var movie = await _movieService.GetMovieResponseByIdAsync(id);
+        var movie = await _movieService.GetMovieByIdAsync(id);
         if (movie == null)
         {
             return NotFound(new { message = "Không tìm thấy phim." });
         }
 
-<<<<<<< HEAD
-        return Ok(movie);
-=======
         var averageRating = movie.Reviews.Count == 0
             ? (double?)null
             : movie.Reviews.Average(review => (double)review.Rating);
         return Ok(MapMovie(movie, averageRating, movie.Reviews.Count));
->>>>>>> 55ee1a6d74392093df4a7390cd7344ce79f84039
     }
 
     [HttpGet("{id}/cinemas")]
