@@ -1,14 +1,28 @@
+import { Menu } from "lucide-react";
 import { Link } from "react-router";
 import { assets } from "../../assets/assets";
 
-export function AdminNavBar() {
+export function AdminNavBar({ menuButtonRef, onMenuClick, sidebarOpen }) {
   return (
-    <div className="flex items-center justify-between px-6 md: px-10 h-16 border-b border-gray-300/30">
-      <Link to="/home" className="w-36 flex justify-center items-center ">
-        <img src={assets.rophimlogo} alt="Logo" className="w-20 h-auto" />
-        <h1 className="text-2xl font-medium">RoPhim</h1>
-      </Link>
-      <Link to="/home"></Link>
-    </div>
+    <header className="admin-header">
+      <div className="admin-header-brand">
+        <button
+          ref={menuButtonRef}
+          type="button"
+          className="admin-menu-button"
+          onClick={onMenuClick}
+          aria-label={sidebarOpen ? "Đóng menu điều hướng" : "Mở menu điều hướng"}
+          aria-expanded={sidebarOpen}
+          aria-controls="admin-navigation"
+        >
+          <Menu size={21} aria-hidden="true" />
+        </button>
+        <Link to="/home" className="admin-brand-link">
+          <img src={assets.rophimlogo} alt="" className="admin-brand-logo" />
+          <span>RoPhim</span>
+        </Link>
+      </div>
+      <span className="admin-header-label">Quản trị rạp phim</span>
+    </header>
   );
 }

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -209,6 +210,7 @@ const emptyFilters = { keyword: "", status: "" };
 const PAGE_SIZES = [12, 24, 48];
 
 export function ManagePromotions() {
+  const confirm = useAdminConfirm();
   const [summary, setSummary]     = useState(null);
   const [result, setResult]       = useState({ data: [], totalItems: 0, totalPages: 0 });
   const [filters, setFilters]     = useState(emptyFilters);
@@ -260,7 +262,12 @@ export function ManagePromotions() {
   };
 
   const handleDelete = async (p) => {
-    if (!window.confirm(`Xóa mã "${p.code}"?`)) return;
+    if (!(await confirm({
+      title: "Xóa mã khuyến mãi?",
+      message: `Bạn có chắc muốn xóa mã "${p.code}"?`,
+      confirmLabel: "Xóa mã",
+      variant: "danger",
+    }))) return;
     try {
       const res = await api.delete(`/api/admin/promotions/${p.id}`);
       toast.success(res?.message || "Đã xóa.");

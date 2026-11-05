@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -147,6 +148,7 @@ const emptyFilters = { keyword: "", status: "", method: "", fromDate: "", toDate
 const PAGE_SIZES = [10, 20, 50];
 
 export function ManagePayments() {
+  const confirm = useAdminConfirm();
   const [summary, setSummary]     = useState(null);
   const [result, setResult]       = useState({ data: [], totalItems: 0, totalPages: 0 });
   const [filters, setFilters]     = useState(emptyFilters);
@@ -200,7 +202,12 @@ export function ManagePayments() {
   const resetFilters = () => { setFilters(emptyFilters); setInputKw(""); setPage(1); };
 
   const handleVerify = async (p) => {
-    if (!window.confirm(`Xác nhận thanh toán thủ công #${p.id}?`)) return;
+    if (!(await confirm({
+      title: "Xác nhận thanh toán?",
+      message: `Xác nhận thanh toán thủ công cho giao dịch #${p.id}?`,
+      confirmLabel: "Xác nhận thanh toán",
+      variant: "primary",
+    }))) return;
     try {
       await api.post(`/api/admin/payments/${p.id}/verify`, {});
       toast.success("Đã xác nhận thanh toán!");

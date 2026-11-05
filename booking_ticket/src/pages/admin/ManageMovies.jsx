@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 const emptyMovie = {
   title: "", description: "", duration: "", releaseDate: "", endDate: "",
@@ -14,6 +15,7 @@ const emptyMovie = {
 const fieldClass = "mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white";
 
 export function ManageMovies() {
+  const confirm = useAdminConfirm();
   const [movies, setMovies] = useState([]);
   const [genres, setGenres] = useState([]);
   const [page, setPage] = useState(1);
@@ -126,7 +128,12 @@ export function ManageMovies() {
   };
 
   const deleteMovie = async (movie) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa phim “${movie.title}” không?`)) return;
+    if (!(await confirm({
+      title: "Xóa phim?",
+      message: `Bạn có chắc muốn xóa phim “${movie.title}” không?`,
+      confirmLabel: "Xóa phim",
+      variant: "danger",
+    }))) return;
     try {
       await api.delete(`/api/admin/movies/${movie.id}`);
       toast.success("Đã xóa phim.");

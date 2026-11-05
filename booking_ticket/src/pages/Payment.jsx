@@ -26,7 +26,6 @@ export function Payment() {
   const [status, setStatus] = useState("Pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-<<<<<<< HEAD
   const [confirmedTicket, setConfirmedTicket] = useState(null);
   const [isSimulating, setIsSimulating] = useState(false);
 
@@ -43,9 +42,7 @@ export function Payment() {
       console.error("Không thể tải chi tiết vé:", err);
     }
   }, []);
-=======
   const [devToolsEnabled, setDevToolsEnabled] = useState(false);
->>>>>>> 55ee1a6d74392093df4a7390cd7344ce79f84039
 
   // -------------------------------------------------------------------------
   // Tạo phiên thanh toán SePay

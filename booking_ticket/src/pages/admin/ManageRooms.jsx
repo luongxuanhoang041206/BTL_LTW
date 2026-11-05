@@ -6,8 +6,10 @@ import { api } from "../../lib/api";
 import { getAdminCinemas, getAdminCinemaRecords } from "../../lib/cinemaApi";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 export function ManageRooms() {
+  const confirm = useAdminConfirm();
   const [searchParams] = useSearchParams();
   const cinemaIdFromUrl = searchParams.get("cinemaId") || "";
   const [rooms, setRooms] = useState([]);
@@ -107,7 +109,12 @@ export function ManageRooms() {
     if (r.showtimesCount > 0) {
       return toast.error(`Không thể xóa phòng đang có ${r.showtimesCount} suất chiếu.`);
     }
-    if (!window.confirm(`Bạn có chắc muốn xóa phòng chiếu "${r.roomName}"?`)) return;
+    if (!(await confirm({
+      title: "Xóa phòng chiếu?",
+      message: `Bạn có chắc muốn xóa phòng chiếu "${r.roomName}"?`,
+      confirmLabel: "Xóa phòng",
+      variant: "danger",
+    }))) return;
 
     try {
       await api.delete(`/api/admin/rooms/${r.id}`);

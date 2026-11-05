@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 function getReviewPreview(comment) {
   if (!comment) return "Không có bình luận chữ";
@@ -21,6 +22,7 @@ function getReviewPreview(comment) {
 }
 
 export function ManageReviews() {
+  const confirm = useAdminConfirm();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ratingFilter, setRatingFilter] = useState("");
@@ -43,7 +45,12 @@ export function ManageReviews() {
   }, [ratingFilter]);
 
   const handleDelete = async (review) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa đánh giá của "${review.customerName}"?`)) return;
+    if (!(await confirm({
+      title: "Xóa đánh giá?",
+      message: `Bạn có chắc muốn xóa đánh giá của "${review.customerName}"?`,
+      confirmLabel: "Xóa đánh giá",
+      variant: "danger",
+    }))) return;
     try {
       await api.delete(`/api/admin/reviews/${review.id}`);
       toast.success("Đã xóa đánh giá.");

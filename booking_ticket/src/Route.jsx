@@ -23,11 +23,7 @@ import { ManagePromotions } from "./pages/admin/ManagePromotions.jsx";
 import { ManageCustomers } from "./pages/admin/ManageCustomers.jsx";
 import { ManageReviews } from "./pages/admin/ManageReviews.jsx";
 import { RevenueReport } from "./pages/admin/RevenueReport.jsx";
-import { ShowtimePerformance } from "./pages/admin/ShowtimePerformance.jsx";
-import { SeatOccupancyReport } from "./pages/admin/SeatOccupancyReport.jsx";
 import { ManageStaff } from "./pages/admin/ManageStaff.jsx";
-import { ManageRoles } from "./pages/admin/ManageRoles.jsx";
-import { AuditLogs } from "./pages/admin/AuditLogs.jsx";
 import { SystemSettings } from "./pages/admin/SystemSettings.jsx";
 import { ManageFnb } from "./pages/admin/ManageFnb.jsx";
 import { WebsiteCms } from "./pages/admin/WebsiteCms.jsx";
@@ -164,26 +160,10 @@ export const route = createBrowserRouter([
             path: "reports/revenue",
             element: <RevenueReport />,
           },
-          {
-            path: "reports/showtime-performance",
-            element: <ShowtimePerformance />,
-          },
-          {
-            path: "reports/seat-occupancy",
-            element: <SeatOccupancyReport />,
-          },
           // Quản trị hệ thống
           {
             path: "system/users",
             element: <ManageStaff />,
-          },
-          {
-            path: "system/roles",
-            element: <ManageRoles />,
-          },
-          {
-            path: "system/audit-logs",
-            element: <AuditLogs />,
           },
           {
             path: "system/settings",

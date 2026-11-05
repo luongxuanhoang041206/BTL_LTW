@@ -17,10 +17,12 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { getAdminCinemas } from "../../lib/cinemaApi";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 const EMPTY_FILTERS = { keyword: "", city: "", status: "" };
 
 export function ManageCinemas() {
+  const confirm = useAdminConfirm();
   const [cinemas, setCinemas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -113,7 +115,12 @@ export function ManageCinemas() {
         `Không thể xóa rạp "${cinema.name}" vì đang có ${cinema.roomCount} phòng chiếu.`,
       );
     }
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa rạp "${cinema.name}"?`)) return;
+    if (!(await confirm({
+      title: "Xóa rạp chiếu?",
+      message: `Bạn có chắc chắn muốn xóa rạp "${cinema.name}"?`,
+      confirmLabel: "Xóa rạp",
+      variant: "danger",
+    }))) return;
 
     try {
       await api.delete(`/api/admin/cinemas/${cinema.id}`);
