@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { CheckCircle2, Clock3, RefreshCw, QrCodeIcon } from "lucide-react";
+import { CheckCircle2, Clock3, RefreshCw, QrCodeIcon, Smartphone, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import { Loading } from "../components/Loading";
 import { useAuth } from "../context/AuthContext";
+
+const isDev = import.meta.env.DEV;
 
 export function Payment() {
   const { bookingId } = useParams();
@@ -13,8 +15,11 @@ export function Payment() {
 
   const [info, setInfo] = useState(null);
   const [status, setStatus] = useState("Pending");
+    const [showBank, setShowBank] = useState(false);    
+    const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
 
   // -------------------------------------------------------------------------
   // Tạo phiên thanh toán SePay
@@ -37,6 +42,22 @@ export function Payment() {
   useEffect(() => {
     if (user) createPayment();
   }, [user, createPayment]);
+
+    const handleSimulate = async () => {
+        if (!info) return;
+        setConfirming(true);
+        try {
+            await api.post(`/api/payment/simulate/${info.paymentId}`, {});
+            setShowBank(false);
+            setStatus("Success");
+            toast.success("Thanh toán thành công! Vé của bạn đã được xác nhận.");
+            window.setTimeout(() => navigate("/booking"), 1800);
+        } catch (err) {
+            toast.error(err.message || "Giả lập chuyển khoản thất bại.");
+        } finally {
+            setConfirming(false);
+        }
+    };
 
   // -------------------------------------------------------------------------
   // Poll trạng thái thanh toán mỗi 3s
@@ -192,6 +213,16 @@ export function Payment() {
                   </span>
                 </div>
 
+                {isDev && status !== "Success" && (
+                    <button
+                        type="button"
+                        onClick={() => setShowBank(true)}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
+                    >
+                        <Smartphone className="h-4 w-4" />
+                        Mở app ngân hàng giả lập (chỉ để demo)
+                    </button>
+                )}
                 <p className="text-xs text-gray-500">
                   Mã thanh toán #{info.paymentId} · Không đóng trang trong khi chờ
                   xác nhận.
@@ -207,7 +238,60 @@ export function Payment() {
             Xem vé của tôi
           </Link>
         </div>
-      </section>
+          </section>
+          {showBank && info && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+                  <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white text-gray-900 shadow-2xl">
+                      <div className="flex items-center justify-between bg-blue-700 px-4 py-3 text-white">
+                          <span className="font-semibold">Xác nhận chuyển tiền</span>
+                          <button type="button" onClick={() => setShowBank(false)} disabled={confirming}>
+                              <X className="h-5 w-5" />
+                          </button>
+                      </div>
+
+                      <div className="space-y-3 p-5 text-sm">
+                          <div className="text-center">
+                              <p className="text-xs text-gray-500">Số tiền</p>
+                              <p className="text-3xl font-extrabold text-blue-700">
+                                  {Number(info.amount).toLocaleString("vi-VN")} ₫
+                              </p>
+                          </div>
+
+                          <div className="space-y-2 rounded-lg bg-gray-100 p-3">
+                              <div className="flex justify-between gap-2">
+                                  <span className="text-gray-500">Người nhận</span>
+                                  <strong className="text-right">{info.accountName}</strong>
+                              </div>
+                              <div className="flex justify-between gap-2">
+                                  <span className="text-gray-500">Số tài khoản</span>
+                                  <strong>{info.accountNumber}</strong>
+                              </div>
+                              <div className="flex justify-between gap-2">
+                                  <span className="text-gray-500">Ngân hàng</span>
+                                  <strong>{info.bankCode}</strong>
+                              </div>
+                              <div className="flex justify-between gap-2">
+                                  <span className="text-gray-500">Nội dung</span>
+                                  <strong className="break-all text-right font-mono text-xs">{info.content}</strong>
+                              </div>
+                          </div>
+
+                          <p className="text-center text-xs text-gray-400">
+                              Màn hình giả lập phục vụ demo, không có tiền thật được chuyển.
+                          </p>
+
+                          <button
+                              type="button"
+                              onClick={handleSimulate}
+                              disabled={confirming}
+                              className="w-full rounded-lg bg-blue-700 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                          >
+                              {confirming ? "Đang xử lý..." : "Xác nhận chuyển khoản"}
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          )}
     </main>
   );
 }
