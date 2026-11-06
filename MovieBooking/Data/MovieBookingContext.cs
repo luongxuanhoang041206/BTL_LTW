@@ -88,6 +88,9 @@ public partial class MovieBookingContext : DbContext
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasDefaultValue("Pending");
+            entity.Property(e => e.TicketCode)
+                .HasMaxLength(30)
+                .IsUnicode(false);
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.Promotion).WithMany(p => p.Bookings)
@@ -225,7 +228,7 @@ public partial class MovieBookingContext : DbContext
         {
             entity.HasKey(e => e.ReviewId).HasName("PK__Reviews__74BC79CE07515B37");
 
-            entity.Property(e => e.Comment).HasMaxLength(500);
+            entity.Property(e => e.Comment).HasColumnType("nvarchar(max)");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");

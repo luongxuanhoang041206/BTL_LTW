@@ -113,7 +113,6 @@ public class AdminFoodController : ControllerBase
     {
         var denied = RequireAdmin();
         if (denied != null) return denied;
-        request.SelectedItems = (request.SelectedItems ?? new()).Where(item => item.FoodItemId > 0).ToList();
         var (success, combo, error) = await _foodService.CreateComboAsync(request);
         if (!success || combo == null)
             return BadRequest(new { success = false, message = error ?? "Không thể tạo combo." });
@@ -125,7 +124,6 @@ public class AdminFoodController : ControllerBase
     {
         var denied = RequireAdmin();
         if (denied != null) return denied;
-        request.SelectedItems = (request.SelectedItems ?? new()).Where(item => item.FoodItemId > 0).ToList();
         var (success, error) = await _foodService.UpdateComboAsync(id, request);
         if (!success) return BadRequest(new { success = false, message = error ?? "Không thể cập nhật combo." });
         return Ok(new { success = true, message = "Cập nhật combo thành công." });

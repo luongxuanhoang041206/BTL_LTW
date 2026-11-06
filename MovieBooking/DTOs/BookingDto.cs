@@ -5,6 +5,10 @@ using MovieBooking.Models;
 
 namespace MovieBooking.DTOs;
 
+public sealed record AdminBookingDto(int BookingId, string BookingCode, string CustomerName,
+    string CustomerEmail, string MovieTitle, string? PosterUrl, string ShowDate, string StartTime,
+    string BookingDate, int SeatCount, List<string> Seats, decimal FinalAmount, string Status);
+
 // ---------------------------------------------------------------------------
 // SEAT MAP
 // ---------------------------------------------------------------------------
@@ -209,6 +213,8 @@ public class BookingDetailViewModel
 
     public List<BookingDetailSeatInfo> Seats { get; set; } = new();
     public List<BookingComboDetailDto> Combos { get; set; } = new();
+    public List<BookingFoodDetailDto> Foods { get; set; } = new();
+    public string? QrCodeUrl { get; set; }
     public decimal SubTotal { get; set; }
     public string? PromoCode { get; set; }
     public decimal DiscountPercent { get; set; }
@@ -235,6 +241,15 @@ public class BookingDetailSeatInfo
     public string SeatLabel { get; set; } = string.Empty;
     public string SeatType { get; set; } = string.Empty;
     public decimal Price { get; set; }
+}
+
+public class BookingFoodDetailDto
+{
+    public int FoodItemId { get; set; }
+    public string FoodName { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal SubTotal => Quantity * UnitPrice;
 }
 
 // ---------------------------------------------------------------------------
@@ -291,4 +306,86 @@ public class CinemaItemViewModel
     public string Address { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
     public int ShowtimeCount { get; set; }   // Số suất chiếu còn lại (>= hôm nay)
+}
+
+// ---------------------------------------------------------------------------
+// ADMIN BOOKING — filter / pagination / summary / detail
+// ---------------------------------------------------------------------------
+
+/// <summary>Query filter cho Admin booking list.</summary>
+public class AdminBookingQueryDto
+{
+    public string? Keyword { get; set; }          // tìm bookingCode, customerName, email
+    public string? Status { get; set; }           // Pending | Paid | Cancelled
+    public int? CinemaId { get; set; }
+    public string? FromDate { get; set; }         // yyyy-MM-dd
+    public string? ToDate { get; set; }
+    public string SortBy { get; set; } = "bookingDate";
+    public string SortOrder { get; set; } = "desc";
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 15;
+}
+
+/// <summary>Summary stats cho trang Admin bookings.</summary>
+public class AdminBookingSummaryDto
+{
+    public int Total { get; set; }
+    public int Paid { get; set; }
+    public int Pending { get; set; }
+    public int Cancelled { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
+/// <summary>Chi tiết một booking cho Admin — gồm cả payment liên quan.</summary>
+public class AdminBookingDetailDto
+{
+    public int BookingId { get; set; }
+    public string BookingCode { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime BookingDate { get; set; }
+
+    // Customer
+    public int CustomerId { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string CustomerEmail { get; set; } = string.Empty;
+
+    // Movie / Showtime
+    public int MovieId { get; set; }
+    public string MovieTitle { get; set; } = string.Empty;
+    public string? PosterUrl { get; set; }
+    public string ShowDate { get; set; } = string.Empty;
+    public string StartTime { get; set; } = string.Empty;
+    public string EndTime { get; set; } = string.Empty;
+    public string CinemaName { get; set; } = string.Empty;
+    public string RoomName { get; set; } = string.Empty;
+
+    // Seats
+    public List<AdminBookingDetailSeatDto> Seats { get; set; } = new();
+
+    // Amounts
+    public decimal SubTotal { get; set; }
+    public string? PromoCode { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TotalAmount { get; set; }
+
+    // Payments
+    public List<AdminBookingPaymentDto> Payments { get; set; } = new();
+}
+
+public class AdminBookingDetailSeatDto
+{
+    public string SeatLabel { get; set; } = string.Empty;
+    public string SeatType { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+}
+
+public class AdminBookingPaymentDto
+{
+    public int PaymentId { get; set; }
+    public string Method { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? TransactionCode { get; set; }
+    public string? PaidAt { get; set; }
 }

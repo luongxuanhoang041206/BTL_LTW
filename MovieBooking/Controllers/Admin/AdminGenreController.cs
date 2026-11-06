@@ -1,7 +1,4 @@
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using MovieBooking.Data;
 using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Admin;
@@ -10,7 +7,7 @@ public class AdminGenreController : AdminBaseController
 {
     private readonly IGenreService _genreService;
 
-    public AdminGenreController(MovieBookingContext context, IGenreService genreService) : base(context)
+    public AdminGenreController(IGenreService genreService) : base()
     {
         _genreService = genreService;
     }
@@ -20,17 +17,10 @@ public class AdminGenreController : AdminBaseController
     [HttpGet("genres")]
     public async Task<IActionResult> GetGenres([FromQuery] string? search = null, [FromQuery] int? page = 1, [FromQuery] int pageSize = 10)
     {
-        page = Math.Max(1, page.Value);
+        page = Math.Max(1, page ?? 1);
         pageSize = Math.Max(1, pageSize);
 
-        var genres = await _genreService.GetAllGenresAsync(search, page, pageSize);
-
-        return Ok(genres.Select(g => new
-        {
-            id = g.GenreId,
-            name = g.Name,
-            movieCount = g.MovieCount
-        }));
+        return Ok(await _genreService.GetGenreResponsesAsync(search, page, pageSize));
     }
 
     [HttpPost("genres")]

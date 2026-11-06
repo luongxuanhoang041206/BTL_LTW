@@ -14,6 +14,6 @@ public partial class Cinema
     public string? City { get; set; }
 
     public string? Phone { get; set; }
-
+    public string? Status { get; set; }
     public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
 }

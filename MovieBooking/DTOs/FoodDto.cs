@@ -3,6 +3,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MovieBooking.DTOs;
 
+public sealed record ActiveFoodItemDetailsDto(int FoodItemId, string Name, string? Description,
+    string? ImageUrl, decimal Price, string Category);
+public sealed record ActiveFoodMenuDto(int? CinemaId, List<string> Categories, List<FoodItemDto> Foods, List<ComboDto> Combos);
+
 // =========================================================
 // FOOD ITEM DTOS
 // =========================================================

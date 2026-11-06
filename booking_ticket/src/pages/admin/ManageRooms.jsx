@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { Plus, Edit2, Trash2, Gauge, Grid, Filter, X } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import toast from "react-hot-toast";
 import { api } from "../../lib/api";
+import { getAdminCinemas, getAdminCinemaRecords } from "../../lib/cinemaApi";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 export function ManageRooms() {
+  const confirm = useAdminConfirm();
+  const [searchParams] = useSearchParams();
+  const cinemaIdFromUrl = searchParams.get("cinemaId") || "";
   const [rooms, setRooms] = useState([]);
   const [cinemas, setCinemas] = useState([]);
-  const [selectedCinema, setSelectedCinema] = useState("");
+  const [selectedCinema, setSelectedCinema] = useState(cinemaIdFromUrl);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [form, setForm] = useState({
@@ -22,25 +28,31 @@ export function ManageRooms() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [cinemasData, roomsData] = await Promise.all([
-        api.get("/api/admin/cinemas"),
-        api.get(selectedCinema ? `/api/admin/rooms?cinemaId=${selectedCinema}` : "/api/admin/rooms"),
-      ]);
-      setCinemas(Array.isArray(cinemasData) ? cinemasData : []);
-      setRooms(Array.isArray(roomsData) ? roomsData : []);
-    } catch (err) {
-      toast.error(err.message || "Không thể tải dữ liệu phòng chiếu");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    let active = true;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [cinemasData, roomsData] = await Promise.all([
+          getAdminCinemas({ page: 1, pageSize: 100 }),
+          api.get(selectedCinema ? `/api/admin/rooms?cinemaId=${selectedCinema}` : "/api/admin/rooms"),
+        ]);
+        if (!active) return;
+        setCinemas(getAdminCinemaRecords(cinemasData));
+        setRooms(Array.isArray(roomsData) ? roomsData : []);
+      } catch (err) {
+        if (active) toast.error(err.message || "Không thể tải dữ liệu phòng chiếu");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
     fetchData();
-  }, [selectedCinema]);
+    return () => {
+      active = false;
+    };
+  }, [selectedCinema, refreshKey]);
 
   const openAdd = () => {
     setEditingRoom(null);
@@ -85,7 +97,7 @@ export function ManageRooms() {
         toast.success("Thêm phòng chiếu thành công!");
       }
       setModalOpen(false);
-      fetchData();
+      setRefreshKey((key) => key + 1);
     } catch (err) {
       toast.error(err.message || "Có lỗi xảy ra.");
     } finally {
@@ -97,12 +109,17 @@ export function ManageRooms() {
     if (r.showtimesCount > 0) {
       return toast.error(`Không thể xóa phòng đang có ${r.showtimesCount} suất chiếu.`);
     }
-    if (!window.confirm(`Bạn có chắc muốn xóa phòng chiếu "${r.roomName}"?`)) return;
+    if (!(await confirm({
+      title: "Xóa phòng chiếu?",
+      message: `Bạn có chắc muốn xóa phòng chiếu "${r.roomName}"?`,
+      confirmLabel: "Xóa phòng",
+      variant: "danger",
+    }))) return;
 
     try {
       await api.delete(`/api/admin/rooms/${r.id}`);
       toast.success("Đã xóa phòng chiếu.");
-      fetchData();
+      setRefreshKey((key) => key + 1);
     } catch (err) {
       toast.error(err.message || "Không thể xóa phòng chiếu.");
     }

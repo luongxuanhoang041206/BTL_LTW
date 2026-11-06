@@ -7,6 +7,10 @@ namespace MovieBooking.Services.Interfaces;
 
 public interface IBookingService
 {
+    Task<List<AdminBookingDto>> GetAdminBookingsAsync();
+    Task<PaginationResponseDto<AdminBookingDto>> GetAdminBookingsPagedAsync(AdminBookingQueryDto query);
+    Task<AdminBookingSummaryDto> GetAdminBookingSummaryAsync(AdminBookingQueryDto query);
+    Task<AdminBookingDetailDto?> GetAdminBookingDetailAsync(int bookingId);
     // --- Showtime selection (entry point) ---
 
     /// <summary>Lấy danh sách suất chiếu của một phim, nhóm theo ngày. Nếu cinemaId != null thì lọc theo rạp.</summary>
@@ -58,6 +62,7 @@ public interface IBookingService
 
     /// <summary>Lấy chi tiết một booking. Trả về null nếu không tồn tại hoặc không thuộc user.</summary>
     Task<BookingDetailViewModel?> GetBookingDetailAsync(int bookingId, int userId);
+    Task<string?> GetTicketCodeAsync(int bookingId, int userId);
 
     // --- Cancel ---
 

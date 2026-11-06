@@ -23,7 +23,7 @@ public class FoodService : IFoodService
     // ADMIN: FOOD ITEMS
     // =========================================================
 
-    public async Task<List<FoodItem>> GetAllFoodItemsAsync(string? category = null, bool? isActive = null)
+    public async Task<List<FoodItemDto>> GetAllFoodItemsAsync(string? category = null, bool? isActive = null)
     {
         var query = _context.FoodItems.AsNoTracking().AsQueryable();
 
@@ -40,18 +40,53 @@ public class FoodService : IFoodService
         return await query
             .OrderBy(f => f.Category)
             .ThenBy(f => f.Name)
+            .Select(f => new FoodItemDto
+            {
+                FoodItemId = f.FoodItemId,
+                Name = f.Name,
+                Description = f.Description,
+                ImageUrl = f.ImageUrl,
+                Price = f.Price,
+                Category = f.Category,
+                IsActive = f.IsActive
+            })
             .ToListAsync();
     }
 
-    public async Task<FoodItem?> GetFoodItemByIdAsync(int id)
+    public async Task<FoodItemDto?> GetFoodItemByIdAsync(int id)
     {
         return await _context.FoodItems
-            .Include(f => f.ComboDetails)
-                .ThenInclude(cd => cd.Combo)
-            .FirstOrDefaultAsync(f => f.FoodItemId == id);
+            .AsNoTracking()
+            .Where(f => f.FoodItemId == id)
+            .Select(f => new FoodItemDto
+            {
+                FoodItemId = f.FoodItemId,
+                Name = f.Name,
+                Description = f.Description,
+                ImageUrl = f.ImageUrl,
+                Price = f.Price,
+                Category = f.Category,
+                IsActive = f.IsActive
+            })
+            .FirstOrDefaultAsync();
     }
 
-    public async Task<FoodItem> CreateFoodItemAsync(FoodItemFormDto model)
+    public async Task<ActiveFoodItemDetailsDto?> GetActiveFoodItemDetailsAsync(int id)
+        => await _context.FoodItems.AsNoTracking()
+            .Where(item => item.FoodItemId == id && item.IsActive)
+            .Select(item => new ActiveFoodItemDetailsDto(item.FoodItemId, item.Name,
+                item.Description, item.ImageUrl, item.Price, item.Category))
+            .FirstOrDefaultAsync();
+
+    public async Task<ActiveFoodMenuDto> GetActiveMenuAsync(int? cinemaId)
+    {
+        var categories = await GetAllCategoriesAsync();
+        var foods = await GetActiveFoodItemsAsync();
+        var combos = await GetActiveCombosAsync();
+        return new ActiveFoodMenuDto(cinemaId, categories, foods, combos);
+    }
+
+    public async Task<FoodItemDto> CreateFoodItemAsync(FoodItemFormDto model)
     {
         var foodItem = new FoodItem
         {
@@ -65,7 +100,16 @@ public class FoodService : IFoodService
 
         _context.FoodItems.Add(foodItem);
         await _context.SaveChangesAsync();
-        return foodItem;
+        return new FoodItemDto
+        {
+            FoodItemId = foodItem.FoodItemId,
+            Name = foodItem.Name,
+            Description = foodItem.Description,
+            ImageUrl = foodItem.ImageUrl,
+            Price = foodItem.Price,
+            Category = foodItem.Category,
+            IsActive = foodItem.IsActive
+        };
     }
 
     public async Task<bool> UpdateFoodItemAsync(int id, FoodItemFormDto model)
@@ -219,8 +263,9 @@ public class FoodService : IFoodService
             .FirstOrDefaultAsync(c => c.ComboId == id);
     }
 
-    public async Task<(bool Success, Combo? Combo, string? Error)> CreateComboAsync(ComboFormDto model)
+    public async Task<(bool Success, ComboDto? Combo, string? Error)> CreateComboAsync(ComboFormDto model)
     {
+        model.SelectedItems = (model.SelectedItems ?? new()).Where(item => item.FoodItemId > 0).ToList();
         if (model.SelectedItems == null || model.SelectedItems.Count == 0)
         {
             return (false, null, "Combo phải có ít nhất một món thành phần.");
@@ -283,7 +328,7 @@ public class FoodService : IFoodService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return (true, combo, null);
+            return (true, await GetComboDtoByIdAsync(combo.ComboId), null);
         }
         catch (Exception ex)
         {
@@ -294,6 +339,7 @@ public class FoodService : IFoodService
 
     public async Task<(bool Success, string? Error)> UpdateComboAsync(int id, ComboFormDto model)
     {
+        model.SelectedItems = (model.SelectedItems ?? new()).Where(item => item.FoodItemId > 0).ToList();
         var combo = await _context.Combos
             .Include(c => c.ComboDetails)
             .FirstOrDefaultAsync(c => c.ComboId == id);
@@ -593,6 +639,12 @@ public class FoodService : IFoodService
             return (false, error);
         }
 
+        var booking = await _context.Bookings.FindAsync(bookingId);
+        if (booking == null)
+        {
+            return (false, "Không tìm thấy đơn đặt vé.");
+        }
+
         // Lưu vào bảng BookingCombos
         foreach (var item in validatedList)
         {
@@ -604,6 +656,8 @@ public class FoodService : IFoodService
                 UnitPrice = item.UnitPrice // Lưu giá tại thời điểm đặt để bảo toàn lịch sử
             });
         }
+
+        booking.TotalAmount += validatedList.Sum(item => item.UnitPrice * item.Quantity);
 
         await _context.SaveChangesAsync();
         return (true, null);
@@ -625,5 +679,64 @@ public class FoodService : IFoodService
                 UnitPrice = bc.UnitPrice
             })
             .ToListAsync();
+    }
+
+    public async Task<(bool Success, decimal TotalPrice, string? Error)> ValidateAndCalculateFoodsAsync(
+        List<BookingFoodItemRequest>? requests)
+    {
+        if (requests == null || requests.Count == 0)
+            return (true, 0m, null);
+
+        if (requests.Any(x => x.Quantity <= 0 || x.Quantity > 50) ||
+            requests.GroupBy(x => x.FoodItemId).Any(g => g.Count() > 1))
+            return (false, 0m, "Số lượng món không hợp lệ.");
+
+        var foodIds = requests.Select(x => x.FoodItemId).ToList();
+        var foods = await _context.FoodItems
+            .AsNoTracking()
+            .Where(f => foodIds.Contains(f.FoodItemId) && f.IsActive)
+            .ToDictionaryAsync(f => f.FoodItemId);
+
+        if (foods.Count != foodIds.Count)
+            return (false, 0m, "Một hoặc nhiều món đã ngừng kinh doanh.");
+
+        var total = requests.Sum(item => foods[item.FoodItemId].Price * item.Quantity);
+        return (true, total, null);
+    }
+
+    public async Task<(bool Success, string? Error)> SaveBookingFoodsAsync(
+        int bookingId, List<BookingFoodItemRequest>? requests)
+    {
+        if (requests == null || requests.Count == 0)
+            return (true, null);
+
+        var validation = await ValidateAndCalculateFoodsAsync(requests);
+        if (!validation.Success)
+            return (false, validation.Error);
+
+        var foodIds = requests.Select(x => x.FoodItemId).ToList();
+        var foods = await _context.FoodItems
+            .Where(f => foodIds.Contains(f.FoodItemId) && f.IsActive)
+            .ToDictionaryAsync(f => f.FoodItemId);
+        var booking = await _context.Bookings.FindAsync(bookingId);
+        if (booking == null)
+            return (false, "Không tìm thấy đơn đặt vé.");
+
+        foreach (var item in requests)
+        {
+            var food = foods[item.FoodItemId];
+            _context.BookingFoods.Add(new BookingFood
+            {
+                BookingId = bookingId,
+                FoodItemId = food.FoodItemId,
+                FoodName = food.Name,
+                Quantity = item.Quantity,
+                UnitPrice = food.Price
+            });
+        }
+
+        booking.TotalAmount += validation.TotalPrice;
+        await _context.SaveChangesAsync();
+        return (true, null);
     }
 }

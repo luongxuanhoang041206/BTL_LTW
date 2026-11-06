@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { dummyShowsData } from "../assets/assets";
 import { BlurCicle } from "../components/BlurCircle";
@@ -9,13 +9,49 @@ import { MovieCard } from "../components/MovieCard";
 import { Loading } from "../components/Loading";
 import { api } from "../lib/api";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
+import { ReviewContent, ReviewEditor } from "../components/ReviewEditor";
 
 export function MovieDetails() {
   const { id } = useParams();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [reviewData, setReviewData] = useState({ reviews: [], averageRating: 0, reviewCount: 0, canReview: false, hasReviewed: false, isAuthenticated: false });
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const { user, openLogin } = useAuth();
   const navigate = useNavigate();
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      const data = await api.get(`/api/movies/${id}/reviews`);
+      setReviewData(data);
+    } catch (error) {
+      console.error("Could not load movie reviews:", error);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews, user]);
+
+  const submitReview = async (comment) => {
+    if (!user) return openLogin();
+    setReviewSubmitting(true);
+    try {
+      const result = await api.post(`/api/movies/${id}/reviews`, {
+        rating: reviewRating,
+        comment,
+      });
+      toast.success(result.message || "Đã gửi đánh giá.");
+      await fetchReviews();
+    } catch (error) {
+      toast.error(error.message || "Không thể gửi đánh giá.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchMovieData = async () => {
@@ -81,6 +117,7 @@ export function MovieDetails() {
     ? new Date(movie.releaseDate).getFullYear()
     : "2025";
   const trailerUrl = movie.trailerUrl || "https://www.youtube.com/watch?v=WpW36ldAqnM";
+  const movieRating = reviewData.reviewCount > 0 ? reviewData.averageRating : movie.averageRating;
 
   return (
     <div className="px-6 md:px-16 lg:px-40 pt-32 md:pt-40 min-h-screen">
@@ -133,7 +170,7 @@ export function MovieDetails() {
           <div className="flex items-center gap-4 text-gray-300 text-sm">
             <span className="flex items-center gap-1 text-yellow-400 font-semibold">
               <StarIcon className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              {movie.vote_average ? movie.vote_average.toFixed(1) : "8.8"} / 10
+              {Number.isFinite(movieRating) ? movieRating.toFixed(1) : "—"} / 10
             </span>
             <span>&bull;</span>
             <span className="flex items-center gap-1">
@@ -186,6 +223,68 @@ export function MovieDetails() {
       <DateSelect
         id={id}
       />
+
+      <section className="max-w-6xl mx-auto mt-16" aria-labelledby="reviews-heading">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 id="reviews-heading" className="text-2xl font-bold text-white">Đánh giá phim</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {reviewData.reviewCount > 0
+                ? `${reviewData.averageRating.toFixed(1)} / 10 · ${reviewData.reviewCount} đánh giá`
+                : "Chưa có đánh giá nào."}
+            </p>
+          </div>
+        </div>
+
+        {reviewData.canReview ? (
+          <ReviewEditor
+            rating={reviewRating}
+            onRatingChange={setReviewRating}
+            onSubmit={submitReview}
+            submitting={reviewSubmitting}
+          />
+        ) : reviewData.hasReviewed ? (
+          <p className="text-sm text-green-400 mb-6">Bạn đã gửi đánh giá cho phim này rồi. Cảm ơn bạn!</p>
+        ) : !reviewData.isAuthenticated ? (
+          <p className="text-sm text-gray-400 mb-6">Bạn cần đăng nhập và có vé đã thanh toán cho suất chiếu đã kết thúc mới có thể đánh giá phim.</p>
+        ) : (
+          <p className="text-sm text-gray-400 mb-6">Bạn có thể đánh giá sau khi xem xong một suất phim đã thanh toán.</p>
+        )}
+
+        <div className="space-y-4">
+          {reviewData.reviews.map((review) => (
+            <article key={review.id} className="rounded-2xl border border-white/10 bg-gray-900/50 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div
+                    aria-hidden="true"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/15 text-sm font-bold text-primary"
+                  >
+                    {review.customerName
+                      .trim()
+                      .split(/\s+/)
+                      .slice(-2)
+                      .map((part) => part[0])
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                  <p className="truncate font-semibold text-white">{review.customerName}</p>
+                </div>
+                <time className="shrink-0 text-xs text-gray-500" dateTime={review.createdAt}>
+                  {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                </time>
+              </div>
+              <div className="flex items-center gap-0.5 my-2" aria-label={`${review.rating} trên 10 điểm`}>
+                {Array.from({ length: 10 }, (_, index) => index + 1).map((rating) => (
+                  <StarIcon key={rating} className={`w-3.5 h-3.5 ${rating <= review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-700"}`} />
+                ))}
+                <span className="ml-1.5 text-xs text-gray-400">{review.rating}/10</span>
+              </div>
+              <ReviewContent comment={review.comment} />
+            </article>
+          ))}
+        </div>
+      </section>
 
       {/* Similar Movies */}
       <div className="my-24">

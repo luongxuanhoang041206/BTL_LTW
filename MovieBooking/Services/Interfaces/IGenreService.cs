@@ -7,6 +7,7 @@ namespace MovieBooking.Services.Interfaces;
 
 public interface IGenreService
 {
+    Task<IEnumerable<GenreResponseDto>> GetGenreResponsesAsync(string? search = null, int? page = null, int pageSize = 10);
     Task<IEnumerable<GenreMovieCountDto>> GetAllGenresAsync(string? search = null, int? page = null, int pageSize = 10);
 
     Task<Genre?> GetGenreByIdAsync(int id);

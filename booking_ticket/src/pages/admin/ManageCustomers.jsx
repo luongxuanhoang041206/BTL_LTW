@@ -4,8 +4,10 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 export function ManageCustomers() {
+  const confirm = useAdminConfirm();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,7 +40,12 @@ export function ManageCustomers() {
 
   const handleToggleStatus = async (customer) => {
     const action = customer.status ? "khóa" : "mở khóa";
-    if (!window.confirm(`Bạn có chắc chắn muốn ${action} tài khoản của ${customer.fullName}?`)) return;
+    if (!(await confirm({
+      title: `${action.charAt(0).toUpperCase()}${action.slice(1)} tài khoản?`,
+      message: `Bạn có chắc chắn muốn ${action} tài khoản của ${customer.fullName}?`,
+      confirmLabel: action === "khóa" ? "Khóa tài khoản" : "Mở khóa",
+      variant: action === "khóa" ? "danger" : "primary",
+    }))) return;
 
     try {
       const res = await api.request(`/api/admin/customers/${customer.id}/toggle-status`, { method: "PATCH" });

@@ -1,54 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
+using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Admin;
 
 public class AdminReviewController : AdminBaseController
 {
-    public AdminReviewController(MovieBookingContext context) : base(context) { }
+    private readonly IReviewService _reviewService;
+
+    public AdminReviewController(IReviewService reviewService) : base()
+    {
+        _reviewService = reviewService;
+    }
 
     [HttpGet("reviews")]
     public async Task<IActionResult> GetReviews([FromQuery] int? movieId, [FromQuery] int? rating)
     {
-        var query = _context.Reviews
-            .Include(r => r.Movie)
-            .Include(r => r.User)
-            .AsNoTracking();
-
-        if (movieId.HasValue && movieId.Value > 0)
-            query = query.Where(r => r.MovieId == movieId.Value);
-
-        if (rating.HasValue && rating.Value > 0)
-            query = query.Where(r => r.Rating == rating.Value);
-
-        var reviews = await query
-            .OrderByDescending(r => r.CreatedAt)
-            .Select(r => new
-            {
-                id = r.ReviewId,
-                movieId = r.MovieId,
-                movieTitle = r.Movie.Title,
-                posterUrl = r.Movie.PosterUrl,
-                customerName = r.User.FullName,
-                customerEmail = r.User.Email,
-                rating = r.Rating,
-                comment = r.Comment ?? "",
-                createdAt = r.CreatedAt.ToString("yyyy-MM-dd HH:mm")
-            })
-            .ToListAsync();
-
-        return Ok(reviews);
+        return Ok(await _reviewService.GetReviewsAsync(movieId, rating));
     }
 
     [HttpDelete("reviews/{id}")]
     public async Task<IActionResult> DeleteReview(int id)
     {
-        var review = await _context.Reviews.FindAsync(id);
-        if (review == null) return NotFound(new { message = "Không tìm thấy đánh giá." });
-
-        _context.Reviews.Remove(review);
-        await _context.SaveChangesAsync();
+        if (!await _reviewService.DeleteReviewAsync(id))
+            return NotFound(new { message = "Không tìm thấy đánh giá." });
         return Ok(new { success = true, message = "Xóa đánh giá thành công!" });
     }
 }

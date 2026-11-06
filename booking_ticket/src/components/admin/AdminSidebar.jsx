@@ -3,7 +3,6 @@ import {
   Clapperboard,
   Building2,
   Gauge,
-  Activity,
   Calendar,
   Ticket,
   CreditCard,
@@ -11,25 +10,25 @@ import {
   Users,
   ShieldCheck,
   BarChart2,
-  Clock,
   Settings,
   LayoutDashboard,
   Utensils,
   PanelsTopLeft,
+  X,
 } from "lucide-react";
 import { NavLink } from "react-router";
 
-export function AdminSideBar() {
+export function AdminSideBar({ isOpen, onNavigate, onClose }) {
   const navSections = [
     {
-      title: "TỔNG QUAN",
+      title: "Tổng quan",
       items: [
         { name: "Bảng điều khiển", path: "/admin", icon: LayoutDashboard },
       ],
     },
-    { title: "WEBSITE", items: [{ name: "Quản lý website", path: "/admin/website", icon: PanelsTopLeft }] },
+    { title: "Website", items: [{ name: "Quản lý website", path: "/admin/website", icon: PanelsTopLeft }] },
     {
-      title: "NỘI DUNG PHIM",
+      title: "Nội dung phim",
       items: [
         { name: "Danh sách phim", path: "/admin/movies", icon: Film },
         { name: "Thể loại phim", path: "/admin/genres", icon: Clapperboard },
@@ -37,15 +36,14 @@ export function AdminSideBar() {
       ],
     },
     {
-      title: "HỆ THỐNG RẠP",
+      title: "Hệ thống rạp",
       items: [
         { name: "Danh sách rạp", path: "/admin/cinemas", icon: Building2 },
         { name: "Phòng chiếu", path: "/admin/rooms", icon: Gauge },
-        { name: "Sơ đồ ghế", path: "/admin/seat-map", icon: Activity },
       ],
     },
     {
-      title: "VẬN HÀNH",
+      title: "Vận hành",
       items: [
         { name: "Lịch chiếu", path: "/admin/shows", icon: Calendar },
         { name: "Đặt vé", path: "/admin/bookings", icon: Ticket },
@@ -54,73 +52,77 @@ export function AdminSideBar() {
       ],
     },
     {
-      title: "KHÁCH HÀNG",
+      title: "Khách hàng",
       items: [
         { name: "Khách hàng", path: "/admin/customers", icon: Users },
         { name: "Đánh giá phim", path: "/admin/reviews", icon: ShieldCheck },
       ],
     },
     {
-      title: "PHÂN TÍCH",
+      title: "Phân tích",
       items: [
         { name: "Báo cáo doanh thu", path: "/admin/reports/revenue", icon: BarChart2 },
-        { name: "Hiệu suất suất chiếu", path: "/admin/reports/showtime-performance", icon: Clock },
-        { name: "Tỷ lệ lấp đầy ghế", path: "/admin/reports/seat-occupancy", icon: Activity },
       ],
     },
     {
-      title: "QUẢN TRỊ HỆ THỐNG",
+      title: "Quản trị hệ thống",
       items: [
         { name: "Tài khoản quản trị", path: "/admin/system/users", icon: Users },
-        { name: "Phân quyền", path: "/admin/system/roles", icon: ShieldCheck },
-        { name: "Nhật ký quản trị", path: "/admin/system/audit-logs", icon: Clock },
         { name: "Cấu hình hệ thống", path: "/admin/system/settings", icon: Settings },
       ],
     },
   ];
 
   return (
-    <aside className="h-[calc(100vh-64px)] w-64 min-w-[240px] shrink-0 bg-[#090e17] border-r border-[#1a2638] overflow-y-auto px-3 py-3 select-none">
-      <div className="space-y-4">
-        {navSections.map((section, sIdx) => (
-          <div key={sIdx} className="space-y-1">
-            <h3 className="text-[11px] font-bold tracking-wider text-[#546b8a] uppercase px-3 pt-2 pb-1">
-              {section.title}
-            </h3>
-            <div className="space-y-0.5">
-              {section.items.map((item, iIdx) => {
-                const IconComponent = item.icon;
-                return (
-                  <NavLink
-                    key={iIdx}
-                    to={item.path}
-                    end={item.path === "/admin"}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[14px] transition-colors ${
-                        isActive
-                          ? "bg-[#162237] text-white font-medium shadow-sm"
-                          : "text-[#8e9eb5] hover:text-white hover:bg-[#111c2e]"
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <IconComponent
-                          className={`w-[18px] h-[18px] shrink-0 ${
-                            isActive ? "text-white" : "text-[#8e9eb5]"
-                          }`}
-                          strokeWidth={isActive ? 2.2 : 1.8}
-                        />
-                        <span className="truncate">{item.name}</span>
-                      </>
-                    )}
-                  </NavLink>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-    </aside>
+    <>
+      {isOpen && (
+        <button
+          type="button"
+          className="admin-sidebar-overlay"
+          onClick={onClose}
+          aria-label="Đóng menu điều hướng"
+        />
+      )}
+      <aside
+        id="admin-navigation"
+        aria-label="Điều hướng quản trị"
+        className={`admin-sidebar${isOpen ? " is-open" : ""}`}
+      >
+        <div className="admin-sidebar-mobile-heading">
+          <span>Điều hướng</span>
+          <button type="button" onClick={onClose} aria-label="Đóng menu điều hướng">
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        <nav className="admin-sidebar-sections">
+          {navSections.map((section) => (
+            <section key={section.title} className="admin-sidebar-section">
+              <h2 className="admin-sidebar-section-title">{section.title}</h2>
+              <div className="admin-sidebar-links">
+                {section.items.map((item) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end={item.path === "/admin"}
+                      title={item.name}
+                      aria-label={item.name}
+                      onClick={onNavigate}
+                      className={({ isActive }) =>
+                        `admin-sidebar-link${isActive ? " is-active" : ""}`
+                      }
+                    >
+                      <IconComponent size={18} strokeWidth={1.8} aria-hidden="true" />
+                      <span>{item.name}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </nav>
+      </aside>
+    </>
   );
 }

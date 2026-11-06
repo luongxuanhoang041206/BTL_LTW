@@ -1,133 +1,56 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
-using MovieBooking.Models;
+using MovieBooking.DTOs;
+using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Admin;
 
-public class AdminSeatController : AdminBaseController
+public class AdminSeatController(ISeatService seatService) : AdminBaseController
 {
-    public AdminSeatController(MovieBookingContext context) : base(context) { }
-
-    public class BatchSeatRequest
-    {
-        public int Rows { get; set; } = 5; // số hàng A-J
-        public int Cols { get; set; } = 12; // số ghế mỗi hàng
-        public List<string> VipRows { get; set; } = new() { "D", "E" };
-    }
-
-    public class UpdateSeatRequest
-    {
-        public string? SeatType { get; set; }
-        public bool? IsActive { get; set; }
-    }
-
     [HttpGet("rooms/{roomId}/seats")]
     public async Task<IActionResult> GetRoomSeats(int roomId)
     {
-        var room = await _context.Rooms
-            .Include(r => r.Cinema)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.RoomId == roomId);
-
-        if (room == null) return NotFound(new { message = "Không tìm thấy phòng chiếu." });
-
-        var seats = await _context.Seats
-            .Where(s => s.RoomId == roomId)
-            .OrderBy(s => s.SeatRow)
-            .ThenBy(s => s.SeatNumber)
-            .Select(s => new
-            {
-                id = s.SeatId,
-                row = s.SeatRow,
-                number = s.SeatNumber,
-                type = s.SeatType,
-                isActive = s.IsActive
-            })
-            .ToListAsync();
-
+        var seatMap = await seatService.GetRoomSeatsAsync(roomId);
+        if (seatMap == null) return NotFound(new { message = "Không tìm thấy phòng chiếu." });
         return Ok(new
         {
-            roomId = room.RoomId,
-            roomName = room.RoomName,
-            roomType = room.RoomType,
-            cinemaName = room.Cinema.Name,
-            seats
+            roomId = seatMap.RoomId,
+            roomName = seatMap.RoomName,
+            roomType = seatMap.RoomType,
+            cinemaName = seatMap.CinemaName,
+            seats = seatMap.Seats.Select(seat => new
+            {
+                id = seat.Id,
+                row = seat.Row,
+                number = seat.Number,
+                type = seat.Type,
+                isActive = seat.IsActive
+            })
         });
     }
 
     [HttpPost("rooms/{roomId}/seats/batch-generate")]
-    public async Task<IActionResult> BatchGenerateSeats(int roomId, [FromBody] BatchSeatRequest request)
+    public async Task<IActionResult> BatchGenerateSeats(int roomId, [FromBody] BatchSeatRequestDto request)
     {
-        var room = await _context.Rooms.Include(r => r.Seats).FirstOrDefaultAsync(r => r.RoomId == roomId);
-        if (room == null) return NotFound(new { message = "Không tìm thấy phòng chiếu." });
-
-        // Kiểm tra xem đã có suất chiếu nào chưa
-        var hasShowtimes = await _context.Showtimes.AnyAsync(s => s.RoomId == roomId);
-        if (hasShowtimes)
-        {
+        var result = await seatService.GenerateSeatsAsync(roomId, request);
+        if (result.Error == "NotFound") return NotFound(new { message = "Không tìm thấy phòng chiếu." });
+        if (result.Error == "HasShowtimes")
             return BadRequest(new { message = "Phòng chiếu đã được xếp suất chiếu, không thể khởi tạo lại toàn bộ sơ đồ ghế." });
-        }
-
-        _context.Seats.RemoveRange(room.Seats);
-
-        var letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        int rowsCount = Math.Clamp(request.Rows, 1, 15);
-        int colsCount = Math.Clamp(request.Cols, 1, 20);
-
-        var newSeats = new List<Seat>();
-        for (int i = 0; i < rowsCount; i++)
-        {
-            var rowName = letters[i].ToString();
-            for (int num = 1; num <= colsCount; num++)
-            {
-                var isVip = request.VipRows.Contains(rowName);
-                newSeats.Add(new Seat
-                {
-                    RoomId = roomId,
-                    SeatRow = rowName,
-                    SeatNumber = num,
-                    SeatType = isVip ? "VIP" : "Normal",
-                    IsActive = true
-                });
-            }
-        }
-
-        _context.Seats.AddRange(newSeats);
-        room.TotalSeats = newSeats.Count;
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, message = $"Đã tạo sơ đồ gồm {newSeats.Count} ghế cho phòng {room.RoomName}!" });
+        return Ok(new { success = true, message = $"Đã tạo sơ đồ gồm {result.SeatCount} ghế cho phòng {result.RoomName}!" });
     }
 
     [HttpPatch("seats/{seatId}/toggle")]
     public async Task<IActionResult> ToggleSeatStatus(int seatId)
     {
-        var seat = await _context.Seats.FindAsync(seatId);
+        var seat = await seatService.ToggleSeatStatusAsync(seatId);
         if (seat == null) return NotFound(new { message = "Không tìm thấy ghế." });
-
-        seat.IsActive = !seat.IsActive;
-        await _context.SaveChangesAsync();
-
         return Ok(new { success = true, seatId = seat.SeatId, isActive = seat.IsActive });
     }
 
     [HttpPatch("seats/{seatId}/type")]
-    public async Task<IActionResult> ChangeSeatType(int seatId, [FromBody] UpdateSeatRequest request)
+    public async Task<IActionResult> ChangeSeatType(int seatId, [FromBody] UpdateSeatRequestDto request)
     {
-        var seat = await _context.Seats.FindAsync(seatId);
+        var seat = await seatService.UpdateSeatAsync(seatId, request);
         if (seat == null) return NotFound(new { message = "Không tìm thấy ghế." });
-
-        if (!string.IsNullOrWhiteSpace(request.SeatType))
-        {
-            seat.SeatType = request.SeatType.Trim();
-        }
-        if (request.IsActive.HasValue)
-        {
-            seat.IsActive = request.IsActive.Value;
-        }
-
-        await _context.SaveChangesAsync();
         return Ok(new { success = true, seatId = seat.SeatId, seatType = seat.SeatType, isActive = seat.IsActive });
     }
 }

@@ -1,69 +1,37 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MovieBooking.Data;
+using MovieBooking.DTOs;
+using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Admin;
 
-public class AdminPaymentController : AdminBaseController
+public class AdminPaymentController(IPaymentService paymentService) : AdminBaseController
 {
-    public AdminPaymentController(MovieBookingContext context) : base(context) { }
-
+    /// <summary>GET /api/admin/payments — paged, filter, sort.</summary>
     [HttpGet("payments")]
-    public async Task<IActionResult> GetPayments([FromQuery] string? status, [FromQuery] string? method)
+    public async Task<IActionResult> GetPayments([FromQuery] AdminPaymentQueryDto query)
+        => Ok(await paymentService.GetAdminPaymentsPagedAsync(query));
+
+    /// <summary>GET /api/admin/payments/summary</summary>
+    [HttpGet("payments/summary")]
+    public async Task<IActionResult> GetSummary([FromQuery] AdminPaymentQueryDto query)
+        => Ok(await paymentService.GetAdminPaymentSummaryAsync(query));
+
+    /// <summary>GET /api/admin/payments/{id}</summary>
+    [HttpGet("payments/{id:int}")]
+    public async Task<IActionResult> GetDetail(int id)
     {
-        var query = _context.Payments
-            .Include(p => p.Booking)
-                .ThenInclude(b => b.User)
-            .Include(p => p.Booking)
-                .ThenInclude(b => b.Showtime)
-                    .ThenInclude(s => s.Movie)
-            .AsNoTracking();
-
-        if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(p => p.PaymentStatus == status);
-
-        if (!string.IsNullOrWhiteSpace(method))
-            query = query.Where(p => p.Method == method);
-
-        var payments = await query
-            .OrderByDescending(p => p.PaymentId)
-            .Take(100)
-            .Select(p => new
-            {
-                id = p.PaymentId,
-                bookingId = p.BookingId,
-                bookingCode = "MB-" + p.BookingId.ToString("D6"),
-                customerName = p.Booking.User.FullName,
-                customerEmail = p.Booking.User.Email,
-                movieTitle = p.Booking.Showtime.Movie.Title,
-                amount = p.Amount,
-                method = p.Method,
-                transactionCode = p.TransactionCode ?? "---",
-                status = p.PaymentStatus,
-                paidAt = p.PaidAt.HasValue ? p.PaidAt.Value.ToString("yyyy-MM-dd HH:mm") : null
-            })
-            .ToListAsync();
-
-        return Ok(payments);
+        var detail = await paymentService.GetAdminPaymentDetailAsync(id);
+        if (detail == null)
+            return NotFound(new { message = "Không tìm thấy giao dịch." });
+        return Ok(detail);
     }
 
-    [HttpPost("payments/{id}/verify")]
+    /// <summary>POST /api/admin/payments/{id}/verify — xác nhận thủ công (chỉ Pending).</summary>
+    [HttpPost("payments/{id:int}/verify")]
     public async Task<IActionResult> VerifyPayment(int id)
     {
-        var payment = await _context.Payments
-            .Include(p => p.Booking)
-            .FirstOrDefaultAsync(p => p.PaymentId == id);
-
-        if (payment == null) return NotFound(new { message = "Không tìm thấy giao dịch." });
-
-        payment.PaymentStatus = "Completed";
-        payment.PaidAt = DateTime.Now;
-        if (payment.Booking != null)
-        {
-            payment.Booking.Status = "Confirmed";
-        }
-
-        await _context.SaveChangesAsync();
+        if (!await paymentService.VerifyAdminPaymentAsync(id))
+            return NotFound(new { message = "Không tìm thấy giao dịch hoặc giao dịch không ở trạng thái Pending." });
         return Ok(new { success = true, message = "Xác nhận thanh toán thành công!" });
     }
 }

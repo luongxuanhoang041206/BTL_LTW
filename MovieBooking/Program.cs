@@ -33,6 +33,16 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IFoodService, FoodService>();
 builder.Services.AddScoped<ICinemaService, CinemaService>();
 builder.Services.AddScoped<IGenreService, GenreService>();
+builder.Services.AddScoped<IShowtimeService, ShowtimeService>();
+builder.Services.AddScoped<IWebsiteContentService, WebsiteContentService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<ISeatService, SeatService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IAdminReportingService, AdminReportingService>();
+builder.Services.AddScoped<IAdminSystemService, AdminSystemService>();
+builder.Services.AddScoped<IBookingCheckoutService, BookingCheckoutService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

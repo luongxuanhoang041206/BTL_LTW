@@ -20,6 +20,44 @@ public class MovieService : IMovieService
         _context = context;
     }
 
+    private static MovieResponseDto ToMovieResponse(Movie movie) => new(
+        movie.MovieId, movie.Title, movie.Description, movie.Duration,
+        movie.ReleaseDate?.ToString("yyyy-MM-dd"), movie.EndDate?.ToString("yyyy-MM-dd"),
+        movie.PosterUrl, movie.TrailerUrl, movie.Director, movie.Actors, movie.Language,
+        movie.AgeRating, movie.Status,
+        movie.Genres?.Select(genre => new MovieGenreDto(genre.GenreId, genre.GenreName)).ToList() ?? new());
+
+    private static AdminMovieDto ToAdminMovieResponse(Movie movie) => new(
+        movie.MovieId, movie.Title, movie.Description, movie.Duration,
+        movie.ReleaseDate?.ToString("yyyy-MM-dd"), movie.EndDate?.ToString("yyyy-MM-dd"),
+        movie.PosterUrl, movie.TrailerUrl, movie.Director, movie.Actors, movie.Language,
+        movie.AgeRating, movie.Status, movie.EndDate.HasValue && movie.EndDate.Value < VietnamToday,
+        movie.Genres?.Select(genre => new MovieGenreDto(genre.GenreId, genre.GenreName)).ToList() ?? new());
+
+    public async Task<IEnumerable<MovieResponseDto>> GetMovieResponsesAsync(string? status, string? genre, string? search, int page)
+        => (await GetAllMoviesAsync(status, genre, search, page)).Select(ToMovieResponse).ToList();
+
+    public async Task<IEnumerable<MovieResponseDto>> GetNowShowingMovieResponsesAsync()
+        => (await GetNowShowingMoviesAsync()).Select(ToMovieResponse).ToList();
+
+    public async Task<IEnumerable<MovieResponseDto>> GetComingSoonMovieResponsesAsync()
+        => (await GetComingSoonMoviesAsync()).Select(ToMovieResponse).ToList();
+
+    public async Task<MovieResponseDto?> GetMovieResponseByIdAsync(int id)
+    {
+        var movie = await GetMovieByIdAsync(id);
+        return movie == null ? null : ToMovieResponse(movie);
+    }
+
+    public async Task<IEnumerable<AdminMovieDto>> GetAdminMovieResponsesAsync(string? search, int page)
+        => (await GetAdminMoviesAsync(search, page)).Select(ToAdminMovieResponse).ToList();
+
+    public async Task<AdminMovieDto?> GetAdminMovieResponseByIdAsync(int id)
+    {
+        var movie = await GetMovieByIdAsync(id, includeExpired: true);
+        return movie == null ? null : ToAdminMovieResponse(movie);
+    }
+
     private static string NormalizeStatus(string? status)
     {
         if (string.IsNullOrWhiteSpace(status))
@@ -89,6 +127,57 @@ public class MovieService : IMovieService
             .OrderByDescending(m => m.CreatedAt)
             .Skip((page - 1) * 10)
             .Take(10)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Movie>> GetAdminMoviesAsync(string? search, int page)
+    {
+        var query = _context.Movies
+            .Include(m => m.Genres)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToLower();
+            query = query.Where(m => m.Title.ToLower().Contains(keyword) ||
+                                     (m.Director != null && m.Director.ToLower().Contains(keyword)) ||
+                                     (m.Actors != null && m.Actors.ToLower().Contains(keyword)));
+        }
+
+        return await query
+            .OrderByDescending(m => m.CreatedAt)
+            .Skip((Math.Max(1, page) - 1) * 10)
+            .Take(10)
+            .ToListAsync();
+    }
+
+    public Task<bool> MovieExistsAsync(int id)
+    {
+        return _context.Movies.AnyAsync(m => m.MovieId == id);
+    }
+
+    public async Task<bool> HasShowtimesOrReviewsAsync(int id)
+    {
+        return await _context.Showtimes.AnyAsync(s => s.MovieId == id) ||
+               await _context.Reviews.AnyAsync(r => r.MovieId == id);
+    }
+
+    public async Task<List<DateOnly>?> GetUpcomingShowtimeDatesAsync(int movieId)
+    {
+        if (!await MovieExistsAsync(movieId)) return null;
+
+        var now = DateTime.Now;
+        var today = DateOnly.FromDateTime(now);
+        var currentTime = TimeOnly.FromDateTime(now);
+
+        return await _context.Showtimes
+            .AsNoTracking()
+            .Where(s => s.MovieId == movieId && s.Status == "Active"
+                && (s.ShowDate > today || (s.ShowDate == today && s.EndTime > currentTime)))
+            .Select(s => s.ShowDate)
+            .Distinct()
+            .OrderBy(d => d)
             .ToListAsync();
     }
 

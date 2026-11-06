@@ -4,12 +4,14 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 const emptyForm = (kind) => kind === "foods"
   ? { name: "", description: "", imageUrl: "", price: 0, category: "Bắp rang", isActive: true }
   : { name: "", description: "", imageUrl: "", price: 0, isActive: true, selectedItems: [] };
 
 export function ManageFnb() {
+  const confirm = useAdminConfirm();
   const [kind, setKind] = useState("foods");
   const [foods, setFoods] = useState([]);
   const [combos, setCombos] = useState([]);
@@ -85,7 +87,12 @@ export function ManageFnb() {
 
   const remove = async (item) => {
     const id = kind === "foods" ? item.foodItemId : item.comboId;
-    if (!window.confirm(`Xóa “${item.name}”?`)) return;
+    if (!(await confirm({
+      title: "Xóa mặt hàng?",
+      message: `Bạn có chắc muốn xóa “${item.name}”?`,
+      confirmLabel: "Xóa",
+      variant: "danger",
+    }))) return;
     try {
       await api.delete(`/api/admin/fnb/${kind}/${id}`);
       toast.success("Đã xóa.");

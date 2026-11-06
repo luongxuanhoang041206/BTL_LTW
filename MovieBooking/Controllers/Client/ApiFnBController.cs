@@ -41,21 +41,13 @@ public class ApiFnBController : ControllerBase
     [HttpGet("/api/foods/{id}")]
     public async Task<IActionResult> GetFoodById(int id)
     {
-        var item = await _foodService.GetFoodItemByIdAsync(id);
-        if (item == null || !item.IsActive)
+        var item = await _foodService.GetActiveFoodItemDetailsAsync(id);
+        if (item == null)
         {
             return NotFound(new { message = "Không tìm thấy món ăn hoặc món đã ngừng kinh doanh." });
         }
 
-        return Ok(new
-        {
-            foodItemId = item.FoodItemId,
-            name = item.Name,
-            description = item.Description,
-            imageUrl = item.ImageUrl,
-            price = item.Price,
-            category = item.Category
-        });
+        return Ok(item);
     }
 
     /// <summary>
@@ -102,16 +94,6 @@ public class ApiFnBController : ControllerBase
             return NotFound(new { message = $"Rạp với ID {cinemaId.Value} không tồn tại." });
         }
 
-        var foods = await _foodService.GetActiveFoodItemsAsync();
-        var combos = await _foodService.GetActiveCombosAsync();
-        var categories = await _foodService.GetAllCategoriesAsync();
-
-        return Ok(new
-        {
-            cinemaId,
-            categories,
-            foods,
-            combos
-        });
+        return Ok(await _foodService.GetActiveMenuAsync(cinemaId));
     }
 }

@@ -2,15 +2,13 @@ import {
   ChartLineIcon,
   CircleDollarSignIcon,
   PlayCircleIcon,
-  StarIcon,
   UsersIcon,
-  CalendarIcon,
+  RotateCcw,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { dummyDashboardData } from "../../assets/assets";
+import toast from "react-hot-toast";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
-import { BlurCicle } from "../../components/BlurCircle";
 import { api } from "../../lib/api";
 
 export function DashBoard() {
@@ -22,37 +20,48 @@ export function DashBoard() {
     recentShows: [],
   });
   const [loading, setLoading] = useState(true);
-
-  const fetchDashboardData = async () => {
-    try {
-      const data = await api.get("/api/admin/dashboard");
-      if (data) {
-        setDashboardData(data);
-      } else {
-        setDashboardData({
-          totalBookings: dummyDashboardData.totalBookings,
-          totalRevenue: dummyDashboardData.totalRevenue,
-          activeShowsCount: dummyDashboardData.activeShows.length,
-          totalUsers: dummyDashboardData.totalUser,
-          recentShows: [],
-        });
-      }
-    } catch {
-      setDashboardData({
-        totalBookings: dummyDashboardData.totalBookings,
-        totalRevenue: dummyDashboardData.totalRevenue,
-        activeShowsCount: dummyDashboardData.activeShows.length,
-        totalUsers: dummyDashboardData.totalUser,
-        recentShows: [],
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loadError, setLoadError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    let active = true;
+    api.get("/api/admin/dashboard")
+      .then((data) => {
+        if (!data) {
+          throw new Error("Không có dữ liệu tổng quan để hiển thị.");
+        }
+        if (active) {
+          setDashboardData(data);
+          setLoadError("");
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setDashboardData({
+            totalBookings: 0,
+            totalRevenue: 0,
+            activeShowsCount: 0,
+            totalUsers: 0,
+            recentShows: [],
+          });
+          setLoadError(error.message || "Không thể tải dữ liệu tổng quan.");
+          toast.error(error.message || "Không thể tải dữ liệu tổng quan.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [retryCount]);
+
+  const retryDashboardData = () => {
+    setLoadError("");
+    setLoading(true);
+    setRetryCount((count) => count + 1);
+  };
 
   const dashboardCards = [
     {
@@ -81,29 +90,46 @@ export function DashBoard() {
     },
   ];
 
-  return !loading ? (
+  if (loading) return <Loading />;
+
+  if (loadError) {
+    return (
+      <div className="max-w-6xl">
+        <Title text1="Admin" text2="Dashboard" />
+        <div className="rounded-xl border border-rose-900/60 bg-rose-950/30 p-5" role="alert">
+          <p className="font-medium text-rose-200">{loadError}</p>
+          <button
+            type="button"
+            className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-700 px-3 text-sm text-slate-200 transition hover:bg-slate-800"
+            onClick={retryDashboardData}
+          >
+            <RotateCcw size={16} aria-hidden="true" />
+            Thử tải lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
     <>
       <Title text1="Admin" text2="Dashboard" />
 
-      <div className="relative flex flex-wrap gap-4 mt-6">
-        <BlurCicle top="-100px" left="0" />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-          {dashboardCards.map((card, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-5 bg-gray-900/90 border border-primary/20 rounded-xl shadow-lg hover:border-primary/40 transition"
-            >
-              <div>
-                <p className="text-xs text-gray-400 uppercase font-medium">{card.title}</p>
-                <p className="text-2xl font-bold text-white mt-1.5">{card.value}</p>
-              </div>
-              <div className={`p-3 rounded-xl bg-white/5 border border-white/10 ${card.color}`}>
-                <card.icon className="w-6 h-6" />
-              </div>
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {dashboardCards.map((card, index) => (
+          <div
+            key={index}
+            className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-900/80 p-5 transition-colors hover:border-slate-600"
+          >
+            <div>
+              <p className="text-xs font-medium text-slate-400">{card.title}</p>
+              <p className="mt-1.5 text-2xl font-bold text-white">{card.value}</p>
             </div>
-          ))}
-        </div>
+            <div className={`rounded-xl border border-white/10 bg-white/5 p-3 ${card.color}`}>
+              <card.icon className="h-6 w-6" />
+            </div>
+          </div>
+        ))}
       </div>
 
       <p className="mt-12 text-lg font-bold text-white">Suất Chiếu Mới Nhất</p>
@@ -136,7 +162,5 @@ export function DashBoard() {
         )}
       </div>
     </>
-  ) : (
-    <Loading />
   );
 }

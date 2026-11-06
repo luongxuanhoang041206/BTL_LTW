@@ -4,8 +4,10 @@ import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
+import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 
 export function ManageGenres() {
+  const confirm = useAdminConfirm();
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -93,7 +95,12 @@ export function ManageGenres() {
     if (genre.movieCount > 0) {
       return toast.error(`Không thể xóa thể loại vì đang có ${genre.movieCount} phim liên kết.`);
     }
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa thể loại "${genre.name}"?`)) return;
+    if (!(await confirm({
+      title: "Xóa thể loại?",
+      message: `Bạn có chắc chắn muốn xóa thể loại "${genre.name}"?`,
+      confirmLabel: "Xóa thể loại",
+      variant: "danger",
+    }))) return;
 
     try {
       await api.delete(`/api/admin/genres/${genre.id}`);

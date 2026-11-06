@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Data;
@@ -22,12 +23,97 @@ public class PaymentService : IPaymentService
         _config = config;
     }
 
+    public async Task<List<AdminPaymentDto>> GetAdminPaymentsAsync(string? status, string? method)
+    {
+        var query = _context.Payments
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(payment => payment.PaymentStatus == status);
+        if (!string.IsNullOrWhiteSpace(method))
+            query = query.Where(payment => payment.Method == method);
+
+        return await query
+            .OrderByDescending(payment => payment.PaymentId)
+            .Take(100)
+            .Select(payment => new AdminPaymentDto(
+                payment.PaymentId,
+                payment.BookingId,
+                "MB-" + payment.BookingId.ToString("D6"),
+                payment.Booking.User.FullName,
+                payment.Booking.User.Email,
+                payment.Booking.Showtime.Movie.Title,
+                payment.Amount,
+                payment.Method,
+                payment.TransactionCode ?? "---",
+                payment.PaymentStatus,
+                payment.PaidAt.HasValue ? payment.PaidAt.Value.ToString("yyyy-MM-dd HH:mm") : null))
+            .ToListAsync();
+    }
+
+    public async Task<bool> VerifyAdminPaymentAsync(int paymentId)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var payment = await _context.Payments
+            .Include(item => item.Booking)
+                .ThenInclude(booking => booking.Showtime)
+            .FirstOrDefaultAsync(item => item.PaymentId == paymentId);
+        if (payment?.Booking == null || payment.PaymentStatus != "Pending" || payment.Booking.Status != "Pending" ||
+            payment.Booking.Showtime.Status != "Active")
+            return false;
+
+        var seats = await _context.BookingDetails
+            .Where(detail => detail.BookingId == payment.BookingId)
+            .Select(detail => detail.ShowtimeSeat)
+            .ToListAsync();
+        if (seats.Count == 0 || seats.Any(seat => seat.Status != "Holding" ||
+                seat.LockedByUserId != payment.Booking.UserId || seat.HoldExpiresAt == null ||
+                seat.HoldExpiresAt < DateTime.Now))
+            return false;
+
+        payment.PaymentStatus = "Completed";
+        payment.PaidAt = DateTime.Now;
+        payment.Booking.Status = "Confirmed";
+        foreach (var seat in seats)
+        {
+            seat.Status = "Booked";
+            seat.HoldExpiresAt = null;
+            seat.LockedByUserId = null;
+        }
+
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return true;
+    }
+
+    public async Task<(bool Found, string? Status, int? BookingId)> GetPaymentStatusAsync(int paymentId, int userId)
+    {
+        var payment = await _context.Payments
+            .Where(p => p.PaymentId == paymentId && p.Booking.UserId == userId)
+            .Select(p => new { p.PaymentStatus, p.BookingId })
+            .FirstOrDefaultAsync();
+
+        return payment == null
+            ? (false, null, null)
+            : (true, payment.PaymentStatus, payment.BookingId);
+    }
+
+    public async Task<decimal?> GetPaymentAmountAsync(int paymentId, int userId)
+    {
+        return await _context.Payments
+            .Where(p => p.PaymentId == paymentId && p.Booking.UserId == userId)
+            .Select(p => (decimal?)p.Amount)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<(bool Success, int? PaymentId, string? Error)> ProcessPaymentAsync(
         int bookingId,
         int userId,
         string method,
         bool simulateFailure = false)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var booking = await _context.Bookings
             .FirstOrDefaultAsync(b => b.BookingId == bookingId && b.UserId == userId);
 
@@ -36,6 +122,16 @@ public class PaymentService : IPaymentService
 
         if (booking.Status != "Pending")
             return (false, null, "Booking này không ở trạng thái chờ thanh toán.");
+        if (!await _context.Showtimes.AnyAsync(s => s.ShowtimeId == booking.ShowtimeId && s.Status == "Active"))
+            return (false, null, "Suất chiếu đã ngừng nhận thanh toán.");
+
+        var seats = await _context.BookingDetails
+            .Where(detail => detail.BookingId == bookingId)
+            .Select(detail => detail.ShowtimeSeat)
+            .ToListAsync();
+        if (!simulateFailure && (seats.Count == 0 || seats.Any(seat => seat.Status != "Holding" ||
+                seat.LockedByUserId != userId || seat.HoldExpiresAt == null || seat.HoldExpiresAt < DateTime.Now)))
+            return (false, null, "Ghế đã hết thời gian giữ, vui lòng đặt lại.");
 
         var payment = new Payment
         {
@@ -53,6 +149,7 @@ public class PaymentService : IPaymentService
         {
             payment.PaymentStatus = "Failed";
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return (false, payment.PaymentId, "Thanh toán thất bại (giả lập). Vui lòng thử lại.");
         }
 
@@ -60,7 +157,15 @@ public class PaymentService : IPaymentService
         payment.PaidAt = DateTime.Now;
         booking.Status = "Paid";
 
+        foreach (var seat in seats)
+        {
+            seat.Status = "Booked";
+            seat.HoldExpiresAt = null;
+            seat.LockedByUserId = null;
+        }
+
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
         return (true, payment.PaymentId, null);
     }
 
@@ -87,7 +192,7 @@ public class PaymentService : IPaymentService
         string method,
         string ipAddress)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
             var booking = await _context.Bookings
@@ -97,10 +202,17 @@ public class PaymentService : IPaymentService
                 return (false, null, null, "Booking không tồn tại.");
             if (booking.Status != "Pending")
                 return (false, null, null, "Booking này không ở trạng thái chờ thanh toán.");
-            if (booking.Status == "Paid")
-                return (false, null, null, "Booking này đã được thanh toán trước đó rồi.");
+            if (!await _context.Showtimes.AnyAsync(s => s.ShowtimeId == booking.ShowtimeId && s.Status == "Active"))
+                return (false, null, null, "Suất chiếu đã ngừng nhận thanh toán.");
 
+            var seats = await _context.BookingDetails
+                .Where(detail => detail.BookingId == bookingId)
+                .Select(detail => detail.ShowtimeSeat)
+                .ToListAsync();
             var now = DateTime.Now;
+            if (seats.Count == 0 || seats.Any(seat => seat.Status != "Holding" ||
+                    seat.LockedByUserId != userId || seat.HoldExpiresAt == null || seat.HoldExpiresAt < now))
+                return (false, null, null, "Ghế đã hết thời gian giữ, vui lòng đặt lại.");
 
             var existingPayment = await _context.Payments
                     .FirstOrDefaultAsync(p => p.BookingId == bookingId && p.PaymentStatus == "Pending");
@@ -134,10 +246,10 @@ public class PaymentService : IPaymentService
 
             return (true, payment.PaymentId, mockGatewayUrl, null);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await transaction.RollbackAsync();
-            return (false, null, null, "Đã xảy ra lỗi hệ thống khi khởi tạo thanh toán: " + ex.Message);
+            return (false, null, null, "Đã xảy ra lỗi hệ thống khi khởi tạo thanh toán.");
         }
     }
 
@@ -146,7 +258,7 @@ public class PaymentService : IPaymentService
         string transactionCode,
         bool isSuccessFromGateway)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
             var payment = await _context.Payments
@@ -156,8 +268,10 @@ public class PaymentService : IPaymentService
             if (payment == null)
                 return (false, "Không tìm thấy thông tin giao dịch thanh toán.");
 
-            if (payment.PaymentStatus == "Success")
+            if (payment.PaymentStatus is "Success" or "Completed")
                 return (true, null); // Idempotency (đã xử lý trước đó rồi)
+            if (payment.PaymentStatus == "PaidNeedRefund")
+                return (false, "Giao dịch này cần được xử lý hoàn tiền thủ công.");
 
             if (!isSuccessFromGateway)
             {
@@ -167,13 +281,42 @@ public class PaymentService : IPaymentService
                 return (false, "Giao dịch thanh toán không thành công từ phía cổng thanh toán.");
             }
 
+            var booking = payment.Booking;
+            var showtimeIsActive = booking != null && booking.Status == "Pending" &&
+                await _context.Showtimes.AnyAsync(s => s.ShowtimeId == booking.ShowtimeId && s.Status == "Active");
+            if (!showtimeIsActive)
+            {
+                payment.PaymentStatus = "PaidNeedRefund";
+                payment.PaidAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (false, "Thanh toán đã được nhận nhưng suất chiếu không còn hoạt động; cần xử lý hoàn tiền.");
+            }
+
+            var seats = await _context.BookingDetails
+                .Where(detail => detail.BookingId == payment.BookingId)
+                .Select(detail => detail.ShowtimeSeat)
+                .ToListAsync();
+            if (seats.Count == 0 || seats.Any(seat => seat.Status != "Holding" ||
+                    seat.LockedByUserId != booking!.UserId || seat.HoldExpiresAt == null ||
+                    seat.HoldExpiresAt < DateTime.Now))
+            {
+                payment.PaymentStatus = "PaidNeedRefund";
+                payment.PaidAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (false, "Thanh toán đã được nhận nhưng ghế không còn được giữ; cần xử lý hoàn tiền.");
+            }
+
             payment.PaymentStatus = "Success";
             payment.PaidAt = DateTime.UtcNow;
-
-            if (payment.Booking != null)
+            booking!.Status = "Paid";
+            booking.TicketCode ??= GenerateTicketCode(payment.BookingId);
+            foreach (var seat in seats)
             {
-                payment.Booking.Status = "Paid";
-                payment.Booking.TicketCode ??= GenerateTicketCode(payment.BookingId);
+                seat.Status = "Booked";
+                seat.HoldExpiresAt = null;
+                seat.LockedByUserId = null;
             }
 
             await _context.SaveChangesAsync();
@@ -181,10 +324,10 @@ public class PaymentService : IPaymentService
 
             return (true, null);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             await transaction.RollbackAsync();
-            return (false, "Lỗi xử lý xác nhận thanh toán: " + ex.Message);
+            return (false, "Không thể xác nhận thanh toán lúc này. Vui lòng thử lại.");
         }
     }
     public async Task ProcessBankTransferAsync(SePayWebhookDto dto)
@@ -208,7 +351,7 @@ public class PaymentService : IPaymentService
             return;
         }
 
-        await using var tx = await _context.Database.BeginTransactionAsync();
+        await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
         var payment = await _context.Payments
             .Include(p => p.Booking)
@@ -225,13 +368,28 @@ public class PaymentService : IPaymentService
             if (payment.PaymentStatus == "Failed")
             {
                 // Khách chuyển tiền sau khi job đã hủy đơn: đánh dấu để hoàn tiền thủ công
-                payment.PaymentStatus = "PaidNeedRefund";
-                log.Result = "PaidAfterExpired";
+                if (dto.TransferAmount == payment.Amount)
+                {
+                    payment.PaymentStatus = "PaidNeedRefund";
+                    payment.PaidAt = DateTime.UtcNow;
+                    log.Result = "PaidAfterExpired";
+                }
+                else
+                {
+                    log.Result = "AmountMismatchAfterExpired";
+                }
             }
             else if (payment.PaymentStatus != "Pending")
                 log.Result = "AlreadyProcessed";
             else if (dto.TransferAmount != payment.Amount)
                 log.Result = "AmountMismatch";
+            else if (payment.Booking.Status != "Pending" ||
+                     !await _context.Showtimes.AnyAsync(s => s.ShowtimeId == payment.Booking.ShowtimeId && s.Status == "Active"))
+            {
+                payment.PaymentStatus = "PaidNeedRefund";
+                payment.PaidAt = DateTime.UtcNow;
+                log.Result = "PaidAfterShowtimeClosed";
+            }
             else
             {
                 var affected = await _context.Payments
@@ -291,11 +449,14 @@ public class PaymentService : IPaymentService
     public async Task<(bool Success, BankPaymentInfo? Info, string? Error)>
     CreateBankPaymentAsync(int bookingId, int userId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var booking = await _context.Bookings
             .FirstOrDefaultAsync(b => b.BookingId == bookingId && b.UserId == userId);
 
         if (booking == null) return (false, null, "Booking không tồn tại.");
         if (booking.Status != "Pending") return (false, null, "Booking này không ở trạng thái chờ thanh toán.");
+        if (!await _context.Showtimes.AnyAsync(s => s.ShowtimeId == booking.ShowtimeId && s.Status == "Active"))
+            return (false, null, "Suất chiếu đã ngừng nhận thanh toán.");
 
         var seats = await _context.BookingDetails
             .Where(bd => bd.BookingId == bookingId)
@@ -329,6 +490,7 @@ public class PaymentService : IPaymentService
         foreach (var s in seats) s.HoldExpiresAt = now.AddMinutes(15);
 
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         var bank = _config["SePay:BankCode"] ?? "";
         var acc = _config["SePay:AccountNumber"] ?? "";
@@ -340,5 +502,141 @@ public class PaymentService : IPaymentService
                     $"&accountName={Uri.EscapeDataString(name)}";
 
         return (true, new BankPaymentInfo(payment.PaymentId, payment.Amount, content, qrUrl, bank, acc, name), null);
+    }
+
+    // -----------------------------------------------------------------------
+    // ADMIN — paged list / summary / detail
+    // -----------------------------------------------------------------------
+
+    public async Task<PaginationResponseDto<AdminPaymentDto>> GetAdminPaymentsPagedAsync(AdminPaymentQueryDto query)
+    {
+        var q = _context.Payments.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(p => p.PaymentStatus == query.Status);
+        if (!string.IsNullOrWhiteSpace(query.Method))
+            q = q.Where(p => p.Method == query.Method);
+
+        if (!string.IsNullOrWhiteSpace(query.Keyword))
+        {
+            var kw = query.Keyword.Trim().ToLower();
+            q = q.Where(p =>
+                (p.TransactionCode != null && p.TransactionCode.ToLower().Contains(kw)) ||
+                ("mb-" + p.BookingId.ToString("D6")).Contains(kw) ||
+                p.Booking.User.FullName.ToLower().Contains(kw) ||
+                p.Booking.User.Email.ToLower().Contains(kw));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.FromDate) && DateOnly.TryParse(query.FromDate, out var from))
+            q = q.Where(p => p.PaidAt != null && DateOnly.FromDateTime(p.PaidAt.Value) >= from);
+        if (!string.IsNullOrWhiteSpace(query.ToDate) && DateOnly.TryParse(query.ToDate, out var to))
+            q = q.Where(p => p.PaidAt != null && DateOnly.FromDateTime(p.PaidAt.Value) <= to);
+
+        q = (query.SortBy?.ToLower(), query.SortOrder?.ToLower()) switch
+        {
+            ("amount", "asc") => q.OrderBy(p => p.Amount),
+            ("amount", _)     => q.OrderByDescending(p => p.Amount),
+            (_, "asc")        => q.OrderBy(p => p.PaidAt ?? DateTime.MinValue),
+            _                 => q.OrderByDescending(p => p.PaymentId),
+        };
+
+        var totalItems = await q.CountAsync();
+        var pageSize   = Math.Clamp(query.PageSize, 1, 100);
+        var page       = Math.Max(query.Page, 1);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var data = await q
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new AdminPaymentDto(
+                p.PaymentId,
+                p.BookingId,
+                "MB-" + p.BookingId.ToString("D6"),
+                p.Booking.User.FullName,
+                p.Booking.User.Email,
+                p.Booking.Showtime.Movie.Title,
+                p.Amount,
+                p.Method,
+                p.TransactionCode ?? "---",
+                p.PaymentStatus,
+                p.PaidAt.HasValue ? p.PaidAt.Value.ToString("yyyy-MM-dd HH:mm") : null))
+            .ToListAsync();
+
+        return new PaginationResponseDto<AdminPaymentDto>
+        {
+            Data = data, CurrentPage = page, PageSize = pageSize,
+            TotalItems = totalItems, TotalPages = totalPages,
+        };
+    }
+
+    public async Task<AdminPaymentSummaryDto> GetAdminPaymentSummaryAsync(AdminPaymentQueryDto query)
+    {
+        var q = _context.Payments.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.Method))
+            q = q.Where(p => p.Method == query.Method);
+        if (!string.IsNullOrWhiteSpace(query.FromDate) && DateOnly.TryParse(query.FromDate, out var from))
+            q = q.Where(p => p.PaidAt != null && DateOnly.FromDateTime(p.PaidAt.Value) >= from);
+        if (!string.IsNullOrWhiteSpace(query.ToDate) && DateOnly.TryParse(query.ToDate, out var to))
+            q = q.Where(p => p.PaidAt != null && DateOnly.FromDateTime(p.PaidAt.Value) <= to);
+
+        var groups = await q
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total     = g.Count(),
+                Completed = g.Count(p => p.PaymentStatus == "Success" || p.PaymentStatus == "Completed"),
+                Pending   = g.Count(p => p.PaymentStatus == "Pending"),
+                Failed    = g.Count(p => p.PaymentStatus == "Failed"),
+                Revenue   = g.Where(p => p.PaymentStatus == "Success" || p.PaymentStatus == "Completed")
+                             .Sum(p => (decimal?)p.Amount) ?? 0m,
+            })
+            .FirstOrDefaultAsync();
+
+        return new AdminPaymentSummaryDto
+        {
+            Total        = groups?.Total     ?? 0,
+            Completed    = groups?.Completed ?? 0,
+            Pending      = groups?.Pending   ?? 0,
+            Failed       = groups?.Failed    ?? 0,
+            TotalRevenue = groups?.Revenue   ?? 0m,
+        };
+    }
+
+    public async Task<AdminPaymentDetailDto?> GetAdminPaymentDetailAsync(int paymentId)
+    {
+        var p = await _context.Payments
+            .AsNoTracking()
+            .Include(x => x.Booking).ThenInclude(b => b.User)
+            .Include(x => x.Booking).ThenInclude(b => b.Showtime).ThenInclude(s => s.Movie)
+            .Include(x => x.Booking).ThenInclude(b => b.Showtime).ThenInclude(s => s.Room).ThenInclude(r => r.Cinema)
+            .Include(x => x.Booking).ThenInclude(b => b.BookingDetails)
+                .ThenInclude(d => d.ShowtimeSeat).ThenInclude(ss => ss.Seat)
+            .FirstOrDefaultAsync(x => x.PaymentId == paymentId);
+
+        if (p == null) return null;
+
+        return new AdminPaymentDetailDto
+        {
+            PaymentId       = p.PaymentId,
+            Method          = p.Method,
+            Amount          = p.Amount,
+            Status          = p.PaymentStatus,
+            TransactionCode = p.TransactionCode,
+            PaidAt          = p.PaidAt?.ToString("yyyy-MM-dd HH:mm"),
+            CreatedAt       = p.PaidAt?.ToString("yyyy-MM-dd HH:mm") ?? "---",
+            BookingId       = p.BookingId,
+            BookingCode     = "MB-" + p.BookingId.ToString("D6"),
+            BookingStatus   = p.Booking.Status,
+            CustomerName    = p.Booking.User.FullName,
+            CustomerEmail   = p.Booking.User.Email,
+            MovieTitle      = p.Booking.Showtime.Movie.Title,
+            ShowDate        = p.Booking.Showtime.ShowDate.ToString("yyyy-MM-dd"),
+            StartTime       = p.Booking.Showtime.StartTime.ToString("HH:mm"),
+            CinemaName      = p.Booking.Showtime.Room.Cinema.Name,
+            Seats           = p.Booking.BookingDetails
+                .Select(d => d.ShowtimeSeat.Seat.SeatRow + d.ShowtimeSeat.Seat.SeatNumber.ToString())
+                .ToList(),
+        };
     }
 }

@@ -10,9 +10,11 @@ public interface IFoodService
     // =========================================================
     // ADMIN: FOOD ITEMS
     // =========================================================
-    Task<List<FoodItem>> GetAllFoodItemsAsync(string? category = null, bool? isActive = null);
-    Task<FoodItem?> GetFoodItemByIdAsync(int id);
-    Task<FoodItem> CreateFoodItemAsync(FoodItemFormDto model);
+    Task<List<FoodItemDto>> GetAllFoodItemsAsync(string? category = null, bool? isActive = null);
+    Task<FoodItemDto?> GetFoodItemByIdAsync(int id);
+    Task<ActiveFoodItemDetailsDto?> GetActiveFoodItemDetailsAsync(int id);
+    Task<ActiveFoodMenuDto> GetActiveMenuAsync(int? cinemaId);
+    Task<FoodItemDto> CreateFoodItemAsync(FoodItemFormDto model);
     Task<bool> UpdateFoodItemAsync(int id, FoodItemFormDto model);
     Task<bool> ToggleFoodItemStatusAsync(int id);
     Task<(bool CanDelete, string? Reason)> CanDeleteFoodItemAsync(int id);
@@ -25,7 +27,7 @@ public interface IFoodService
     Task<List<ComboDto>> GetAllCombosAsync(bool? isActive = null);
     Task<ComboDto?> GetComboDtoByIdAsync(int id);
     Task<Combo?> GetComboByIdAsync(int id);
-    Task<(bool Success, Combo? Combo, string? Error)> CreateComboAsync(ComboFormDto model);
+    Task<(bool Success, ComboDto? Combo, string? Error)> CreateComboAsync(ComboFormDto model);
     Task<(bool Success, string? Error)> UpdateComboAsync(int id, ComboFormDto model);
     Task<bool> ToggleComboStatusAsync(int id);
     Task<(bool CanDelete, string? Reason)> CanDeleteComboAsync(int id);
@@ -49,4 +51,10 @@ public interface IFoodService
         List<BookingComboItemRequest>? requests);
 
     Task<List<BookingComboDetailDto>> GetBookingCombosAsync(int bookingId);
+
+    Task<(bool Success, decimal TotalPrice, string? Error)> ValidateAndCalculateFoodsAsync(
+        List<BookingFoodItemRequest>? requests);
+
+    Task<(bool Success, string? Error)> SaveBookingFoodsAsync(
+        int bookingId, List<BookingFoodItemRequest>? requests);
 }
