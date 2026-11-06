@@ -9,7 +9,7 @@ import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
 const emptyMovie = {
   title: "", description: "", duration: "", releaseDate: "", endDate: "",
   posterUrl: "", trailerUrl: "", director: "", actors: "", language: "",
-  ageRating: "", status: "Coming Soon", genreIds: [],
+  ageRating: "C18", status: "Coming Soon", genreIds: [],
 };
 
 const fieldClass = "mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white";
@@ -24,6 +24,7 @@ export function ManageMovies() {
   const [editingMovieId, setEditingMovieId] = useState(null);
   const [isCreatingMovie, setIsCreatingMovie] = useState(false);
   const [form, setForm] = useState(emptyMovie);
+  const [posterFile, setPosterFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -75,6 +76,7 @@ export function ManageMovies() {
         language: movie.language || "", ageRating: movie.ageRating || "", status: movie.status || "Coming Soon",
         genreIds: (movie.genres || []).map((genre) => genre.id),
       });
+      setPosterFile(null);
       setIsCreatingMovie(false);
       setEditingMovieId(id);
     } catch (err) {
@@ -84,6 +86,7 @@ export function ManageMovies() {
 
   const beginCreate = () => {
     setForm(emptyMovie);
+    setPosterFile(null);
     setEditingMovieId(null);
     setIsCreatingMovie(true);
   };
@@ -92,6 +95,7 @@ export function ManageMovies() {
     setEditingMovieId(null);
     setIsCreatingMovie(false);
     setForm(emptyMovie);
+    setPosterFile(null);
   };
 
   const saveMovie = async (event) => {
@@ -101,13 +105,24 @@ export function ManageMovies() {
     }
     setSaving(true);
     try {
-      const payload = {
+      const payload = new FormData();
+      Object.entries({
         ...form,
         title: form.title.trim(),
         duration: Number(form.duration),
-        releaseDate: form.releaseDate || null,
-        endDate: form.endDate || null,
-      };
+        releaseDate: form.releaseDate || "",
+        endDate: form.endDate || "",
+        ageRating: form.ageRating || "C18",
+        posterUrl: form.posterUrl || "",
+      }).forEach(([key, value]) => {
+        if (key === "genreIds") {
+          payload.append("GenreIds", value.join(","));
+        } else if (value !== null && value !== undefined) {
+          const formKey = key.charAt(0).toUpperCase() + key.slice(1);
+          payload.append(formKey, value);
+        }
+      });
+      if (posterFile) payload.append("PosterFile", posterFile);
 
       if (isCreatingMovie) {
         await api.post("/api/admin/movies", payload);
@@ -214,12 +229,12 @@ export function ManageMovies() {
           <label className="text-sm text-gray-300">Tên phim *<input required maxLength={200} value={form.title} onChange={(e) => setField("title", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Thời lượng (phút) *<input required type="number" min="1" max="500" value={form.duration} onChange={(e) => setField("duration", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300 md:col-span-2">Mô tả<textarea rows={3} value={form.description} onChange={(e) => setField("description", e.target.value)} className={fieldClass} /></label>
-          <label className="text-sm text-gray-300">URL ảnh poster<input type="url" value={form.posterUrl} onChange={(e) => setField("posterUrl", e.target.value)} className={fieldClass} /></label>
+          <label className="text-sm text-gray-300">Ảnh poster (JPG, PNG, WEBP; tối đa 5 MB)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setPosterFile(e.target.files?.[0] || null)} className={`${fieldClass} file:mr-3 file:rounded-md file:border-0 file:bg-gray-700 file:px-3 file:py-1 file:text-white`} />{posterFile && <span className="mt-1 block text-xs text-gray-400">Đã chọn: {posterFile.name}</span>}{form.posterUrl && <span className="mt-1 block text-xs text-gray-400">Poster hiện tại: {form.posterUrl}</span>}</label>
           <label className="text-sm text-gray-300">URL trailer<input type="url" value={form.trailerUrl} onChange={(e) => setField("trailerUrl", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Đạo diễn<input value={form.director} onChange={(e) => setField("director", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Diễn viên<input value={form.actors} onChange={(e) => setField("actors", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Ngôn ngữ<input value={form.language} onChange={(e) => setField("language", e.target.value)} className={fieldClass} /></label>
-          <label className="text-sm text-gray-300">Phân loại độ tuổi<input value={form.ageRating} onChange={(e) => setField("ageRating", e.target.value)} className={fieldClass} /></label>
+          <label className="text-sm text-gray-300">Phân loại độ tuổi<select value={form.ageRating || "C18"} onChange={(e) => setField("ageRating", e.target.value)} className={fieldClass}><option value="P">P · Mọi lứa tuổi</option><option value="C13">C13</option><option value="C16">C16</option><option value="C18">C18</option></select></label>
           <label className="text-sm text-gray-300">Ngày khởi chiếu<input type="date" value={form.releaseDate} onChange={(e) => setField("releaseDate", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Ngày kết thúc<input type="date" value={form.endDate} onChange={(e) => setField("endDate", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Trạng thái<select value={form.status} onChange={(e) => setField("status", e.target.value)} className={fieldClass}><option value="Coming Soon">Sắp chiếu</option><option value="Showing">Đang chiếu</option></select></label>

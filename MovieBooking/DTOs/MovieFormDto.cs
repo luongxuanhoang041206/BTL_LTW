@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace MovieBooking.DTOs;
 
@@ -26,7 +28,6 @@ public class MovieFormDto
     [Display(Name = "Ngày kết thúc")]
     public DateOnly? EndDate { get; set; }
 
-    [Url(ErrorMessage = "Poster phải là URL hợp lệ")]
     [Display(Name = "URL poster")]
     public string? PosterUrl { get; set; }
 
@@ -55,5 +56,14 @@ public class MovieFormDto
     public string Status { get; set; } = "Coming Soon";
 
     [Display(Name = "Thể loại")]
-    public List<int> GenreIds { get; set; } = new();
+    public string? GenreIds { get; set; }
+
+    public IFormFile? PosterFile { get; set; }
+
+    public List<int> ParsedGenreIds => string.IsNullOrWhiteSpace(GenreIds)
+        ? new List<int>()
+        : GenreIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(value => int.TryParse(value, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .ToList();
 }
