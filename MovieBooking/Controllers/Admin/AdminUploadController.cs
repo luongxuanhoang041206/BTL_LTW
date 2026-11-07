@@ -15,7 +15,7 @@ public class AdminUploadController : AdminBaseController
     [HttpPost("uploads")]
     [RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> Upload(
-        [FromForm] IFormFile file,
+        IFormFile file,
         [FromQuery] string folder,
         [FromServices] IWebHostEnvironment environment,
         CancellationToken cancellationToken)

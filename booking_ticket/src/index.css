@@ -418,7 +418,8 @@
   display: block;
   width: 100%;
   min-width: 34rem;
-  height: auto;
+  /* Chiều cao cố định để đổi kỳ báo cáo (7 -> 31 cột) không làm giật bố cục. */
+  height: 280px;
 }
 
 .admin-chart-unit {
@@ -439,13 +440,33 @@
 .admin-chart-bar,
 .admin-chart-zero {
   fill: var(--admin-primary);
-  cursor: help;
   transition: fill var(--admin-transition);
 }
 
-.admin-chart-bar:hover,
-.admin-chart-zero:hover {
+.admin-chart-bar.is-active,
+.admin-chart-zero.is-active {
   fill: #ff6a83;
+}
+
+.admin-chart-hit {
+  cursor: help;
+}
+
+.admin-chart-tooltip rect {
+  fill: var(--admin-raised);
+  stroke: var(--admin-border);
+  stroke-width: 1;
+}
+
+.admin-chart-tooltip-title {
+  fill: var(--admin-muted);
+  font-size: 11px;
+}
+
+.admin-chart-tooltip-value {
+  fill: var(--admin-text);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .admin-revenue-chart :focus-visible {
