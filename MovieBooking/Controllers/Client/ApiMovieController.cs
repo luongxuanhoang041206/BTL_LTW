@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using MovieBooking.Data;
 using Microsoft.EntityFrameworkCore;
 using MovieBooking.Models;
+using MovieBooking.Services;
 using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Client;
@@ -308,42 +309,18 @@ public class ApiMovieController : ControllerBase
     }
 
     [HttpPost("reviews/images")]
-    [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> UploadReviewImage(
         [FromForm] IFormFile file,
         [FromServices] IWebHostEnvironment environment)
     {
         if (HttpContext.Session.GetInt32("UserId") == null)
             return Unauthorized(new { message = "Vui lòng đăng nhập để tải ảnh lên." });
-        if (file == null || file.Length == 0 || file.Length > 5 * 1024 * 1024)
-            return BadRequest(new { message = "Ảnh phải có dung lượng dưới 5 MB." });
+        var saved = await LocalImageStorage.SaveAsync(file, "reviews", environment, cancellationToken: HttpContext.RequestAborted);
+        if (saved.Error != null)
+            return BadRequest(new { message = saved.Error });
 
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (extension is not (".jpg" or ".jpeg" or ".png" or ".webp"))
-            return BadRequest(new { message = "Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP." });
-
-        var header = new byte[12];
-        await using (var input = file.OpenReadStream())
-        {
-            var read = await input.ReadAsync(header.AsMemory(0, header.Length));
-            var isPng = read >= 8 && header.Take(8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
-            var isJpeg = read >= 3 && header[0] == 255 && header[1] == 216 && header[2] == 255;
-            var isWebp = read >= 12 && header.Take(4).SequenceEqual("RIFF"u8.ToArray()) &&
-                header.Skip(8).Take(4).SequenceEqual("WEBP"u8.ToArray());
-            if (!isPng && !isJpeg && !isWebp)
-                return BadRequest(new { message = "File tải lên không phải ảnh hợp lệ." });
-        }
-
-        var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
-        var uploadDirectory = Path.Combine(webRoot, "uploads", "reviews");
-        Directory.CreateDirectory(uploadDirectory);
-        var fileName = $"{Guid.NewGuid():N}{extension}";
-        var destination = Path.Combine(uploadDirectory, fileName);
-        await using (var output = System.IO.File.Create(destination))
-        await using (var input = file.OpenReadStream())
-            await input.CopyToAsync(output);
-
-        return Ok(new { url = $"/uploads/reviews/{fileName}" });
+        return Ok(new { url = saved.Url });
     }
 
     private static string? NormalizeReviewComment(string? comment, out string? error)

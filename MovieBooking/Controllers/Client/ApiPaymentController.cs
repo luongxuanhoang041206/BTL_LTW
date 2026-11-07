@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using MovieBooking.Data;
 using MovieBooking.DTOs;
 using MovieBooking.Services.Interfaces;
@@ -46,11 +46,11 @@ namespace MovieBooking.Controllers.Client
                 return BadRequest(new
                 {
                     success = false,
-                    message = error ?? "Giao d?ch thanh to�n th?t b?i."
+                    message = error ?? "Giao dịch thanh toán thất bại."
                 });
             }
 
-            return Ok(new { success = true, message = "Thanh to�n th�nh c�ng." });
+            return Ok(new { success = true, message = "Thanh toán thành công" });
         }
 
         public class PaymentRequestModel
@@ -65,7 +65,7 @@ namespace MovieBooking.Controllers.Client
             var userId = GetCurrentUserId();
             if (userId == null)
             {
-                return Unauthorized(new { success = false, message = "Vui l�ng dang nh?p d? thanh to�n." });
+                return Unauthorized(new { success = false, message = "Đăng nhập để thanh toán" });
             }
 
             string ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
@@ -76,7 +76,7 @@ namespace MovieBooking.Controllers.Client
 
             if (!success)
             {
-                return BadRequest(new { success = false, message = error ?? "Kh�ng th? kh?i t?o thanh to�n." });
+                return BadRequest(new { success = false, message = error ?? "Không thể khởi tạo phiên thanh toán" });
             }
 
             // Tra ve json, co them paymenturl de trang dieu huong sang phan thanh toan
@@ -85,7 +85,7 @@ namespace MovieBooking.Controllers.Client
                 success = true,
                 paymentId = paymentId,
                 paymentUrl = paymentUrl,
-                message = "Kh?i t?o phi�n thanh to�n th�nh c�ng."
+                message = "Khởi tạo phiên thanh toán thành công"
             });
         }
 
@@ -127,7 +127,7 @@ namespace MovieBooking.Controllers.Client
         {
             var userId = GetCurrentUserId();
             if (userId == null)
-                return Unauthorized(new { success = false, message = "Vui l�ng dang nh?p d? thanh to�n." });
+                return Unauthorized(new { success = false, message = "Vui lòng đăng nhập để thanh toán" });
 
             var r = await _paymentService.CreateBankPaymentAsync(req.BookingId, userId.Value);
             if (!r.Success)
@@ -160,7 +160,7 @@ namespace MovieBooking.Controllers.Client
             };
 
             await _paymentService.ProcessBankTransferAsync(dto);
-            return Ok(new { success = true, message = "Đã giả lập chuyển khoản thành công." });
+            return Ok(new { success = true, message = "Chuyển khoản thành công" });
         }
     }
 }

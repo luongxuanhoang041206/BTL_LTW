@@ -10,7 +10,7 @@ import { ImageFileField } from "../../components/admin/ImageFileField";
 const emptyMovie = {
   title: "", description: "", duration: "", releaseDate: "", endDate: "",
   posterUrl: "", trailerUrl: "", director: "", actors: "", language: "",
-  ageRating: "", status: "Coming Soon", genreIds: [],
+  ageRating: "C18", status: "Coming Soon", genreIds: [],
 };
 
 const fieldClass = "mt-1 w-full rounded-lg border border-gray-700 bg-black/50 px-3 py-2 text-white";
@@ -25,6 +25,7 @@ export function ManageMovies() {
   const [editingMovieId, setEditingMovieId] = useState(null);
   const [isCreatingMovie, setIsCreatingMovie] = useState(false);
   const [form, setForm] = useState(emptyMovie);
+  const [posterUploading, setPosterUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -102,14 +103,23 @@ export function ManageMovies() {
     }
     setSaving(true);
     try {
-      const payload = {
+      const payload = new FormData();
+      Object.entries({
         ...form,
         title: form.title.trim(),
         duration: Number(form.duration),
-        releaseDate: form.releaseDate || null,
-        endDate: form.endDate || null,
-      };
-
+        releaseDate: form.releaseDate || "",
+        endDate: form.endDate || "",
+        ageRating: form.ageRating || "C18",
+        posterUrl: form.posterUrl || "",
+      }).forEach(([key, value]) => {
+        if (key === "genreIds") {
+          payload.append("GenreIds", value.join(","));
+        } else if (value !== null && value !== undefined) {
+          const formKey = key.charAt(0).toUpperCase() + key.slice(1);
+          payload.append(formKey, value);
+        }
+      });
       if (isCreatingMovie) {
         await api.post("/api/admin/movies", payload);
         toast.success("Đã tạo phim mới.");
@@ -215,17 +225,17 @@ export function ManageMovies() {
           <label className="text-sm text-gray-300">Tên phim *<input required maxLength={200} value={form.title} onChange={(e) => setField("title", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Thời lượng (phút) *<input required type="number" min="1" max="500" value={form.duration} onChange={(e) => setField("duration", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300 md:col-span-2">Mô tả<textarea rows={3} value={form.description} onChange={(e) => setField("description", e.target.value)} className={fieldClass} /></label>
-          <ImageFileField label="Ảnh poster" value={form.posterUrl} onChange={(url) => setField("posterUrl", url)} folder="posters" />
+          <ImageFileField label="Ảnh poster" value={form.posterUrl} onChange={(url) => setField("posterUrl", url)} onUploadingChange={setPosterUploading} folder="posters" />
           <label className="text-sm text-gray-300">URL trailer<input type="url" value={form.trailerUrl} onChange={(e) => setField("trailerUrl", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Đạo diễn<input value={form.director} onChange={(e) => setField("director", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Diễn viên<input value={form.actors} onChange={(e) => setField("actors", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Ngôn ngữ<input value={form.language} onChange={(e) => setField("language", e.target.value)} className={fieldClass} /></label>
-          <label className="text-sm text-gray-300">Phân loại độ tuổi<input value={form.ageRating} onChange={(e) => setField("ageRating", e.target.value)} className={fieldClass} /></label>
+          <label className="text-sm text-gray-300">Phân loại độ tuổi<select value={form.ageRating || "C18"} onChange={(e) => setField("ageRating", e.target.value)} className={fieldClass}><option value="P">P · Mọi lứa tuổi</option><option value="C13">C13</option><option value="C16">C16</option><option value="C18">C18</option></select></label>
           <label className="text-sm text-gray-300">Ngày khởi chiếu<input type="date" value={form.releaseDate} onChange={(e) => setField("releaseDate", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Ngày kết thúc<input type="date" value={form.endDate} onChange={(e) => setField("endDate", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Trạng thái<select value={form.status} onChange={(e) => setField("status", e.target.value)} className={fieldClass}><option value="Coming Soon">Sắp chiếu</option><option value="Showing">Đang chiếu</option></select></label>
           <fieldset className="md:col-span-2"><legend className="mb-2 text-sm text-gray-300">Thể loại</legend><div className="flex flex-wrap gap-3">{genres.map((genre) => <label key={genre.id} className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={form.genreIds.includes(genre.id)} onChange={(e) => setField("genreIds", e.target.checked ? [...form.genreIds, genre.id] : form.genreIds.filter((id) => id !== genre.id))} />{genre.name}</label>)}</div></fieldset>
-          <div className="md:col-span-2 flex gap-3"><button disabled={saving} className="rounded-lg bg-primary px-5 py-2 font-semibold text-white disabled:opacity-50">{saving ? "Đang lưu..." : isCreatingMovie ? "Tạo phim" : "Lưu thay đổi"}</button><button type="button" onClick={closeForm} className="rounded-lg border border-gray-700 px-5 py-2 text-gray-300">Hủy</button></div>
+          <div className="md:col-span-2 flex gap-3"><button disabled={saving || posterUploading} className="rounded-lg bg-primary px-5 py-2 font-semibold text-white disabled:opacity-50">{saving ? "Đang lưu..." : posterUploading ? "Đang tải ảnh..." : isCreatingMovie ? "Tạo phim" : "Lưu thay đổi"}</button><button type="button" onClick={closeForm} className="rounded-lg border border-gray-700 px-5 py-2 text-gray-300">Hủy</button></div>
         </form>
       )}
 
