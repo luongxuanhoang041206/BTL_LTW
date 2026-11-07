@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { XIcon, LockIcon, MailIcon, UserIcon, PhoneIcon } from "lucide-react";
 
@@ -147,6 +148,16 @@ export function AuthModal() {
             >
               {isSubmitting ? "Đang xử lý..." : "Đăng nhập ngay"}
             </button>
+
+            <div className="text-right text-sm">
+              <Link
+                to="/forgot-password"
+                onClick={closeAuthModal}
+                className="text-primary transition hover:text-red-400"
+              >
+                Quên mật khẩu?
+              </Link>
+            </div>
 
             <div className="text-center text-xs text-gray-400 mt-3">
               Tài khoản mẫu:{" "}

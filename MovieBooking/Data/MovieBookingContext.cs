@@ -58,6 +58,8 @@ public partial class MovieBookingContext : DbContext
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
     public DbSet<WebsiteContent> WebsiteContents => Set<WebsiteContent>();
 
+    public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -516,6 +518,15 @@ public partial class MovieBookingContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasKey(t => t.TokenId);
+            e.Property(t => t.TokenHash).HasMaxLength(64).IsUnicode(false);
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasOne(t => t.User).WithMany().HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
 
