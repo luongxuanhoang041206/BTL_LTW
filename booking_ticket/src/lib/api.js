@@ -61,4 +61,18 @@ export const api = {
   delete(path) {
     return this.request(path, { method: "DELETE" });
   },
+
+  async upload(path, formData) {
+    const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.message || "Không tải được ảnh lên.");
+    }
+    return data;
+  },
 };

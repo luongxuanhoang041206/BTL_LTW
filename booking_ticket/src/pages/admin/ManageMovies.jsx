@@ -5,6 +5,7 @@ import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
 import { Title } from "../../components/admin/Title";
 import { useAdminConfirm } from "../../components/admin/useAdminConfirm";
+import { ImageFileField } from "../../components/admin/ImageFileField";
 
 const emptyMovie = {
   title: "", description: "", duration: "", releaseDate: "", endDate: "",
@@ -214,7 +215,7 @@ export function ManageMovies() {
           <label className="text-sm text-gray-300">Tên phim *<input required maxLength={200} value={form.title} onChange={(e) => setField("title", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Thời lượng (phút) *<input required type="number" min="1" max="500" value={form.duration} onChange={(e) => setField("duration", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300 md:col-span-2">Mô tả<textarea rows={3} value={form.description} onChange={(e) => setField("description", e.target.value)} className={fieldClass} /></label>
-          <label className="text-sm text-gray-300">URL ảnh poster<input type="url" value={form.posterUrl} onChange={(e) => setField("posterUrl", e.target.value)} className={fieldClass} /></label>
+          <ImageFileField label="Ảnh poster" value={form.posterUrl} onChange={(url) => setField("posterUrl", url)} folder="posters" />
           <label className="text-sm text-gray-300">URL trailer<input type="url" value={form.trailerUrl} onChange={(e) => setField("trailerUrl", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Đạo diễn<input value={form.director} onChange={(e) => setField("director", e.target.value)} className={fieldClass} /></label>
           <label className="text-sm text-gray-300">Diễn viên<input value={form.actors} onChange={(e) => setField("actors", e.target.value)} className={fieldClass} /></label>
