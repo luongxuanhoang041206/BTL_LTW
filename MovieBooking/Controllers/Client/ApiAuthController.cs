@@ -11,10 +11,12 @@ namespace MovieBooking.Controllers.Client;
 public class ApiAuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IPasswordResetService _reset;
 
-    public ApiAuthController(IAuthService authService)
+    public ApiAuthController(IAuthService authService, IPasswordResetService reset)
     {
         _authService = authService;
+        _reset = reset;
     }
 
     [HttpGet("me")]
@@ -98,5 +100,33 @@ public class ApiAuthController : ControllerBase
     {
         HttpContext.Session.Clear();
         return Ok(new { success = true, message = "Đã đăng xuất thành công." });
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { success = false, message = "Email không hợp lệ." });
+
+        await _reset.RequestResetAsync(req.Email);
+
+        return Ok(new
+        {
+            success = true,
+            message = "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu."
+        });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ." });
+
+        var (ok, error) = await _reset.ResetAsync(req.Token, req.NewPassword);
+        if (!ok)
+            return BadRequest(new { success = false, message = error });
+
+        return Ok(new { success = true, message = "Đặt lại mật khẩu thành công. Vui lòng đăng nhập." });
     }
 }

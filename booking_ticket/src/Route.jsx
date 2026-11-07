@@ -7,6 +7,8 @@ import App from "./App.jsx";
 import { createBrowserRouter, Navigate } from "react-router";
 import { SeatLayout } from "./pages/SeatLayout.jsx";
 import { Payment } from "./pages/Payment.jsx";
+import { ForgotPassword } from "./pages/ForgotPassword.jsx";
+import { ResetPassword } from "./pages/ResetPassword.jsx";
 import { FoodSelection } from "./pages/FoodSelection.jsx";
 import { Layout } from "./pages/admin/Layout.jsx";
 import { DashBoard } from "./pages/admin/DashBoard.jsx";
@@ -42,6 +44,14 @@ export const route = createBrowserRouter([
       {
         path: "home",
         element: <Home />,
+      },
+      {
+        path: "forgot-password",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "reset-password",
+        element: <ResetPassword />,
       },
       {
         path: "movies",

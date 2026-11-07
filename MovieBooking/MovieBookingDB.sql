@@ -121,7 +121,7 @@ BEGIN
 END;
 GO
 
--- Trạng thái từng ghế theo từng suất chiếu (giải quyết bài toán chống trùng ghế)
+-- Trạng thái từng ghế theo từng suất chiếu
 CREATE TABLE ShowtimeSeats (
     ShowtimeSeatId  INT IDENTITY(1,1) PRIMARY KEY,
     ShowtimeId      INT NOT NULL,
@@ -195,7 +195,7 @@ CREATE TABLE Payments (
 GO
 
 -- =========================================================
--- 7. REVIEWS (tuỳ chọn, nâng cao đề tài)
+-- 7. REVIEWS
 -- =========================================================
 CREATE TABLE Reviews (
     ReviewId        INT IDENTITY(1,1) PRIMARY KEY,
@@ -298,10 +298,30 @@ END;
 GO
 
 -- =========================================================
--- INDEX gợi ý (tối ưu truy vấn hay dùng)
+-- 8. PasswordResetTokens
+-- =========================================================
+CREATE TABLE PasswordResetTokens (
+    TokenId   INT IDENTITY(1,1) PRIMARY KEY,
+    UserId    INT NOT NULL,
+    TokenHash VARCHAR(64) NOT NULL,
+    ExpiresAt DATETIME2 NOT NULL,
+    UsedAt    DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+-- =========================================================
+-- INDEX
 -- =========================================================
 CREATE INDEX IX_Showtimes_MovieId_ShowDate ON Showtimes(MovieId, ShowDate);
 CREATE INDEX IX_ShowtimeSeats_ShowtimeId ON ShowtimeSeats(ShowtimeId);
 CREATE INDEX IX_Bookings_UserId ON Bookings(UserId);
 CREATE UNIQUE INDEX UX_Bookings_TicketCode ON Bookings(TicketCode) WHERE TicketCode IS NOT NULL;
+CREATE INDEX IX_BookingDetails_BookingId ON BookingDetails(BookingId);
+CREATE INDEX IX_BookingCombos_BookingId ON BookingCombos(BookingId);
+CREATE INDEX IX_BookingFoods_BookingId ON BookingFoods(BookingId);
+CREATE INDEX IX_Payments_BookingId ON Payments(BookingId);
+CREATE UNIQUE INDEX UX_Payments_OneSuccessPerBooking ON Payments(BookingId) WHERE PaymentStatus = 'Success';
+CREATE INDEX IX_ShowtimeSeats_Hold ON ShowtimeSeats(Status, HoldExpiresAt);
+CREATE INDEX IX_Showtimes_RoomId_ShowDate_StartTime ON Showtimes(RoomId, ShowDate, StartTime);
+CREATE UNIQUE INDEX UX_PasswordResetTokens_Hash ON PasswordResetTokens(TokenHash);
 GO
