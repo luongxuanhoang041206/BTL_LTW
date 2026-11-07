@@ -144,6 +144,10 @@
   flex-direction: column;
   overflow-y: auto;
   border-right: 1px solid var(--admin-border);
+  transition:
+    width 180ms ease,
+    flex-basis 180ms ease,
+    padding 180ms ease;
   background-color: var(--admin-surface);
   padding: 1rem 0.75rem;
 }
@@ -211,10 +215,15 @@
   padding: 1.25rem;
 }
 
+.cms-preview-scale {
+  position: relative;
+  contain: paint;
+}
+
 .admin-header {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 60;
   display: flex;
   height: 4rem;
   align-items: center;
@@ -248,7 +257,7 @@
 }
 
 .admin-menu-button {
-  display: none;
+  display: inline-flex;
   width: 2.5rem;
   height: 2.5rem;
   align-items: center;
@@ -472,6 +481,15 @@
     padding-inline: 0.5rem;
   }
 
+  .admin-layout.is-sidebar-closed .admin-sidebar {
+    width: 0;
+    flex-basis: 0;
+    padding: 0;
+    border-right-width: 0;
+    overflow: hidden;
+    visibility: hidden;
+  }
+
   .admin-sidebar-section-title,
   .admin-sidebar-link span {
     position: absolute;
@@ -493,6 +511,17 @@
   }
 }
 
+@media (min-width: 1024px) {
+  .admin-layout.is-sidebar-closed .admin-sidebar {
+    width: 0;
+    flex-basis: 0;
+    padding: 0;
+    border-right-width: 0;
+    overflow: hidden;
+    visibility: hidden;
+  }
+}
+
 @media (max-width: 1023px) {
   .admin-shell table {
     display: block;
@@ -510,16 +539,12 @@
     display: none;
   }
 
-  .admin-menu-button {
-    display: inline-flex;
-  }
-
   .admin-sidebar {
     position: fixed;
     top: 4rem;
     bottom: 0;
     left: 0;
-    z-index: 50;
+    z-index: 70;
     width: min(18rem, calc(100vw - 3rem));
     height: calc(100dvh - 4rem);
     transform: translateX(-100%);

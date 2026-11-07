@@ -4,9 +4,21 @@ import { AdminNavBar } from "../../components/admin/AdminNavBar";
 import { AdminSideBar } from "../../components/admin/AdminSidebar";
 import { AdminConfirmDialogProvider } from "../../components/admin/AdminConfirmDialog";
 
+const sidebarStorageKey = "admin-sidebar-open";
+
+function readSidebarOpen() {
+  const stored = window.localStorage.getItem(sidebarStorageKey);
+  if (stored === "true" || stored === "false") return stored === "true";
+  return window.matchMedia("(min-width: 768px)").matches;
+}
+
 export function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
   const menuButtonRef = useRef(null);
+
+  useEffect(() => {
+    window.localStorage.setItem(sidebarStorageKey, String(sidebarOpen));
+  }, [sidebarOpen]);
 
   useEffect(() => {
     if (!sidebarOpen) return undefined;
@@ -64,14 +76,13 @@ export function Layout() {
           onMenuClick={() => setSidebarOpen((open) => !open)}
           sidebarOpen={sidebarOpen}
         />
-        <div className="admin-layout">
+        <div className={`admin-layout${sidebarOpen ? "" : " is-sidebar-closed"}`}>
           <AdminSideBar
             isOpen={sidebarOpen}
             onNavigate={() => {
+              if (!window.matchMedia("(max-width: 767px)").matches) return;
               setSidebarOpen(false);
-              if (window.matchMedia("(max-width: 767px)").matches) {
-                menuButtonRef.current?.focus();
-              }
+              menuButtonRef.current?.focus();
             }}
             onClose={() => {
               setSidebarOpen(false);
