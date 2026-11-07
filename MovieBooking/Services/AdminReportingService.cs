@@ -10,7 +10,7 @@ public sealed class AdminReportingService(MovieBookingContext context) : IAdminR
     public async Task<AdminDashboardDto> GetDashboardAsync()
     {
         var totalBookings = await context.Bookings.CountAsync();
-        var totalRevenue = await context.Bookings.Where(booking => booking.Status == "Confirmed")
+        var totalRevenue = await context.Bookings.Where(booking => booking.Status == "Paid")
             .SumAsync(booking => (decimal?)booking.TotalAmount) ?? 0;
         var activeShowsCount = await context.Showtimes.CountAsync(showtime => showtime.Status == "Active");
         var totalUsers = await context.Users.CountAsync();
@@ -27,7 +27,7 @@ public sealed class AdminReportingService(MovieBookingContext context) : IAdminR
     public async Task<AdminRevenueAnalyticsDto> GetRevenueAnalyticsAsync()
     {
         var confirmedBookings = await context.Bookings
-            .Where(booking => booking.Status == "Confirmed")
+            .Where(booking => booking.Status == "Paid")
             .Include(booking => booking.Showtime).ThenInclude(showtime => showtime.Movie)
             .Include(booking => booking.Showtime).ThenInclude(showtime => showtime.Room).ThenInclude(room => room.Cinema)
             .AsNoTracking()

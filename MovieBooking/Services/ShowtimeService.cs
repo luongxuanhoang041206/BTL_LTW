@@ -408,7 +408,7 @@ public sealed class ShowtimeService : IShowtimeService
             if (showtime.Status != "Active") return (false, "Trạng thái hiện tại không cho phép hủy suất chiếu.");
 
             var hasPaidBookings = await _context.Bookings.AnyAsync(b => b.ShowtimeId == id &&
-                (b.Status == "Paid" || b.Status == "Confirmed" ||
+                (b.Status == "Paid" ||
                  b.Payments.Any(p => p.PaymentStatus == "Success" || p.PaymentStatus == "Completed" ||
                                      p.PaymentStatus == "PaidNeedRefund")));
             var hasBookedSeats = await _context.ShowtimeSeats
@@ -422,7 +422,7 @@ public sealed class ShowtimeService : IShowtimeService
                 .ExecuteUpdateAsync(update => update.SetProperty(p => p.PaymentStatus, "PaidNeedRefund"));
             await _context.ShowtimeSeats
                 .Where(s => s.ShowtimeId == id && s.Status == "Holding" && s.BookingDetail != null &&
-                    (s.BookingDetail.Booking.Status == "Paid" || s.BookingDetail.Booking.Status == "Confirmed" ||
+                    (s.BookingDetail.Booking.Status == "Paid" ||
                      s.BookingDetail.Booking.Payments.Any(p => p.PaymentStatus == "PaidNeedRefund")))
                 .ExecuteUpdateAsync(update => update
                     .SetProperty(s => s.Status, "Booked")
@@ -492,7 +492,7 @@ public sealed class ShowtimeService : IShowtimeService
                 .ExecuteUpdateAsync(update => update.SetProperty(p => p.PaymentStatus, "PaidNeedRefund"));
             await _context.ShowtimeSeats
                 .Where(s => s.ShowtimeId == id && s.Status == "Holding" && s.BookingDetail != null &&
-                    (s.BookingDetail.Booking.Status == "Paid" || s.BookingDetail.Booking.Status == "Confirmed" ||
+                    (s.BookingDetail.Booking.Status == "Paid" ||
                      s.BookingDetail.Booking.Payments.Any(p => p.PaymentStatus == "PaidNeedRefund")))
                 .ExecuteUpdateAsync(update => update
                     .SetProperty(s => s.Status, "Booked")

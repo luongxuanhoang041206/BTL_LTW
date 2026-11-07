@@ -652,6 +652,7 @@ public class FoodService : IFoodService
             {
                 BookingId = bookingId,
                 ComboId = item.ComboId,
+                ComboName = item.ComboName,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice // Lưu giá tại thời điểm đặt để bảo toàn lịch sử
             });
@@ -673,7 +674,7 @@ public class FoodService : IFoodService
             {
                 BookingComboId = bc.BookingComboId,
                 ComboId = bc.ComboId,
-                ComboName = bc.Combo.Name,
+                ComboName = bc.ComboName,
                 ImageUrl = bc.Combo.ImageUrl,
                 Quantity = bc.Quantity,
                 UnitPrice = bc.UnitPrice

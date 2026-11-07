@@ -406,6 +406,10 @@ public partial class MovieBookingContext : DbContext
         {
             entity.HasKey(e => e.BookingComboId);
 
+            entity.Property(e => e.ComboName)
+                .HasMaxLength(150)
+                .IsRequired();
+
             entity.Property(e => e.UnitPrice)
                 .HasColumnType("decimal(18,2)");
 

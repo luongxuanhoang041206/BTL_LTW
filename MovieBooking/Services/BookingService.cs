@@ -140,24 +140,69 @@ public class BookingService : IBookingService
 
     public async Task ReleaseExpiredHoldsAsync(int showtimeId)
     {
-        var now = DateTime.Now;
-
-        var expiredSeats = await _context.ShowtimeSeats
-            .Where(ss => ss.ShowtimeId == showtimeId
-                      && ss.Status == "Holding"
-                      && ss.HoldExpiresAt != null
-                      && ss.HoldExpiresAt < now)
-            .ToListAsync();
-
-        if (expiredSeats.Count == 0) return;
-
-        foreach (var seat in expiredSeats)
+        var localTransaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
+        try
         {
-            seat.Status          = "Available";
-            seat.HoldExpiresAt   = null;
-            seat.LockedByUserId  = null;
+            var now = DateTime.Now;
+            var expiredSeats = await _context.ShowtimeSeats
+                .Where(ss => ss.ShowtimeId == showtimeId
+                          && ss.Status == "Holding"
+                          && ss.HoldExpiresAt != null
+                          && ss.HoldExpiresAt < now)
+                .ToListAsync();
+
+            if (expiredSeats.Count == 0)
+            {
+                if (localTransaction != null) await localTransaction.CommitAsync();
+                return;
+            }
+
+            var expiredIds = expiredSeats.Select(seat => seat.ShowtimeSeatId).ToList();
+            var details = await _context.BookingDetails
+                .Include(detail => detail.Booking)
+                    .ThenInclude(booking => booking.Payments)
+                .Where(detail => expiredIds.Contains(detail.ShowtimeSeatId))
+                .ToListAsync();
+
+            var blockedSeatIds = new HashSet<int>();
+            foreach (var group in details.GroupBy(detail => detail.BookingId))
+            {
+                var booking = group.First().Booking;
+                var keepsSeat = booking.Status != "Pending" || booking.Payments.Any(payment =>
+                    payment.PaymentStatus is "Success" or "Completed" or "PaidNeedRefund");
+                if (keepsSeat)
+                {
+                    foreach (var detail in group)
+                        blockedSeatIds.Add(detail.ShowtimeSeatId);
+                    continue;
+                }
+
+                booking.Status = "Cancelled";
+                _context.BookingDetails.RemoveRange(group);
+            }
+
+            foreach (var seat in expiredSeats)
+            {
+                if (blockedSeatIds.Contains(seat.ShowtimeSeatId)) continue;
+                seat.Status = "Available";
+                seat.HoldExpiresAt = null;
+                seat.LockedByUserId = null;
+            }
+
+            await _context.SaveChangesAsync();
+            if (localTransaction != null) await localTransaction.CommitAsync();
         }
-        await _context.SaveChangesAsync();
+        catch
+        {
+            if (localTransaction != null) await localTransaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            if (localTransaction != null) await localTransaction.DisposeAsync();
+        }
     }
 
     public async Task<SeatMapViewModel?> GetSeatMapAsync(int showtimeId, int currentUserId)
@@ -235,7 +280,9 @@ public class BookingService : IBookingService
         // 1. Giải phóng expired holds
         await ReleaseExpiredHoldsAsync(showtimeId);
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var localTransaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
         try
         {
             var showtimeIsActive = await _context.Showtimes
@@ -243,9 +290,11 @@ public class BookingService : IBookingService
             if (!showtimeIsActive)
                 return (false, "Suất chiếu không tồn tại hoặc đã ngừng nhận đặt vé.");
 
-            // Re-read from the database; client seat data is never trusted.
+            var now = DateTime.Now;
             var seats = await _context.ShowtimeSeats
+                .AsNoTracking()
                 .Where(ss => ss.ShowtimeId == showtimeId && seatIds.Contains(ss.SeatId))
+                .Select(ss => new { ss.Status, ss.LockedByUserId, ss.HoldExpiresAt })
                 .ToListAsync();
 
             if (seats.Count != seatIds.Count)
@@ -254,31 +303,40 @@ public class BookingService : IBookingService
             var unavailable = seats.Where(s =>
                 s.Status != "Available" &&
                 !(s.Status == "Holding" && s.LockedByUserId == userId &&
-                  s.HoldExpiresAt != null && s.HoldExpiresAt >= DateTime.Now)).ToList();
+                  s.HoldExpiresAt != null && s.HoldExpiresAt >= now)).ToList();
             if (unavailable.Count > 0)
                 return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.");
 
-            var expiresAt = DateTime.Now.AddMinutes(HoldMinutes);
-            foreach (var seat in seats)
-            {
-                seat.Status = "Holding";
-                seat.LockedByUserId = userId;
-                seat.HoldExpiresAt = expiresAt;
-            }
+            var expiresAt = now.AddMinutes(HoldMinutes);
+            var updated = await _context.ShowtimeSeats
+                .Where(ss => ss.ShowtimeId == showtimeId && seatIds.Contains(ss.SeatId)
+                    && (ss.Status == "Available"
+                        || (ss.Status == "Holding" && ss.LockedByUserId == userId
+                            && ss.HoldExpiresAt != null && ss.HoldExpiresAt >= now)))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(ss => ss.Status, "Holding")
+                    .SetProperty(ss => ss.LockedByUserId, userId)
+                    .SetProperty(ss => ss.HoldExpiresAt, expiresAt));
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            if (updated != seatIds.Count)
+                return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.");
+
+            if (localTransaction != null) await localTransaction.CommitAsync();
             return (true, null);
         }
         catch (DbUpdateException)
         {
-            await transaction.RollbackAsync();
+            if (localTransaction != null) await localTransaction.RollbackAsync();
             return (false, "Không thể giữ ghế. Vui lòng thử lại.");
         }
         catch (Exception)
         {
-            await transaction.RollbackAsync();
+            if (localTransaction != null) await localTransaction.RollbackAsync();
             return (false, "Không thể giữ ghế lúc này. Vui lòng thử lại.");
+        }
+        finally
+        {
+            if (localTransaction != null) await localTransaction.DisposeAsync();
         }
     }
 
@@ -529,7 +587,7 @@ public class BookingService : IBookingService
             .OrderBy(s => s.SeatLabel)
             .ToList();
 
-        if ((booking.Status == "Paid" || booking.Status == "Confirmed") && string.IsNullOrEmpty(booking.TicketCode))
+        if (booking.Status == "Paid" && string.IsNullOrEmpty(booking.TicketCode))
         {
             var trackedBooking = await _context.Bookings.FindAsync(booking.BookingId);
             if (trackedBooking != null)
@@ -562,7 +620,7 @@ public class BookingService : IBookingService
             {
                 BookingComboId = bc.BookingComboId,
                 ComboId        = bc.ComboId,
-                ComboName      = bc.Combo.Name,
+                ComboName      = bc.ComboName,
                 ImageUrl       = bc.Combo.ImageUrl,
                 Quantity       = bc.Quantity,
                 UnitPrice      = bc.UnitPrice
@@ -590,7 +648,7 @@ public class BookingService : IBookingService
     {
         var booking = await _context.Bookings.FirstOrDefaultAsync(candidate =>
             candidate.BookingId == bookingId && candidate.UserId == userId &&
-            (candidate.Status == "Paid" || candidate.Status == "Confirmed"));
+            candidate.Status == "Paid");
         if (booking == null) return null;
 
         if (string.IsNullOrEmpty(booking.TicketCode))
