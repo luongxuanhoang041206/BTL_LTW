@@ -149,7 +149,7 @@ function BookingDetailDrawer({ bookingId, onClose }) {
                 </div>
                 {detail.promoCode && (
                   <div className="flex justify-between text-emerald-400">
-                    <span>Khuyến mãi ({detail.promoCode} −{detail.discountPercent}%)</span>
+                    <span>Khuyến mãi ({detail.promoCode})</span>
                     <span>−{Number(detail.discountAmount).toLocaleString("vi-VN")} ₫</span>
                   </div>
                 )}

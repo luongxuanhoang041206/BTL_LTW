@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 
@@ -15,16 +16,25 @@ public partial class Booking
 
     public DateTime BookingDate { get; set; }
 
+    // Tong tien truoc khi giam
+    public decimal SubtotalAmount { get; set; }
+
+    // So tien duoc giam
+    public decimal DiscountAmount { get; set; }
+
+    // So tien can thanh toan
     public decimal TotalAmount { get; set; }
 
     public string Status { get; set; } = null!;
-    public string? TicketCode { get; set; }
 
+    public string? TicketCode { get; set; }
     public DateTime? TicketEmailSentAt { get; set; }
 
     public virtual ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
 
-    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
+    public virtual ICollection<Payment> Payments { get; set; }
+        = new List<Payment>();
 
     public virtual Promotion? Promotion { get; set; }
 
@@ -32,7 +42,9 @@ public partial class Booking
 
     public virtual User User { get; set; } = null!;
 
-    public virtual ICollection<BookingCombo> BookingCombos { get; set; } = new List<BookingCombo>();
+    public virtual ICollection<BookingCombo> BookingCombos { get; set; }
+        = new List<BookingCombo>();
 
-    public virtual ICollection<BookingFood> BookingFoods { get; set; } = new List<BookingFood>();
+    public virtual ICollection<BookingFood> BookingFoods { get; set; }
+        = new List<BookingFood>();
 }

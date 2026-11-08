@@ -658,8 +658,7 @@ public class FoodService : IFoodService
             });
         }
 
-        booking.TotalAmount += validatedList.Sum(item => item.UnitPrice * item.Quantity);
-
+        // TotalAmount đã được ConfirmBookingAsync tính đủ (vé + combo + món - giảm giá).
         await _context.SaveChangesAsync();
         return (true, null);
     }
@@ -736,7 +735,7 @@ public class FoodService : IFoodService
             });
         }
 
-        booking.TotalAmount += validation.TotalPrice;
+        // TotalAmount đã được ConfirmBookingAsync tính đủ (vé + combo + món - giảm giá).
         await _context.SaveChangesAsync();
         return (true, null);
     }

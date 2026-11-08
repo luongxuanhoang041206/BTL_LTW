@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Clock3, Film, X } from "lucide-react";
+import { api } from "../../../lib/api";
 import { createShowtime, updateShowtime } from "../../../lib/showtimeApi";
 import { readShowtime } from "./showtimeUtils";
 
@@ -41,6 +42,25 @@ export function ShowtimeFormModal({ mode = "create", showtime, catalogs, onClose
       vipMultiplier: String(current.vipMultiplier || 1.2),
     });
   }, [mode, showtime]);
+
+  // Tạo mới: lấy giá vé và hệ số VIP mặc định từ cấu hình hệ thống, không ghi đè nếu người dùng đã nhập
+  useEffect(() => {
+    if (mode !== "create") return undefined;
+    let active = true;
+    api.get("/api/system/settings")
+      .then((settings) => {
+        if (!active) return;
+        setForm((current) => ({
+          ...current,
+          price: current.price === emptyForm.price && settings?.defaultTicketPrice != null
+            ? String(settings.defaultTicketPrice) : current.price,
+          vipMultiplier: current.vipMultiplier === emptyForm.vipMultiplier && settings?.vipPriceMultiplier != null
+            ? String(settings.vipPriceMultiplier) : current.vipMultiplier,
+        }));
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [mode]);
 
   const selectedMovie = useMemo(
     () => catalogs.movies.find((movie) => String(movie.id ?? movie.Id) === form.movieId),

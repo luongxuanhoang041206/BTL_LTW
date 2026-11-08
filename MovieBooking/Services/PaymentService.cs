@@ -18,11 +18,18 @@ public class PaymentService : IPaymentService
     private readonly IConfiguration _config;
     private readonly ITicketEmailService _ticketEmail;
 
-    public PaymentService(MovieBookingContext context, IConfiguration config, ITicketEmailService ticketEmail)
+    private readonly IPromotionService _promotionService;
+
+    public PaymentService(
+        MovieBookingContext context,
+        IConfiguration config,
+        ITicketEmailService ticketEmail,
+        IPromotionService promotionService)
     {
         _context = context;
         _config = config;
         _ticketEmail = ticketEmail;
+        _promotionService = promotionService;
     }
 
     public async Task<List<AdminPaymentDto>> GetAdminPaymentsAsync(string? status, string? method)
@@ -84,7 +91,9 @@ public class PaymentService : IPaymentService
             seat.LockedByUserId = null;
         }
 
+        await _promotionService.RedeemForBookingAsync(payment.BookingId);
         await _context.SaveChangesAsync();
+        await IssueTicketsForBookingAsync(payment.BookingId);
         await transaction.CommitAsync();
         return true;
     }
@@ -152,6 +161,7 @@ public class PaymentService : IPaymentService
         if (simulateFailure)
         {
             payment.PaymentStatus = "Failed";
+            await _promotionService.ReleaseForBookingAsync(bookingId);
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return (false, payment.PaymentId, "Thanh toán thất bại (giả lập). Vui lòng thử lại.");
@@ -170,7 +180,9 @@ public class PaymentService : IPaymentService
 
         try
         {
+            await _promotionService.RedeemForBookingAsync(bookingId);
             await _context.SaveChangesAsync();
+            await IssueTicketsForBookingAsync(bookingId);
             await transaction.CommitAsync();
             return (true, payment.PaymentId, null);
         }
@@ -196,6 +208,77 @@ public class PaymentService : IPaymentService
     {
         var rnd = Convert.ToHexString(RandomNumberGenerator.GetBytes(3));
         return $"MB{bookingId:D6}-{rnd}";
+    }
+
+    // -----------------------------------------------------------------------
+    // TICKET ISSUANCE
+    // -----------------------------------------------------------------------
+
+    /// <summary>
+    /// Phát hành vé điện tử cho TỪNG BookingDetail khi booking đã thực sự thanh toán thành công.
+    /// Chỉ phát hành khi đồng thời: Booking.Status = "Paid", có Payment.Status = "Success",
+    /// và booking có ít nhất một BookingDetail. Không phát hành cho Pending/Cancelled/Failed/PaidNeedRefund.
+    /// Idempotent: chỉ tạo Ticket cho BookingDetail chưa có vé, bảo đảm callback lặp lại không tạo trùng.
+    /// Hàm được gọi trong transaction của luồng thanh toán, trước khi commit.
+    /// </summary>
+    private async Task IssueTicketsForBookingAsync(int bookingId)
+    {
+        var booking = await _context.Bookings
+            .Include(b => b.BookingDetails)
+            .FirstOrDefaultAsync(b => b.BookingId == bookingId);
+
+        // Chỉ phát hành khi booking thực sự đã thanh toán và có ít nhất một ghế.
+        if (booking == null || booking.Status != "Paid" || booking.BookingDetails.Count == 0)
+            return;
+
+        // Bắt buộc phải có một giao dịch Success (loại trừ PaidNeedRefund / Failed).
+        var hasSuccessPayment = await _context.Payments
+            .AnyAsync(p => p.BookingId == bookingId && p.PaymentStatus == "Success");
+        if (!hasSuccessPayment)
+            return;
+
+        var detailIds = booking.BookingDetails.Select(d => d.BookingDetailId).ToList();
+        var existingDetailIds = await _context.Tickets
+            .Where(t => detailIds.Contains(t.BookingDetailId))
+            .Select(t => t.BookingDetailId)
+            .ToListAsync();
+
+        var missingDetails = booking.BookingDetails
+            .Where(d => !existingDetailIds.Contains(d.BookingDetailId))
+            .ToList();
+        if (missingDetails.Count == 0)
+            return;
+
+        var now = DateTime.Now;
+        foreach (var detail in missingDetails)
+        {
+            _context.Tickets.Add(new Ticket
+            {
+                BookingDetailId = detail.BookingDetailId,
+                TicketCode = GenerateTicketCodeForSeat(bookingId, detail.BookingDetailId),
+                Qrtoken = GenerateQrToken(),
+                Status = "Issued",
+                IssuedAt = now
+            });
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>Mã vé riêng cho từng ghế (khác Bookings.TicketCode), không tái sử dụng.</summary>
+    private static string GenerateTicketCodeForSeat(int bookingId, int bookingDetailId)
+    {
+        var rnd = Convert.ToHexString(RandomNumberGenerator.GetBytes(3));
+        return $"TK-{bookingId:D6}-{bookingDetailId:D4}-{rnd}";
+    }
+
+    /// <summary>
+    /// Sinh QRToken bằng cryptographically secure RNG (32 byte = 64 ký tự hex).
+    /// Không chứa BookingId / UserId / thông tin cá nhân. Không lưu ảnh QR vào DB.
+    /// </summary>
+    private static string GenerateQrToken()
+    {
+        return Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
     }
 
     public async Task<(bool Success, int? PaymentId, string? PaymentUrl, string? Error)> InitializePaymentAsync(
@@ -283,13 +366,21 @@ public class PaymentService : IPaymentService
                 return (false, "Không tìm thấy thông tin giao dịch thanh toán.");
 
             if (payment.PaymentStatus is "Success" or "Completed")
-                return (true, null); // Idempotency (đã xử lý trước đó rồi)
+            {
+                // Idempotency: callback được gọi lại. Đồng bộ vé nếu trước đó
+                // vé chưa được tạo (dữ liệu cũ / lỗi trước) mà không tạo trùng.
+                await IssueTicketsForBookingAsync(payment.BookingId);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return (true, null);
+            }
             if (payment.PaymentStatus == "PaidNeedRefund")
                 return (false, "Giao dịch này cần được xử lý hoàn tiền thủ công.");
 
             if (!isSuccessFromGateway)
             {
                 payment.PaymentStatus = "Failed";
+                await _promotionService.ReleaseForBookingAsync(payment.BookingId);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return (false, "Giao dịch thanh toán không thành công từ phía cổng thanh toán.");
@@ -302,6 +393,7 @@ public class PaymentService : IPaymentService
             {
                 payment.PaymentStatus = "PaidNeedRefund";
                 payment.PaidAt = DateTime.UtcNow;
+                await _promotionService.ReleaseForBookingAsync(payment.BookingId);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return (false, "Thanh toán đã được nhận nhưng suất chiếu không còn hoạt động; cần xử lý hoàn tiền.");
@@ -317,6 +409,7 @@ public class PaymentService : IPaymentService
             {
                 payment.PaymentStatus = "PaidNeedRefund";
                 payment.PaidAt = DateTime.UtcNow;
+                await _promotionService.ReleaseForBookingAsync(payment.BookingId);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return (false, "Thanh toán đã được nhận nhưng ghế không còn được giữ; cần xử lý hoàn tiền.");
@@ -333,7 +426,9 @@ public class PaymentService : IPaymentService
                 seat.LockedByUserId = null;
             }
 
+            await _promotionService.RedeemForBookingAsync(payment.BookingId);
             await _context.SaveChangesAsync();
+            await IssueTicketsForBookingAsync(payment.BookingId);
             await transaction.CommitAsync();
 
             return (true, null);
@@ -387,6 +482,7 @@ public class PaymentService : IPaymentService
                 {
                     payment.PaymentStatus = "PaidNeedRefund";
                     payment.PaidAt = DateTime.UtcNow;
+                    await _promotionService.ReleaseForBookingAsync(payment.BookingId);
                     log.Result = "PaidAfterExpired";
                 }
                 else
@@ -395,7 +491,15 @@ public class PaymentService : IPaymentService
                 }
             }
             else if (payment.PaymentStatus != "Pending")
+            {
                 log.Result = "AlreadyProcessed";
+                // Callback lặp lại: đồng bộ vé nếu giao dịch đã Success mà vé chưa có.
+                if (payment.PaymentStatus is "Success" or "Completed")
+                {
+                    await _context.SaveChangesAsync();
+                    await IssueTicketsForBookingAsync(payment.BookingId);
+                }
+            }
             else if (dto.TransferAmount != payment.Amount)
                 log.Result = "AmountMismatch";
             else if (payment.Booking.Status != "Pending" ||
@@ -403,6 +507,7 @@ public class PaymentService : IPaymentService
             {
                 payment.PaymentStatus = "PaidNeedRefund";
                 payment.PaidAt = DateTime.UtcNow;
+                await _promotionService.ReleaseForBookingAsync(payment.BookingId);
                 log.Result = "PaidAfterShowtimeClosed";
             }
             else
@@ -417,6 +522,9 @@ public class PaymentService : IPaymentService
                 if (affected == 0)
                 {
                     log.Result = "AlreadyProcessed";
+                    // Giao dịch đã được xử lý ở luồng khác: bảo đảm vé đã được phát hành.
+                    await _context.SaveChangesAsync();
+                    await IssueTicketsForBookingAsync(payment.BookingId);
                 }
                 else
                 {
@@ -438,11 +546,15 @@ public class PaymentService : IPaymentService
                         }
                         payment.Booking.Status = "Paid";
                         payment.Booking.TicketCode ??= GenerateTicketCode(payment.BookingId);
+                        await _promotionService.RedeemForBookingAsync(payment.BookingId);
+                        await _context.SaveChangesAsync();
+                        await IssueTicketsForBookingAsync(payment.BookingId);
                         log.Result = "Success";
                     }
                     else
                     {
                         payment.PaymentStatus = "PaidNeedRefund";
+                        await _promotionService.ReleaseForBookingAsync(payment.BookingId);
                         log.Result = "PaidButSeatLost";
                     }
                 }
