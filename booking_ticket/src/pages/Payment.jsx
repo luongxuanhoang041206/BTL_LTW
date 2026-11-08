@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import {
   CheckCircle2,
@@ -32,6 +32,7 @@ export function Payment() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [confirmedTicket, setConfirmedTicket] = useState(null);
+  const createPaymentRequest = useRef(null);
 
   // Lấy chi tiết vé sau khi thanh toán thành công.
   const fetchTicketDetails = useCallback(async (bId) => {
@@ -47,25 +48,39 @@ export function Payment() {
 
   // Tạo phiên thanh toán SePay.
   const createPayment = useCallback(async () => {
+    // Chỉ cho phép 1 thanh toán chạy dở
+    if (createPaymentRequest.current) {
+      return createPaymentRequest.current;
+    }
+
     setLoading(true);
     setError("");
 
-    try {
-      const result = await api.post("/api/payment/bank", {
-        bookingId: Number(bookingId),
-      });
+    const request = (async () => {
+      try {
+        const result = await api.post("/api/payment/bank", {
+          bookingId: Number(bookingId),
+        });
 
-      setInfo(result.info);
+        setInfo(result.info);
 
-      // Đơn đã thanh toán trước đó, ví dụ khi người dùng tải lại trang.
-      if (result.info?.status === "Success") {
-        setStatus("Success");
-        await fetchTicketDetails(bookingId);
+        // Đơn đã thanh toán trước đó, ví dụ khi người dùng tải lại trang.
+        if (result.info?.status === "Success") {
+          setStatus("Success");
+          await fetchTicketDetails(bookingId);
+        }
+      } catch (err) {
+        setError(err.message || "Không thể tạo thông tin thanh toán SePay.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.message || "Không thể tạo thông tin thanh toán SePay.");
+    })();
+
+    createPaymentRequest.current = request;
+    try {
+      await request;
     } finally {
-      setLoading(false);
+      createPaymentRequest.current = null;
     }
   }, [bookingId, fetchTicketDetails]);
 
