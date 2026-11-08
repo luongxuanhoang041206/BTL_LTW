@@ -1,0 +1,30 @@
+{
+  "vi": {
+    "movies": {
+      "pageTitle": "Danh Sách Phim",
+      "pageSubtitle": "Lựa chọn bộ phim yêu thích và đặt vé ngay hôm nay",
+      "searchPlaceholder": "Tìm kiếm tên phim...",
+      "statusFilterLabel": "Lọc trạng thái phim",
+      "statusAll": "Tất cả phim",
+      "statusNow": "Đang chiếu",
+      "statusComing": "Sắp chiếu",
+      "allGenres": "Tất cả thể loại",
+      "emptyTitle": "Không tìm thấy phim phù hợp.",
+      "resetFilter": "Đặt lại bộ lọc"
+    }
+  },
+  "en": {
+    "movies": {
+      "pageTitle": "Movie List",
+      "pageSubtitle": "Pick your favorite movie and book tickets today",
+      "searchPlaceholder": "Search movie title...",
+      "statusFilterLabel": "Filter movie status",
+      "statusAll": "All movies",
+      "statusNow": "Now Showing",
+      "statusComing": "Coming Soon",
+      "allGenres": "All genres",
+      "emptyTitle": "No matching movies found.",
+      "resetFilter": "Reset filters"
+    }
+  }
+}

@@ -15,17 +15,19 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 
-// Trạng thái vé điện tử -> nhãn hiển thị + màu.
+// Trạng thái vé điện tử -> translation key + màu.
 const TICKET_STATUS = {
-  Issued: { label: "Chưa sử dụng", className: "border-green-500/40 bg-green-500/15 text-green-400" },
-  Used: { label: "Đã sử dụng", className: "border-gray-500/40 bg-gray-500/15 text-gray-300" },
-  Cancelled: { label: "Đã hủy", className: "border-red-500/40 bg-red-500/15 text-red-400" },
+  Issued: { labelKey: "ticket.statusIssued", className: "border-green-500/40 bg-green-500/15 text-green-400" },
+  Used: { labelKey: "ticket.statusUsed", className: "border-gray-500/40 bg-gray-500/15 text-gray-300" },
+  Cancelled: { labelKey: "ticket.statusCancelled", className: "border-red-500/40 bg-red-500/15 text-red-400" },
 };
 
-const statusMeta = (status) => TICKET_STATUS[status] || { label: "Chưa phát hành", className: "border-white/20 bg-white/10 text-gray-300" };
+const statusMeta = (status) => TICKET_STATUS[status] || { labelKey: "ticket.statusNotIssued", className: "border-white/20 bg-white/10 text-gray-300" };
 
 export function TicketCard({ ticket }) {
+  const { t } = useTranslation();
   const [copiedId, setCopiedId] = useState(null);
 
   if (!ticket) return null;
@@ -42,7 +44,7 @@ export function TicketCard({ ticket }) {
   const handleCopyCode = (code, id) => {
     navigator.clipboard.writeText(code);
     setCopiedId(id);
-    toast.success("Đã sao chép mã vé!");
+    toast.success(t("ticket.copied"));
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -63,7 +65,7 @@ export function TicketCard({ ticket }) {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      toast.success("Đã tải mã QR về thiết bị!");
+      toast.success(t("ticket.downloadSuccess"));
     } catch {
       const a = document.createElement("a");
       a.href = fallbackQr;
@@ -94,10 +96,10 @@ export function TicketCard({ ticket }) {
             </div>
             <div>
               <span className="text-xs font-bold tracking-widest text-primary uppercase">
-                VÉ ĐIỆN TỬ CHÍNH THỨC · CINEMA E-TICKET
+                {t("ticket.header")}
               </span>
               <p className="text-xs text-gray-400">
-                Mã đơn: <strong className="text-white">#{ticket.bookingId}</strong>
+                {t("ticket.orderCode")} <strong className="text-white">#{ticket.bookingId}</strong>
               </p>
             </div>
           </div>
@@ -105,7 +107,7 @@ export function TicketCard({ ticket }) {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/40 bg-green-500/15 px-3 py-1 text-xs font-semibold text-green-400 shadow-sm">
               <ShieldCheck className="h-3.5 w-3.5" />
-              ĐÃ THANH TOÁN
+              {t("ticket.paid")}
             </span>
           </div>
         </div>
@@ -138,7 +140,7 @@ export function TicketCard({ ticket }) {
                     </span>
                     {ticket.duration ? (
                       <span className="text-xs text-gray-400">
-                        {ticket.duration} phút
+                        {t("ticket.minutes", { count: ticket.duration })}
                       </span>
                     ) : null}
                   </div>
@@ -170,7 +172,7 @@ export function TicketCard({ ticket }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-xs">
               <div className="space-y-1">
                 <span className="text-gray-400 flex items-center gap-1 font-medium">
-                  <Calendar className="h-3.5 w-3.5 text-primary" /> Ngày chiếu
+                  <Calendar className="h-3.5 w-3.5 text-primary" /> {t("ticket.showDate")}
                 </span>
                 <p className="text-sm font-bold text-white">
                   {ticket.showDate}
@@ -179,7 +181,7 @@ export function TicketCard({ ticket }) {
 
               <div className="space-y-1">
                 <span className="text-gray-400 flex items-center gap-1 font-medium">
-                  <Clock className="h-3.5 w-3.5 text-primary" /> Giờ chiếu
+                  <Clock className="h-3.5 w-3.5 text-primary" /> {t("ticket.showTime")}
                 </span>
                 <p className="text-sm font-bold text-primary">
                   {ticket.startTime ? ticket.startTime.substring(0, 5) : "--:--"}
@@ -189,10 +191,10 @@ export function TicketCard({ ticket }) {
 
               <div className="col-span-2 sm:col-span-1 space-y-1">
                 <span className="text-gray-400 flex items-center gap-1 font-medium">
-                  <Film className="h-3.5 w-3.5 text-primary" /> Phòng chiếu
+                  <Film className="h-3.5 w-3.5 text-primary" /> {t("ticket.room")}
                 </span>
                 <p className="text-sm font-bold text-white">
-                  {ticket.roomName || "Rạp chính"}
+                  {ticket.roomName || t("ticket.mainRoom")}
                 </p>
               </div>
             </div>
@@ -200,7 +202,7 @@ export function TicketCard({ ticket }) {
             {/* Danh sách ghế ngồi */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                Ghế đã chọn ({ticket.seats?.length || 0} ghế):
+                {t("ticket.selectedSeats", { count: ticket.seats?.length || 0 })}
               </p>
               <div className="flex flex-wrap gap-2">
                 {ticket.seats && ticket.seats.length > 0 ? (
@@ -218,7 +220,7 @@ export function TicketCard({ ticket }) {
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-gray-500">Chưa có thông tin ghế</span>
+                  <span className="text-xs text-gray-500">{t("ticket.noSeatInfo")}</span>
                 )}
               </div>
             </div>
@@ -227,7 +229,7 @@ export function TicketCard({ ticket }) {
             {((ticket.combos && ticket.combos.length > 0) || (ticket.foods && ticket.foods.length > 0)) && (
               <div className="rounded-2xl border border-white/5 bg-black/30 p-3.5 text-xs space-y-2">
                 <p className="font-semibold text-gray-300 flex items-center gap-1.5">
-                  <UtensilsCrossed className="h-3.5 w-3.5 text-primary" /> Bắp nước & Dịch vụ kèm theo:
+                  <UtensilsCrossed className="h-3.5 w-3.5 text-primary" /> {t("ticket.fnbServices")}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {ticket.combos?.map((combo, idx) => (
@@ -253,15 +255,15 @@ export function TicketCard({ ticket }) {
             {/* Giá tiền & Thanh toán */}
             <div className="flex items-center justify-between border-t border-white/10 pt-4">
               <div>
-                <span className="text-xs text-gray-400">Tổng thanh toán</span>
+                <span className="text-xs text-gray-400">{t("ticket.totalPayment")}</span>
                 <p className="text-2xl font-black text-primary">
                   {Number(ticket.totalAmount).toLocaleString("vi-VN")} ₫
                 </p>
               </div>
               <div className="text-right text-xs text-gray-400">
-                <p>PTTT: {ticket.paymentMethod || "Ngân hàng (SePay)"}</p>
+                <p>{t("ticket.paymentMethod")} {ticket.paymentMethod || t("ticket.bankSePay")}</p>
                 <p className="mt-0.5 text-[11px] text-gray-500">
-                  {ticket.paidAt ? new Date(ticket.paidAt).toLocaleString("vi-VN") : "Đã thanh toán thành công"}
+                  {ticket.paidAt ? new Date(ticket.paidAt).toLocaleString("vi-VN") : t("ticket.paidAt")}
                 </p>
               </div>
             </div>
@@ -277,45 +279,45 @@ export function TicketCard({ ticket }) {
             <div className="w-full">
               <div className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
                 <QrCode className="h-4 w-4" />
-                MÃ SOÁT VÉ CHECK-IN
+                {t("ticket.checkInCode")}
               </div>
               <p className="mt-1 text-center text-[11px] text-gray-400">
                 {tickets.length > 1
-                  ? "Mỗi ghế có một mã QR riêng — xuất trình tương ứng tại cửa rạp"
-                  : "Xuất trình mã này cho nhân viên tại cửa rạp"}
+                  ? t("ticket.multiQrHint")
+                  : t("ticket.singleQrHint")}
               </p>
 
               {tickets.length > 0 ? (
                 /* DANH SÁCH VÉ ĐIỆN TỬ THEO TỪNG GHẾ */
                 <div className="mt-4 space-y-4">
-                  {tickets.map((t) => {
-                    const meta = statusMeta(t.status);
+                  {tickets.map((tk) => {
+                    const meta = statusMeta(tk.status);
                     return (
                       <div
-                        key={t.ticketId}
+                        key={tk.ticketId}
                         className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-xs font-extrabold text-primary">
-                            {t.seatLabel || "Ghế"}
-                            {t.seatType && t.seatType !== "Normal" && (
+                            {tk.seatLabel || t("ticket.seat")}
+                            {tk.seatType && tk.seatType !== "Normal" && (
                               <span className="text-[10px] font-normal text-gray-400 uppercase">
-                                ({t.seatType})
+                                ({tk.seatType})
                               </span>
                             )}
                           </span>
                           <span
                             className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${meta.className}`}
                           >
-                            {meta.label}
+                            {t(meta.labelKey)}
                           </span>
                         </div>
 
                         <div className="mt-3 flex justify-center">
                           <div className="group relative rounded-2xl bg-white p-2.5 shadow-xl shadow-black/60">
                             <img
-                              src={t.qrImageUrl}
-                              alt={`QR Code ${t.ticketCode}`}
+                              src={tk.qrImageUrl}
+                              alt={`QR Code ${tk.ticketCode}`}
                               className="aspect-square w-40 max-w-full rounded-lg object-contain transition duration-300 group-hover:scale-105"
                               onError={(e) => {
                                 e.target.src = fallbackQr;
@@ -323,7 +325,7 @@ export function TicketCard({ ticket }) {
                             />
                             <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition group-hover:opacity-100">
                               <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold text-white shadow">
-                                Quét tại cửa rạp
+                                {t("ticket.scanAtDoor")}
                               </span>
                             </div>
                           </div>
@@ -331,16 +333,16 @@ export function TicketCard({ ticket }) {
 
                         <div className="mt-3">
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-                            Mã số vé
+                            {t("ticket.ticketCodeLabel")}
                           </span>
                           <div className="mt-1 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs font-black text-primary select-all">
-                            <span className="truncate">{t.ticketCode}</span>
+                            <span className="truncate">{tk.ticketCode}</span>
                             <button
-                              onClick={() => handleCopyCode(t.ticketCode, t.ticketId)}
-                              title="Sao chép mã"
+                              onClick={() => handleCopyCode(tk.ticketCode, tk.ticketId)}
+                              title={t("ticket.copyCode")}
                               className="shrink-0 cursor-pointer p-1 transition hover:text-white"
                             >
-                              {copiedId === t.ticketId ? (
+                              {copiedId === tk.ticketId ? (
                                 <Check className="h-4 w-4 text-green-400" />
                               ) : (
                                 <Copy className="h-4 w-4" />
@@ -349,9 +351,9 @@ export function TicketCard({ ticket }) {
                           </div>
                         </div>
 
-                        {t.checkedInAt && (
+                        {tk.checkedInAt && (
                           <p className="mt-2 text-center text-[10px] text-gray-400">
-                            Đã check-in: {new Date(t.checkedInAt).toLocaleString("vi-VN")}
+                            {t("ticket.checkedInAt", { date: new Date(tk.checkedInAt).toLocaleString("vi-VN") })}
                           </p>
                         )}
                       </div>
@@ -372,20 +374,20 @@ export function TicketCard({ ticket }) {
                     />
                     <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition group-hover:opacity-100">
                       <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold text-white shadow">
-                        Quét tại cửa rạp
+                        {t("ticket.scanAtDoor")}
                       </span>
                     </div>
                   </div>
 
                   <div className="mt-4 w-full">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-                      MÃ SỐ VÉ (TICKET CODE)
+                      {t("ticket.ticketCodeUpper")}
                     </span>
                     <div className="mt-1 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-sm font-black text-primary select-all">
                       <span>{ticketCode}</span>
                       <button
                         onClick={() => handleCopyCode(ticketCode, "booking")}
-                        title="Sao chép mã"
+                        title={t("ticket.copyCode")}
                         className="cursor-pointer p-1 transition hover:text-white"
                       >
                         {copiedId === "booking" ? (
@@ -407,7 +409,7 @@ export function TicketCard({ ticket }) {
                 className="flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 px-4 py-2.5 text-xs font-semibold text-white transition cursor-pointer"
               >
                 <Download className="h-4 w-4 text-primary" />
-                Tải ảnh mã QR
+                {t("ticket.downloadQr")}
               </button>
 
               <button
@@ -415,12 +417,12 @@ export function TicketCard({ ticket }) {
                 className="flex items-center justify-center gap-2 rounded-xl bg-primary/15 hover:bg-primary/25 border border-primary/30 px-4 py-2.5 text-xs font-bold text-primary transition cursor-pointer"
               >
                 <Printer className="h-4 w-4" />
-                In vé / Lưu PDF
+                {t("ticket.printTicket")}
               </button>
             </div>
 
             <p className="mt-4 text-[10px] text-gray-500">
-              * Vé đã thanh toán không hoàn trả tiền mặt. Vui lòng đến trước giờ chiếu 15 phút.
+              {t("ticket.disclaimer")}
             </p>
           </div>
         </div>

@@ -1,5 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { useWebsiteContent } from "../context/WebsiteContentContext";
 export function Footer({ cmsContent } = {}) {
+  const { t } = useTranslation();
   const contextSite = useWebsiteContent();
   const site = cmsContent || contextSite;
   const content = site.footer || {};
@@ -24,7 +26,7 @@ export function Footer({ cmsContent } = {}) {
               />
             </svg>
           </a>
-          <p class="text-sm md:text-base">{content.feedback || "Please let me know your opinion!"}</p>
+          <p class="text-sm md:text-base">{content.feedback || t("footer.feedback")}</p>
           <div className="flex flex-col gap-3">
             <textarea
               className="bg-[#14171A] text-white/70 border border-white/10 px-3 py-3 rounded-md w-full placeholder:text-sm placeholder:font-light focus:outline-none focus:ring-1 focus:ring-gray-600"
@@ -32,69 +34,69 @@ export function Footer({ cmsContent } = {}) {
             />
 
             <button className="self-start bg-[#14171A] text-white px-5 py-3 rounded-md border border-white/10 text-sm hover:bg-gray-800 transition-colors">
-              Send me
+              {t("footer.send")}
             </button>
           </div>
         </div>
 
         <div class="lg:col-span-3 grid grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 lg:gap-28 items-start">
           <div>
-            <h3 class="font-medium text-sm mb-4 md:mb-6">Products</h3>
+            <h3 class="font-medium text-sm mb-4 md:mb-6">{t("footer.products")}</h3>
             <ul class="space-y-3 md:space-y-4 text-sm text-white/70">
               <li>
                 <a href="#" class="hover:text-white">
-                  Components
+                  {t("footer.components")}
                 </a>
               </li>
               <li>
                 <a href="#" class="hover:text-white">
-                  Templates
+                  {t("footer.templates")}
                 </a>
               </li>
               <li>
                 <a href="#" class="hover:text-white">
-                  Icons
+                  {t("footer.icons")}
                 </a>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 class="font-medium text-sm mb-4 md:mb-6">Resources</h3>
+            <h3 class="font-medium text-sm mb-4 md:mb-6">{t("footer.resources")}</h3>
             <ul class="space-y-3 md:space-y-4 text-sm text-white/70">
               {(content.links?.length ? content.links : [{text:"PrebuiltUI",href:"#"},{text:"Templates",href:"#"},{text:"Components",href:"#"},{text:"Blogs",href:"#"},{text:"Store",href:"#"}]).map((link,index)=><li key={index}><a href={link.href} class="hover:text-white">{link.text}</a></li>)}
             </ul>
           </div>
 
           <div class="col-span-2 md:col-span-1">
-            <h3 class="font-medium text-sm mb-4 md:mb-6">Company</h3>
+            <h3 class="font-medium text-sm mb-4 md:mb-6">{t("footer.company")}</h3>
             <ul class="space-y-3 md:space-y-4 text-sm text-white/70">
               <li>
                 <a href="#" class="hover:text-white">
-                  About
+                  {t("footer.about")}
                 </a>
               </li>
               <li>
                 <a href="#" class="hover:text-white">
-                  Vision
+                  {t("footer.vision")}
                 </a>
               </li>
               <li class="flex items-center gap-2">
                 <a href="#" class="hover:text-white">
-                  Careers
+                  {t("footer.careers")}
                 </a>
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-950 border border-green-300 text-green-300">
-                  HIRING
+                  {t("footer.hiring")}
                 </span>
               </li>
               <li>
                 <a href="#" class="hover:text-white">
-                  Privacy policy
+                  {t("footer.privacy")}
                 </a>
               </li>
               <li>
                 <a href="#" class="hover:text-white">
-                  Contact Us
+                  {t("footer.contact")}
                 </a>
               </li>
             </ul>
@@ -104,7 +106,7 @@ export function Footer({ cmsContent } = {}) {
 
       <div class="max-w-7xl mx-auto mt-12 md:mt-16 pt-6 border-t border-neutral-700 flex flex-col md:flex-row justify-between items-center gap-6">
         <p class="text-white/70 text-xs sm:text-sm order-2 md:order-1">
-          {content.copyright || "© 2025 prebuiltUI Design"}
+          {content.copyright || t("footer.copyright")}
         </p>
         <div class="flex gap-5 md:gap-6 order-1 md:order-2">
           <a href="#" class="text-white hover:text-gray-300">

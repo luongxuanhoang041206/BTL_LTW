@@ -1,8 +1,8 @@
+
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 
-// https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   base: mode === "production" ? "/app/" : "/",
   plugins: [react(), tailwindcss()],
@@ -11,11 +11,25 @@ export default defineConfig(({ mode }) => ({
     emptyOutDir: true,
   },
   server: {
+    host: "0.0.0.0",
+    port: 5173,
+    strictPort: true,
+
+    // Cho phép truy cập qua Cloudflare Quick Tunnel
+    allowedHosts: [".trycloudflare.com"],
+
     proxy: {
-      "/api": "http://localhost:5080",
-      "/uploads": "http://localhost:5080",
+      "/api": {
+        target: "http://localhost:5080",
+        changeOrigin: true,
+      },
+      "/uploads": {
+        target: "http://localhost:5080",
+        changeOrigin: true,
+      },
       "/seatHub": {
         target: "http://localhost:5080",
+        changeOrigin: true,
         ws: true,
       },
     },

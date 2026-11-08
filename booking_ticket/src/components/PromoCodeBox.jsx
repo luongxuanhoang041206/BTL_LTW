@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Tag, X, ChevronDown, Loader2 } from "lucide-react";
 import {
   getAvailablePromotions,
@@ -18,6 +19,7 @@ export function PromoCodeBox({
   onAppliedChange,
   enabled = true,
 }) {
+  const { t } = useTranslation();
   const [code, setCode] = useState(applied?.code || "");
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState("");
@@ -70,7 +72,7 @@ export function PromoCodeBox({
       } catch (err) {
         if (!cancelled) {
           onAppliedChange(null);
-          setError(err.message || "Mã giảm giá không còn hợp lệ với đơn hiện tại.");
+          setError(err.message || t("promo.errNotValid"));
         }
       }
     }, 400);
@@ -78,13 +80,13 @@ export function PromoCodeBox({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [ticketsAmount, foodsAmount, combosAmount, onAppliedChange]);
+  }, [ticketsAmount, foodsAmount, combosAmount, onAppliedChange, t]);
 
   const handleApply = useCallback(
     async (codeToApply) => {
       const trimmed = (codeToApply ?? code).trim();
       if (!trimmed) {
-        setError("Vui lòng nhập mã giảm giá.");
+        setError(t("promo.errEnterCode"));
         return;
       }
       if (applying) return;
@@ -101,12 +103,12 @@ export function PromoCodeBox({
         onAppliedChange(result);
       } catch (err) {
         onAppliedChange(null);
-        setError(err.message || "Mã giảm giá không hợp lệ.");
+        setError(err.message || t("promo.errInvalid"));
       } finally {
         setApplying(false);
       }
     },
-    [code, applying, ticketsAmount, foodsAmount, combosAmount, onAppliedChange]
+    [code, applying, ticketsAmount, foodsAmount, combosAmount, onAppliedChange, t]
   );
 
   const handleRemove = useCallback(() => {
@@ -119,7 +121,7 @@ export function PromoCodeBox({
     <div className="mt-5 border-t border-white/10 pt-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-gray-200">
         <Tag className="h-4 w-4 text-primary" />
-        Mã giảm giá
+        {t("promo.title")}
       </div>
 
       {applied ? (
@@ -129,12 +131,12 @@ export function PromoCodeBox({
               {applied.code}
             </p>
             <p className="text-xs text-emerald-200/80">
-              Giảm {formatVnd(applied.discountAmount)}
+              {t("promo.discount", { amount: formatVnd(applied.discountAmount) })}
             </p>
           </div>
           <button
             onClick={handleRemove}
-            aria-label="Bỏ mã giảm giá"
+            aria-label={t("promo.remove")}
             className="shrink-0 rounded-full p-1 text-emerald-300 hover:bg-emerald-500/20 transition"
           >
             <X className="h-4 w-4" />
@@ -154,7 +156,7 @@ export function PromoCodeBox({
                 handleApply();
               }
             }}
-            placeholder="Nhập mã giảm giá"
+            placeholder={t("promo.placeholder")}
             maxLength={30}
             className="min-w-0 flex-1 rounded-lg border border-white/10 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 focus:border-primary focus:outline-none"
           />
@@ -164,7 +166,7 @@ export function PromoCodeBox({
             className="flex shrink-0 items-center gap-1 rounded-lg bg-primary px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 hover:bg-primary-dull transition"
           >
             {applying && <Loader2 className="h-4 w-4 animate-spin" />}
-            Áp dụng
+            {t("promo.apply")}
           </button>
         </div>
       )}
@@ -177,7 +179,7 @@ export function PromoCodeBox({
             onClick={() => setShowList((v) => !v)}
             className="flex w-full items-center justify-between text-xs text-gray-400 hover:text-gray-200 transition"
           >
-            <span>Mã giảm giá hiện có</span>
+            <span>{t("promo.availableTitle")}</span>
             <ChevronDown
               className={`h-4 w-4 transition-transform ${showList ? "rotate-180" : ""}`}
             />
@@ -186,10 +188,10 @@ export function PromoCodeBox({
           {showList && (
             <div className="mt-2 space-y-2">
               {loadingList && (
-                <p className="text-xs text-gray-500">Đang tải mã…</p>
+                <p className="text-xs text-gray-500">{t("promo.loading")}</p>
               )}
               {!loadingList && available.length === 0 && (
-                <p className="text-xs text-gray-500">Hiện chưa có mã giảm giá nào.</p>
+                <p className="text-xs text-gray-500">{t("promo.none")}</p>
               )}
               {!loadingList &&
                 available.map((promo) => (
@@ -206,15 +208,15 @@ export function PromoCodeBox({
                         disabled={applying}
                         className="shrink-0 rounded-md border border-primary/40 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-50 transition"
                       >
-                        Dùng
+                        {t("promo.use")}
                       </button>
                     </div>
                     <p className="mt-1 text-xs text-gray-400">
-                      {describePromotion(promo)}
+                      {describePromotion(promo, t)}
                     </p>
                     <p className="mt-0.5 text-[11px] text-gray-500">
-                      HSD: {promo.endDate}
-                      {promo.remainingUses != null && ` · Còn ${promo.remainingUses} lượt`}
+                      {t("promo.expiry", { date: promo.endDate })}
+                      {promo.remainingUses != null && t("promo.remainingUses", { count: promo.remainingUses })}
                     </p>
                   </div>
                 ))}

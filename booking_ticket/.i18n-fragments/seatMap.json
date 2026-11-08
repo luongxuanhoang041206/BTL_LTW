@@ -1,0 +1,44 @@
+{
+  "vi": {
+    "seatMap": {
+      "screenLabel": "MÀN HÌNH CHIẾU",
+      "legendAvailable": "Ghế trống",
+      "legendBooked": "Đã đặt",
+      "legendVip": "Ghế VIP",
+      "legendSelected": "Đang chọn",
+      "seatTypeVip": "GHẾ VIP",
+      "seatTypeNormal": "GHẾ THƯỜNG",
+      "distanceToScreen": "khoảng cách đến màn hình",
+      "horizontalOffset": "lệch ngang",
+      "upwardAngle": "góc ngước lên",
+      "viewFromThisSeat": "Xem thử góc nhìn từ ghế này",
+      "deselectThisSeat": "Bỏ chọn ghế này",
+      "selectedCount": "Đang chọn {{count}} ghế",
+      "selectedMaxSuffix": " / tối đa {{max}}",
+      "viewingFromSeat": "Đang xem từ ghế",
+      "hudSkew": "lệch",
+      "backToSeatMap": "Quay lại sơ đồ ghế"
+    }
+  },
+  "en": {
+    "seatMap": {
+      "screenLabel": "SCREEN",
+      "legendAvailable": "Available",
+      "legendBooked": "Booked",
+      "legendVip": "VIP seat",
+      "legendSelected": "Selected",
+      "seatTypeVip": "VIP SEAT",
+      "seatTypeNormal": "STANDARD SEAT",
+      "distanceToScreen": "distance to screen",
+      "horizontalOffset": "horizontal offset",
+      "upwardAngle": "upward angle",
+      "viewFromThisSeat": "Preview the view from this seat",
+      "deselectThisSeat": "Deselect this seat",
+      "selectedCount": "{{count}} seat(s) selected",
+      "selectedMaxSuffix": " / max {{max}}",
+      "viewingFromSeat": "Viewing from seat",
+      "hudSkew": "offset",
+      "backToSeatMap": "Back to seat map"
+    }
+  }
+}

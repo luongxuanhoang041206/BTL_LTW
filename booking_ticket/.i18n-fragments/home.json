@@ -1,0 +1,42 @@
+{
+  "vi": {
+    "home": {
+      "heroTitleLine1": "Vệ binh",
+      "heroTitleLine2": "dải Ngân Hà",
+      "heroGenres": "Hành động | Phiêu lưu | Khoa học viễn tưởng",
+      "heroYear": "2018",
+      "heroDuration": "2 giờ 8 phút",
+      "heroDescription": "Một nhóm anh hùng bất đắc dĩ phải gạt bỏ những khác biệt và hợp sức để bảo vệ dải Ngân Hà khỏi một kẻ thù hùng mạnh.",
+      "exploreMovies": "Khám phá phim",
+      "nowShowingTitle": "Phim Đang Chiếu",
+      "viewAll": "Xem tất cả",
+      "exploreMoreMovies": "Khám phá thêm phim",
+      "trailersTitle": "Đoạn phim giới thiệu",
+      "trailerImageAlt": "Ảnh xem trước trailer",
+      "defaultGenre": "Hành động",
+      "bookNow": "Đặt vé ngay",
+      "defaultReleaseYear": "2025",
+      "ratingScale": "/10"
+    }
+  },
+  "en": {
+    "home": {
+      "heroTitleLine1": "Guardian of",
+      "heroTitleLine2": "the galaxy",
+      "heroGenres": "Action | Adventure | Sci-fi",
+      "heroYear": "2018",
+      "heroDuration": "2h 8m",
+      "heroDescription": "A group of unlikely heroes must overcome their differences and join forces to protect the galaxy from a powerful enemy.",
+      "exploreMovies": "Explore Movies",
+      "nowShowingTitle": "Now Showing",
+      "viewAll": "View all",
+      "exploreMoreMovies": "Explore more movies",
+      "trailersTitle": "Trailers",
+      "trailerImageAlt": "Trailer preview image",
+      "defaultGenre": "Action",
+      "bookNow": "Book now",
+      "defaultReleaseYear": "2025",
+      "ratingScale": "/10"
+    }
+  }
+}

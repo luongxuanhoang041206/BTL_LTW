@@ -1,0 +1,54 @@
+{
+  "vi": {
+    "movieDetail": {
+      "notFoundTitle": "Không tìm thấy thông tin phim",
+      "backToMovies": "Quay lại danh sách phim",
+      "nowShowingBadge": "Phim Đang Chiếu Rạp",
+      "fallbackDescription": "Bộ phim điện ảnh đặc sắc mang lại cho bạn những trải nghiệm cảm xúc bùng nổ tại rạp.",
+      "fallbackGenres": "Hành động, Phiêu lưu",
+      "genre": "Thể loại:",
+      "director": "Đạo diễn:",
+      "cast": "Diễn viên:",
+      "language": "Ngôn ngữ:",
+      "watchTrailer": "Xem Trailer",
+      "bookNow": "Đặt Vé Ngay",
+      "addedToFavorites": "Đã thêm vào danh sách yêu thích!",
+      "reviewsTitle": "Đánh giá phim",
+      "reviewSummary": "{{rating}} / 10 · {{total}} đánh giá",
+      "noReviews": "Chưa có đánh giá nào.",
+      "alreadyReviewed": "Bạn đã gửi đánh giá cho phim này rồi. Cảm ơn bạn!",
+      "needLoginToReview": "Bạn cần đăng nhập và có vé đã thanh toán cho suất chiếu đã kết thúc mới có thể đánh giá phim.",
+      "canReviewAfterWatching": "Bạn có thể đánh giá sau khi xem xong một suất phim đã thanh toán.",
+      "ratingAria": "{{rating}} trên 10 điểm",
+      "reviewSubmitted": "Đã gửi đánh giá.",
+      "reviewSubmitFailed": "Không thể gửi đánh giá.",
+      "similarMovies": "Có thể bạn sẽ thích"
+    }
+  },
+  "en": {
+    "movieDetail": {
+      "notFoundTitle": "Movie information not found",
+      "backToMovies": "Back to movies",
+      "nowShowingBadge": "Now Showing in Theaters",
+      "fallbackDescription": "A remarkable cinematic experience that delivers explosive emotions at the cinema.",
+      "fallbackGenres": "Action, Adventure",
+      "genre": "Genre:",
+      "director": "Director:",
+      "cast": "Cast:",
+      "language": "Language:",
+      "watchTrailer": "Watch Trailer",
+      "bookNow": "Book Now",
+      "addedToFavorites": "Added to your favorites!",
+      "reviewsTitle": "Movie Reviews",
+      "reviewSummary": "{{rating}} / 10 · {{total}} reviews",
+      "noReviews": "No reviews yet.",
+      "alreadyReviewed": "You have already reviewed this movie. Thank you!",
+      "needLoginToReview": "You need to log in and have a paid ticket for a finished showtime to review this movie.",
+      "canReviewAfterWatching": "You can leave a review after watching a paid showtime.",
+      "ratingAria": "{{rating}} out of 10",
+      "reviewSubmitted": "Review submitted.",
+      "reviewSubmitFailed": "Could not submit review.",
+      "similarMovies": "You might also like"
+    }
+  }
+}

@@ -1,9 +1,11 @@
 import { StarIcon } from "lucide-react";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import timeFormat from "../lib/timeFormat";
 
 export function MovieCard({ movie }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const id = movie.id || movie._id;
   const poster = movie.posterUrl || movie.backdrop_path || movie.poster_path;
@@ -11,11 +13,11 @@ export function MovieCard({ movie }) {
     ? new Date(movie.releaseDate).getFullYear()
     : movie.release_date
     ? new Date(movie.release_date).getFullYear()
-    : "2025";
+    : t("home.defaultReleaseYear");
   const duration = movie.duration || movie.runtime || 120;
   const genresList = Array.isArray(movie.genres)
     ? movie.genres.slice(0, 2).map((g) => (typeof g === "string" ? g : g.name)).join(" | ")
-    : "Hành động";
+    : t("home.defaultGenre");
   const movieRating = movie.averageRating ?? movie.vote_average;
   const rating = Number.isFinite(movieRating) ? movieRating.toFixed(1) : "—";
 
@@ -50,11 +52,11 @@ export function MovieCard({ movie }) {
           }}
           className="px-4 py-1.5 text-xs bg-primary hover:bg-primary-dull text-white transition rounded-full font-medium cursor-pointer shadow-md shadow-primary/20 active:scale-95"
         >
-          Đặt vé ngay
+          {t("home.bookNow")}
         </button>
         <p className="flex items-center gap-1 text-xs text-yellow-400 font-medium mt-1 pr-1">
           <StarIcon className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-          {rating}<span className="text-[10px] text-gray-500">/10</span>
+          {rating}<span className="text-[10px] text-gray-500">{t("home.ratingScale")}</span>
         </p>
       </div>
     </div>

@@ -2,18 +2,32 @@ import { MenuIcon, TicketPlus, XIcon, LogOutIcon, ShieldCheckIcon } from "lucide
 import { assets } from "../assets/assets";
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { AuthModal } from "./AuthModal";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useWebsiteContent } from "../context/WebsiteContentContext";
+
+// Nhãn điều hướng chuẩn theo route (nội dung CMS chỉ dùng làm mặc định).
+const NAV_LABEL_KEYS = {
+  "/": "navbar.home",
+  "/home": "navbar.home",
+  "/movies": "navbar.nowShowing",
+  "/booking": "navbar.myTickets",
+};
+
+// Mục "Yêu thích" không còn hiển thị trên Header (chức năng vẫn giữ nguyên ở nơi khác).
+const HIDDEN_NAV_HREFS = ["/favourite", "/favorites"];
 
 export function NavBar({ cmsContent } = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { user, isAdmin, openLogin, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const contextSite = useWebsiteContent();
   const site = cmsContent || contextSite;
-  const links = site.header?.links || [];
+  const links = (site.header?.links || []).filter((item) => !HIDDEN_NAV_HREFS.includes(item.href));
 
   return (
     <>
@@ -46,7 +60,16 @@ export function NavBar({ cmsContent } = {}) {
             className="md:hidden absolute top-6 right-6 w-6 h-6 cursor-pointer text-gray-400"
             onClick={() => setIsOpen(false)}
           />
-          {links.map((item, index) => <Link key={`${item.href}-${index}`} onClick={() => { scrollTo(0, 0); setIsOpen(false); }} to={item.href} className="hover:text-primary transition">{item.text}</Link>)}
+          {links.map((item, index) => (
+            <Link
+              key={`${item.href}-${index}`}
+              onClick={() => { scrollTo(0, 0); setIsOpen(false); }}
+              to={item.href}
+              className="hover:text-primary transition"
+            >
+              {NAV_LABEL_KEYS[item.href] ? t(NAV_LABEL_KEYS[item.href]) : item.text}
+            </Link>
+          ))}
           {isAdmin && (
             <Link
               onClick={() => { scrollTo(0, 0); setIsOpen(false); }}
@@ -54,19 +77,20 @@ export function NavBar({ cmsContent } = {}) {
               className="text-primary font-semibold hover:underline flex items-center gap-1"
             >
               <ShieldCheckIcon className="w-4 h-4" />
-              Quản trị Admin
+              {t("navbar.admin")}
             </Link>
           )}
         </div>
 
         {/* Auth & Profile Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <LanguageSwitcher />
           {!user ? (
             <button
               onClick={openLogin}
               className="px-5 py-2 bg-primary hover:bg-primary-dull transition rounded-full font-medium text-sm cursor-pointer shadow-lg shadow-primary/30 active:scale-95"
             >
-              Đăng nhập
+              {t("navbar.login")}
             </button>
           ) : (
             <div className="relative">
@@ -105,7 +129,7 @@ export function NavBar({ cmsContent } = {}) {
                       className="w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition"
                     >
                       <TicketPlus className="w-4 h-4 text-primary" />
-                      Vé của tôi
+                      {t("navbar.myTickets")}
                     </button>
 
                     {isAdmin && (
@@ -117,7 +141,7 @@ export function NavBar({ cmsContent } = {}) {
                         className="w-full text-left px-3 py-2 text-primary hover:bg-primary/10 rounded-lg flex items-center gap-2 transition font-medium"
                       >
                         <ShieldCheckIcon className="w-4 h-4" />
-                        Trang Quản trị Admin
+                        {t("navbar.adminPage")}
                       </button>
                     )}
 
@@ -129,7 +153,7 @@ export function NavBar({ cmsContent } = {}) {
                       className="w-full text-left px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-2 transition mt-1 border-t border-gray-800"
                     >
                       <LogOutIcon className="w-4 h-4" />
-                      Đăng xuất
+                      {t("navbar.logout")}
                     </button>
                   </div>
                 </div>

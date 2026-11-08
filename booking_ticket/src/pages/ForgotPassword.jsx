@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Mail, Send } from "lucide-react";
 import { api } from "../lib/api";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const GENERIC_SUCCESS_MESSAGE = "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.";
 
 export function ForgotPassword() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -28,7 +29,7 @@ export function ForgotPassword() {
     const normalizedEmail = email.trim();
 
     if (normalizedEmail.length > 100 || !EMAIL_PATTERN.test(normalizedEmail)) {
-      setError("Vui lòng nhập email hợp lệ (tối đa 100 ký tự).");
+      setError(t("forgotPassword.invalidEmail"));
       setMessage("");
       return;
     }
@@ -39,10 +40,10 @@ export function ForgotPassword() {
 
     try {
       const response = await api.post("/api/auth/forgot-password", { email: normalizedEmail });
-      setMessage(response?.message || GENERIC_SUCCESS_MESSAGE);
+      setMessage(response?.message || t("forgotPassword.genericSuccess"));
       setRemainingSeconds(60);
     } catch (requestError) {
-      setError(requestError.message || "Không thể gửi yêu cầu. Vui lòng thử lại.");
+      setError(requestError.message || t("forgotPassword.sendFailed"));
     } finally {
       setLoading(false);
     }
@@ -54,15 +55,15 @@ export function ForgotPassword() {
         <section className="rounded-3xl border border-primary/20 bg-gray-900/80 p-6 shadow-2xl backdrop-blur-sm md:p-8">
           <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm text-gray-400 transition hover:text-white">
             <ArrowLeft className="h-4 w-4" />
-            Trang chủ
+            {t("forgotPassword.home")}
           </Link>
 
           <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
             <Mail className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold md:text-3xl">Quên mật khẩu?</h1>
+          <h1 className="text-2xl font-bold md:text-3xl">{t("forgotPassword.title")}</h1>
           <p className="mt-2 text-sm leading-6 text-gray-400">
-            Nhập email của bạn. Nếu email tồn tại, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu.
+            {t("forgotPassword.subtitle")}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
@@ -95,7 +96,11 @@ export function ForgotPassword() {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dull disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
-              {loading ? "Đang gửi..." : remainingSeconds > 0 ? `Gửi lại sau ${remainingSeconds} giây` : "Gửi hướng dẫn"}
+              {loading
+                ? t("forgotPassword.sending")
+                : remainingSeconds > 0
+                  ? t("forgotPassword.resendIn", { seconds: remainingSeconds })
+                  : t("forgotPassword.sendInstructions")}
             </button>
           </form>
         </section>

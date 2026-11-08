@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Bold, Italic, Underline, List, ListOrdered, ImagePlus } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -87,6 +88,7 @@ function domToDocument(root) {
 }
 
 export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
+  const { t } = useTranslation();
   const editorRef = useRef(null);
   const imageInputRef = useRef(null);
   const selectionRef = useRef(null);
@@ -124,7 +126,7 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
     if (!files.length) return;
     const remaining = 5 - images.length;
     if (files.length > remaining) {
-      toast.error(`Chỉ có thể đính kèm tối đa 5 ảnh. Còn ${remaining} vị trí.`);
+      toast.error(t("review.errMaxImages", { remaining }));
       return;
     }
 
@@ -132,7 +134,7 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
     try {
       const uploaded = [];
       for (const file of files) {
-        if (file.size > 5 * 1024 * 1024) throw new Error("Mỗi ảnh phải nhỏ hơn 5 MB.");
+        if (file.size > 5 * 1024 * 1024) throw new Error(t("review.errMaxSize"));
         const form = new FormData();
         form.append("file", file);
         const response = await fetch("/api/movies/reviews/images", {
@@ -141,12 +143,12 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
           body: form,
         });
         const result = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(result?.message || "Không tải được ảnh lên.");
+        if (!response.ok) throw new Error(result?.message || t("review.errUpload"));
         uploaded.push({ src: result.url, alt: file.name });
       }
       setImages((current) => [...current, ...uploaded]);
     } catch (error) {
-      toast.error(error.message || "Không tải được ảnh lên.");
+      toast.error(error.message || t("review.errUpload"));
     } finally {
       setUploadingImage(false);
     }
@@ -168,15 +170,15 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
 
   return (
     <form onSubmit={submit} className="rounded-2xl border border-white/10 bg-gray-900/70 p-5 mb-6">
-      <p className="text-sm font-medium text-gray-200 mb-3">Chấm điểm từ 1 đến 10 và viết cảm nhận của bạn.</p>
-      <div className="flex flex-wrap items-center gap-0.5 mb-4" role="radiogroup" aria-label="Điểm phim từ 1 đến 10">
+      <p className="text-sm font-medium text-gray-200 mb-3">{t("review.hint")}</p>
+      <div className="flex flex-wrap items-center gap-0.5 mb-4" role="radiogroup" aria-label={t("review.ratingGroupLabel")}>
         {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
           <button
             key={value}
             type="button"
             role="radio"
             aria-checked={rating === value}
-            aria-label={`${value} trên 10 điểm`}
+            aria-label={t("review.ratingAria", { rating: value })}
             onClick={() => onRatingChange(value)}
             className="p-1 cursor-pointer"
           >
@@ -187,13 +189,13 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 rounded-t-xl border border-white/10 bg-black/40 p-2">
-        {toolButton("In đậm", Bold, () => command("bold"))}
-        {toolButton("In nghiêng", Italic, () => command("italic"))}
-        {toolButton("Gạch chân", Underline, () => command("underline"))}
-        {toolButton("Danh sách chấm", List, () => command("insertUnorderedList"))}
-        {toolButton("Danh sách số", ListOrdered, () => command("insertOrderedList"))}
+        {toolButton(t("review.bold"), Bold, () => command("bold"))}
+        {toolButton(t("review.italic"), Italic, () => command("italic"))}
+        {toolButton(t("review.underline"), Underline, () => command("underline"))}
+        {toolButton(t("review.ulist"), List, () => command("insertUnorderedList"))}
+        {toolButton(t("review.olist"), ListOrdered, () => command("insertOrderedList"))}
         <select
-          aria-label="Phông chữ"
+          aria-label={t("review.fontFamily")}
           defaultValue="Arial"
           onMouseDown={saveSelection}
           onChange={(event) => { restoreSelection(); command("fontName", event.target.value); }}
@@ -202,7 +204,7 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
           {FONT_FAMILIES.map((font) => <option key={font} value={font}>{font}</option>)}
         </select>
         <select
-          aria-label="Cỡ chữ"
+          aria-label={t("review.fontSize")}
           defaultValue="16"
           onMouseDown={saveSelection}
           onChange={(event) => {
@@ -218,11 +220,11 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
         >
           {FONT_SIZES.map((size) => <option key={size} value={size}>{size}px</option>)}
         </select>
-        <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-white/10 px-2 text-xs text-gray-300" title="Màu chữ">
-          Màu
+        <label className="flex h-9 cursor-pointer items-center gap-2 rounded-md border border-white/10 px-2 text-xs text-gray-300" title={t("review.colorLabel")}>
+          {t("review.color")}
           <input
             type="color"
-            aria-label="Màu chữ"
+            aria-label={t("review.colorLabel")}
             defaultValue="#ffffff"
             onMouseDown={saveSelection}
             onChange={(event) => { restoreSelection(); command("foreColor", event.target.value); }}
@@ -239,16 +241,16 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
         onKeyUp={saveSelection}
         onMouseUp={saveSelection}
         role="textbox"
-        aria-label="Nội dung đánh giá"
+        aria-label={t("review.editorAria")}
         aria-multiline="true"
-        data-placeholder="Viết cảm nhận của bạn..."
+        data-placeholder={t("review.editorPlaceholder")}
         className="min-h-36 rounded-b-xl border border-t-0 border-white/10 bg-black/30 p-3 text-sm text-white focus:outline-none focus:border-primary empty:before:content-[attr(data-placeholder)] empty:before:text-gray-500"
       />
       <div className="mt-4 border-t border-white/10 pt-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-gray-200">Ảnh đính kèm</p>
-            <p className="mt-1 text-xs text-gray-500">Ảnh sẽ hiển thị bên dưới phần chữ.</p>
+            <p className="text-sm font-medium text-gray-200">{t("review.attachments")}</p>
+            <p className="mt-1 text-xs text-gray-500">{t("review.attachmentsDesc")}</p>
           </div>
           <button
             type="button"
@@ -256,7 +258,7 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
             disabled={uploadingImage || images.length >= 5}
             className="flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 hover:border-primary/50 disabled:opacity-50"
           >
-            <ImagePlus className="h-4 w-4" /> {uploadingImage ? "Đang tải..." : `Thêm ảnh (${images.length}/5)`}
+            <ImagePlus className="h-4 w-4" /> {uploadingImage ? t("review.uploading") : t("review.addImage", { count: images.length })}
           </button>
           <input ref={imageInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={uploadImage} className="hidden" />
         </div>
@@ -267,7 +269,7 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
                 <img src={image.src} alt={image.alt} className="h-full w-full object-cover" />
                 <button
                   type="button"
-                  aria-label="Gỡ ảnh"
+                  aria-label={t("review.removeImage")}
                   onClick={() => setImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}
                   className="absolute right-1 top-1 rounded-full bg-black/80 px-1.5 text-xs text-white"
                 >×</button>
@@ -277,13 +279,13 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
         )}
       </div>
       <div className="flex items-center justify-between mt-3">
-        <span className="text-xs text-gray-500">Mỗi ảnh tối đa 5 MB.</span>
+        <span className="text-xs text-gray-500">{t("review.maxSize")}</span>
         <button
           type="submit"
           disabled={submitting || uploadingImage || rating < 1}
           className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
-          {submitting ? "Đang gửi..." : "Gửi đánh giá"}
+          {submitting ? t("review.submitting") : t("review.submitReview")}
         </button>
       </div>
     </form>
@@ -291,6 +293,7 @@ export function ReviewEditor({ rating, onRatingChange, onSubmit, submitting }) {
 }
 
 export function ReviewContent({ comment }) {
+  const { t } = useTranslation();
   if (!comment) return null;
 
   let documentContent;
@@ -353,7 +356,7 @@ export function ReviewContent({ comment }) {
               <img
                 key={`${image.src}-${imageIndex}`}
                 src={image.src}
-                alt={image.alt || "Ảnh trong đánh giá"}
+                alt={image.alt || t("review.imageAlt")}
                 loading="lazy"
                 className="max-h-[28rem] max-w-full rounded-xl object-contain"
               />
