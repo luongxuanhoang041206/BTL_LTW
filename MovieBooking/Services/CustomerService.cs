@@ -24,7 +24,7 @@ public sealed class CustomerService(MovieBookingContext context) : ICustomerServ
             .Select(user => new AdminCustomerDto(
                 user.UserId, user.FullName, user.Email, user.Phone ?? "---", user.Status,
                 user.CreatedAt.ToString("yyyy-MM-dd"), user.Bookings.Count,
-                user.Bookings.Where(booking => booking.Status == "Confirmed").Sum(booking => (decimal?)booking.TotalAmount) ?? 0))
+                user.Bookings.Where(booking => booking.Status == "Paid").Sum(booking => (decimal?)booking.TotalAmount) ?? 0))
             .ToListAsync();
     }
 

@@ -74,9 +74,9 @@ public class PaymentService : IPaymentService
                 seat.HoldExpiresAt < DateTime.Now))
             return false;
 
-        payment.PaymentStatus = "Completed";
+        payment.PaymentStatus = "Success";
         payment.PaidAt = DateTime.Now;
-        payment.Booking.Status = "Confirmed";
+        payment.Booking.Status = "Paid";
         foreach (var seat in seats)
         {
             seat.Status = "Booked";
@@ -124,6 +124,8 @@ public class PaymentService : IPaymentService
 
         if (booking.Status != "Pending")
             return (false, null, "Booking này không ở trạng thái chờ thanh toán.");
+        if (await _context.Payments.AnyAsync(p => p.BookingId == bookingId && p.PaymentStatus == "Success"))
+            return (false, null, "Booking đã được thanh toán.");
         if (!await _context.Showtimes.AnyAsync(s => s.ShowtimeId == booking.ShowtimeId && s.Status == "Active"))
             return (false, null, "Suất chiếu đã ngừng nhận thanh toán.");
 
@@ -166,9 +168,17 @@ public class PaymentService : IPaymentService
             seat.LockedByUserId = null;
         }
 
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-        return (true, payment.PaymentId, null);
+        try
+        {
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return (true, payment.PaymentId, null);
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            return (false, null, "Booking đã được thanh toán. Vui lòng kiểm tra lại đơn.");
+        }
     }
 
     private static string GenerateTransactionCode(string method)

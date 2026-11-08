@@ -5,5 +5,5 @@ namespace MovieBooking.Services.Interfaces;
 public interface IAdminReportingService
 {
     Task<AdminDashboardDto> GetDashboardAsync();
-    Task<AdminRevenueAnalyticsDto> GetRevenueAnalyticsAsync();
+    Task<AdminRevenueAnalyticsDto> GetRevenueAnalyticsAsync(RevenueReportQueryDto query);
 }

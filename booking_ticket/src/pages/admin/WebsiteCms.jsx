@@ -6,6 +6,7 @@ import { FeatureSection } from "../../components/FeatureSection";
 import { TrailersSection } from "../../components/TrailersSection";
 import { NavBar } from "../../components/Navbar";
 import { Footer } from "../../components/Footer";
+import { ImageFileField } from "../../components/admin/ImageFileField";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const internalLink = (value) => value.startsWith("/") && !value.startsWith("//") || /^https:\/\//i.test(value);
@@ -35,7 +36,7 @@ export function WebsiteCms() {
   const validationError = () => {
     const b = content.banner || {};
     if (b.active && (!b.title.trim() || !b.description.trim() || !b.ctaText.trim())) return "Banner đang bật cần có tiêu đề, mô tả và nhãn nút.";
-    if (b.image && !/^https:\/\//i.test(b.image)) return "URL hình ảnh banner phải bắt đầu bằng https://.";
+    if (b.image && !/^https:\/\//i.test(b.image) && !/^\/uploads\//i.test(b.image)) return "Ảnh banner phải được tải từ máy hoặc là đường dẫn HTTPS.";
     if (b.ctaLink && !internalLink(b.ctaLink)) return "Liên kết banner chỉ được dùng đường dẫn nội bộ hoặc HTTPS.";
     if ((content.header?.links || []).some((link) => !link.text.trim() || !internalLink(link.href))) return "Mỗi liên kết đầu trang cần có nhãn và đường dẫn nội bộ hoặc HTTPS.";
     if ((content.announcements || []).some((a) => a.active && !a.text.trim())) return "Thông báo đang bật cần có nội dung.";
@@ -70,7 +71,7 @@ export function WebsiteCms() {
         <section className="space-y-3 rounded-xl border border-gray-700 bg-gray-900 p-4"><h2 className="font-semibold">Banner trang chủ</h2>
           {field("Tiêu đề",content.banner.title,v=>update(x=>x.banner.title=v),{maxLength:120,required:true})}
           {field("Mô tả",content.banner.description,v=>update(x=>x.banner.description=v),{maxLength:500})}
-          {field("URL hình ảnh (HTTPS)",content.banner.image,v=>update(x=>x.banner.image=v),{type:"url",placeholder:"https://..."})}
+          <ImageFileField label="Ảnh banner" value={content.banner.image} onChange={(url) => update((x) => { x.banner.image = url; })} folder="banners" />
           {field("Nhãn nút",content.banner.ctaText,v=>update(x=>x.banner.ctaText=v),{maxLength:50})}
           {field("Liên kết nút",content.banner.ctaLink,v=>update(x=>x.banner.ctaLink=v),{maxLength:300})}
           {field("Thứ tự hiển thị",content.banner.order,v=>update(x=>x.banner.order=Number(v)),{type:"number",min:1})}
