@@ -20,6 +20,8 @@ public partial class Booking
     public string Status { get; set; } = null!;
     public string? TicketCode { get; set; }
 
+    public DateTime? TicketEmailSentAt { get; set; }
+
     public virtual ICollection<BookingDetail> BookingDetails { get; set; } = new List<BookingDetail>();
 
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
