@@ -45,6 +45,7 @@ builder.Services.AddScoped<IAdminSystemService, AdminSystemService>();
 builder.Services.AddScoped<IBookingCheckoutService, BookingCheckoutService>();
 builder.Services.AddScoped<IEmailSenderService, SmtpEmailSenderService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<ITicketEmailService, TicketEmailService>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

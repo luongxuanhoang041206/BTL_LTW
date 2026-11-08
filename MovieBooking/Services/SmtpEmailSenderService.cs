@@ -19,7 +19,7 @@ public class SmtpEmailSenderService : IEmailSenderService
     public SmtpEmailSenderService(IConfiguration config, IHostEnvironment env, ILogger<SmtpEmailSenderService> log)
     { _config = config; _env = env; _log = log; }
 
-    public async Task SendAsync(string to, string subject, string htmlBody)
+    public async Task SendAsync(string to, string subject, string htmlBody, IEnumerable<EmailInlineImage>? inlineImages = null)
     {
         var user = _config["Email:Username"];
         var pass = _config["Email:AppPassword"];
@@ -38,7 +38,16 @@ public class SmtpEmailSenderService : IEmailSenderService
         msg.From.Add(new MailboxAddress("MovieBooking", user));
         msg.To.Add(MailboxAddress.Parse(to));
         msg.Subject = subject;
-        msg.Body = new BodyBuilder { HtmlBody = htmlBody }.ToMessageBody();
+        var builder = new BodyBuilder { HtmlBody = htmlBody };
+        if (inlineImages != null)
+        {
+            foreach (var img in inlineImages)
+            {
+                var res = builder.LinkedResources.Add(img.ContentId + ".png", img.Data, ContentType.Parse(img.MediaType));
+                res.ContentId = img.ContentId;
+            }
+        }
+        msg.Body = builder.ToMessageBody();
 
         using var smtp = new SmtpClient();
         await smtp.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls);

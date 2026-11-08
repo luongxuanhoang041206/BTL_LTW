@@ -16,11 +16,13 @@ public class PaymentService : IPaymentService
 {
     private readonly MovieBookingContext _context;
     private readonly IConfiguration _config;
+    private readonly ITicketEmailService _ticketEmail;
 
-    public PaymentService(MovieBookingContext context, IConfiguration config)
+    public PaymentService(MovieBookingContext context, IConfiguration config, ITicketEmailService ticketEmail)
     {
         _context = context;
         _config = config;
+        _ticketEmail = ticketEmail;
     }
 
     public async Task<List<AdminPaymentDto>> GetAdminPaymentsAsync(string? status, string? method)
@@ -241,6 +243,8 @@ public class PaymentService : IPaymentService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
+            await _ticketEmail.SendOnPaidAsync(payment.BookingId);
+
             // Mô phỏng URL chuyển hướng thanh toán (hoặc URL tích hợp cổng thanh toán thực tế)
             string mockGatewayUrl = $"/Payment/ReturnResult?paymentId={payment.PaymentId}&transactionCode={payment.TransactionCode}&success=true";
 
@@ -330,6 +334,7 @@ public class PaymentService : IPaymentService
             return (false, "Không thể xác nhận thanh toán lúc này. Vui lòng thử lại.");
         }
     }
+
     public async Task ProcessBankTransferAsync(SePayWebhookDto dto)
     {
         if (!string.Equals(dto.TransferType, "in", StringComparison.OrdinalIgnoreCase)) return;
@@ -437,6 +442,11 @@ public class PaymentService : IPaymentService
         _context.BankTransactions.Add(log);
         await _context.SaveChangesAsync();
         await tx.CommitAsync();
+
+        if (log.Result == "Success")
+        {
+            await _ticketEmail.SendOnPaidAsync(payment!.BookingId);
+        }
     }
 
     private async Task SaveLogAsync(BankTransaction log)
