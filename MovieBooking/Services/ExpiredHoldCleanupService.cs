@@ -79,9 +79,23 @@ public class ExpiredHoldCleanupService : BackgroundService
             await db.BookingDetails
                 .Where(d => d.BookingId == b.BookingId)
                 .ExecuteDeleteAsync(ct);
+            // Nhả lượt khuyến mãi đang giữ của booking bị hủy
+            await db.PromotionRedemptions
+                .Where(r => r.BookingId == b.BookingId && r.Status == "Reserved")
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(r => r.Status, "Released")
+                    .SetProperty(r => r.ReleasedAt, DateTime.Now), ct);
             await tx.CommitAsync(ct);
             released++;
         }
+
+        // Quét các lượt giữ khuyến mãi đã hết hạn (backstop cho lượt chưa nhả)
+        var cutoffRedemptions = DateTime.Now;
+        await db.PromotionRedemptions
+            .Where(r => r.Status == "Reserved" && r.ExpiresAt < cutoffRedemptions)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(r => r.Status, "Released")
+                .SetProperty(r => r.ReleasedAt, cutoffRedemptions), ct);
 
         if (released > 0)
             _logger.LogInformation("Released {Count} expired bookings", released);

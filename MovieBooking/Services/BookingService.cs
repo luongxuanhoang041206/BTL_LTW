@@ -14,11 +14,14 @@ namespace MovieBooking.Services;
 public class BookingService : IBookingService
 {
     private readonly MovieBookingContext _context;
-    private const int HoldMinutes = 10;
+    private readonly ISystemSettingsService _systemSettings;
+    private readonly IPromotionService _promotionService;
 
-    public BookingService(MovieBookingContext context)
+    public BookingService(MovieBookingContext context, ISystemSettingsService systemSettings, IPromotionService promotionService)
     {
         _context = context;
+        _systemSettings = systemSettings;
+        _promotionService = promotionService;
     }
 
     // -----------------------------------------------------------------------
@@ -140,24 +143,70 @@ public class BookingService : IBookingService
 
     public async Task ReleaseExpiredHoldsAsync(int showtimeId)
     {
-        var now = DateTime.Now;
-
-        var expiredSeats = await _context.ShowtimeSeats
-            .Where(ss => ss.ShowtimeId == showtimeId
-                      && ss.Status == "Holding"
-                      && ss.HoldExpiresAt != null
-                      && ss.HoldExpiresAt < now)
-            .ToListAsync();
-
-        if (expiredSeats.Count == 0) return;
-
-        foreach (var seat in expiredSeats)
+        var localTransaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
+        try
         {
-            seat.Status          = "Available";
-            seat.HoldExpiresAt   = null;
-            seat.LockedByUserId  = null;
+            var now = DateTime.Now;
+            var expiredSeats = await _context.ShowtimeSeats
+                .Where(ss => ss.ShowtimeId == showtimeId
+                          && ss.Status == "Holding"
+                          && ss.HoldExpiresAt != null
+                          && ss.HoldExpiresAt < now)
+                .ToListAsync();
+
+            if (expiredSeats.Count == 0)
+            {
+                if (localTransaction != null) await localTransaction.CommitAsync();
+                return;
+            }
+
+            var expiredIds = expiredSeats.Select(seat => seat.ShowtimeSeatId).ToList();
+            var details = await _context.BookingDetails
+                .Include(detail => detail.Booking)
+                    .ThenInclude(booking => booking.Payments)
+                .Where(detail => expiredIds.Contains(detail.ShowtimeSeatId))
+                .ToListAsync();
+
+            var blockedSeatIds = new HashSet<int>();
+            foreach (var group in details.GroupBy(detail => detail.BookingId))
+            {
+                var booking = group.First().Booking;
+                var keepsSeat = booking.Status != "Pending" || booking.Payments.Any(payment =>
+                    payment.PaymentStatus is "Success" or "Completed" or "PaidNeedRefund");
+                if (keepsSeat)
+                {
+                    foreach (var detail in group)
+                        blockedSeatIds.Add(detail.ShowtimeSeatId);
+                    continue;
+                }
+
+                booking.Status = "Cancelled";
+                await _promotionService.ReleaseForBookingAsync(booking.BookingId);
+                _context.BookingDetails.RemoveRange(group);
+            }
+
+            foreach (var seat in expiredSeats)
+            {
+                if (blockedSeatIds.Contains(seat.ShowtimeSeatId)) continue;
+                seat.Status = "Available";
+                seat.HoldExpiresAt = null;
+                seat.LockedByUserId = null;
+            }
+
+            await _context.SaveChangesAsync();
+            if (localTransaction != null) await localTransaction.CommitAsync();
         }
-        await _context.SaveChangesAsync();
+        catch
+        {
+            if (localTransaction != null) await localTransaction.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            if (localTransaction != null) await localTransaction.DisposeAsync();
+        }
     }
 
     public async Task<SeatMapViewModel?> GetSeatMapAsync(int showtimeId, int currentUserId)
@@ -223,62 +272,79 @@ public class BookingService : IBookingService
     // HOLD SEATS
     // -----------------------------------------------------------------------
 
-    public async Task<(bool Success, string? Error)> HoldSeatsAsync(
+    public async Task<(bool Success, string? Error, DateTime? ExpiresAt)> HoldSeatsAsync(
         int showtimeId, List<int> seatIds, int userId)
     {
         if (seatIds == null || seatIds.Count == 0)
-            return (false, "Vui lòng chọn ít nhất một ghế.");
+            return (false, "Vui lòng chọn ít nhất một ghế.", null);
 
         if (seatIds.Count > 8)
-            return (false, "Chỉ được chọn tối đa 8 ghế mỗi lần đặt.");
+            return (false, "Chỉ được chọn tối đa 8 ghế mỗi lần đặt.", null);
+
+        var settings = await _systemSettings.GetAsync();
+        if (settings.MaintenanceMode)
+            return (false, "Hệ thống đang bảo trì, tạm thời không thể đặt vé. Vui lòng quay lại sau.", null);
 
         // 1. Giải phóng expired holds
         await ReleaseExpiredHoldsAsync(showtimeId);
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var localTransaction = _context.Database.CurrentTransaction == null
+            ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
         try
         {
             var showtimeIsActive = await _context.Showtimes
                 .AnyAsync(s => s.ShowtimeId == showtimeId && s.Status == "Active");
             if (!showtimeIsActive)
-                return (false, "Suất chiếu không tồn tại hoặc đã ngừng nhận đặt vé.");
+                return (false, "Suất chiếu không tồn tại hoặc đã ngừng nhận đặt vé.", null);
 
-            // Re-read from the database; client seat data is never trusted.
+            var now = DateTime.Now;
             var seats = await _context.ShowtimeSeats
+                .AsNoTracking()
                 .Where(ss => ss.ShowtimeId == showtimeId && seatIds.Contains(ss.SeatId))
+                .Select(ss => new { ss.Status, ss.LockedByUserId, ss.HoldExpiresAt })
                 .ToListAsync();
 
             if (seats.Count != seatIds.Count)
-                return (false, "Một hoặc nhiều ghế không hợp lệ.");
+                return (false, "Một hoặc nhiều ghế không hợp lệ.", null);
 
             var unavailable = seats.Where(s =>
                 s.Status != "Available" &&
                 !(s.Status == "Holding" && s.LockedByUserId == userId &&
-                  s.HoldExpiresAt != null && s.HoldExpiresAt >= DateTime.Now)).ToList();
+                  s.HoldExpiresAt != null && s.HoldExpiresAt >= now)).ToList();
             if (unavailable.Count > 0)
-                return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.");
+                return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.", null);
 
-            var expiresAt = DateTime.Now.AddMinutes(HoldMinutes);
-            foreach (var seat in seats)
-            {
-                seat.Status = "Holding";
-                seat.LockedByUserId = userId;
-                seat.HoldExpiresAt = expiresAt;
-            }
+            var expiresAt = now.AddMinutes(settings.SeatHoldMinutes);
+            var updated = await _context.ShowtimeSeats
+                .Where(ss => ss.ShowtimeId == showtimeId && seatIds.Contains(ss.SeatId)
+                    && (ss.Status == "Available"
+                        || (ss.Status == "Holding" && ss.LockedByUserId == userId
+                            && ss.HoldExpiresAt != null && ss.HoldExpiresAt >= now)))
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(ss => ss.Status, "Holding")
+                    .SetProperty(ss => ss.LockedByUserId, userId)
+                    .SetProperty(ss => ss.HoldExpiresAt, expiresAt));
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return (true, null);
+            if (updated != seatIds.Count)
+                return (false, "Một hoặc nhiều ghế vừa được người khác chọn. Vui lòng chọn lại.", null);
+
+            if (localTransaction != null) await localTransaction.CommitAsync();
+            return (true, null, expiresAt);
         }
         catch (DbUpdateException)
         {
-            await transaction.RollbackAsync();
-            return (false, "Không thể giữ ghế. Vui lòng thử lại.");
+            if (localTransaction != null) await localTransaction.RollbackAsync();
+            return (false, "Không thể giữ ghế. Vui lòng thử lại.", null);
         }
         catch (Exception)
         {
-            await transaction.RollbackAsync();
-            return (false, "Không thể giữ ghế lúc này. Vui lòng thử lại.");
+            if (localTransaction != null) await localTransaction.RollbackAsync();
+            return (false, "Không thể giữ ghế lúc này. Vui lòng thử lại.", null);
+        }
+        finally
+        {
+            if (localTransaction != null) await localTransaction.DisposeAsync();
         }
     }
 
@@ -290,10 +356,15 @@ public class BookingService : IBookingService
         int showtimeId,
         List<int> showtimeSeatIds,
         int userId,
-        string? promoCode)
+        string? promoCode,
+        decimal foodsAmount = 0,
+        decimal combosAmount = 0)
     {
         if (showtimeSeatIds == null || showtimeSeatIds.Count == 0)
             return (false, null, "Không có ghế nào được chọn.");
+
+        if ((await _systemSettings.GetAsync()).MaintenanceMode)
+            return (false, null, "Hệ thống đang bảo trì, tạm thời không thể đặt vé. Vui lòng quay lại sau.");
 
         var now = DateTime.Now;
 
@@ -339,65 +410,76 @@ public class BookingService : IBookingService
                 }
             }
 
-            // 3. Validate & apply promo
+            // 3. Tính tiền vé theo loại ghế — giá server, không tin client
+            var vipMultiplier = showtime.VipMultiplier > 0 ? showtime.VipMultiplier : 1.2m;
+            decimal SeatPrice(ShowtimeSeat ss) => ss.Seat?.SeatType == "VIP"
+                ? Math.Round(showtime.Price * vipMultiplier, 0)
+                : showtime.Price;
+
+            var ticketsAmount = seats.Sum(SeatPrice);
+            if (foodsAmount < 0) foodsAmount = 0;
+            if (combosAmount < 0) combosAmount = 0;
+            var orderAmount = ticketsAmount + foodsAmount + combosAmount;
+
+            // 4. Validate + tính khuyến mãi NGAY TRONG transaction (khóa range chống vượt lượt)
             int? promotionId = null;
-            decimal discountPercent = 0;
+            decimal discountAmount = 0;
+            var totalAmount = orderAmount;
+            Promotion? appliedPromotion = null;
 
             if (!string.IsNullOrWhiteSpace(promoCode))
             {
-                var (valid, promo, _) = await ValidatePromoAsync(promoCode);
-                if (valid && promo != null)
+                var calc = await _promotionService.CalculatePromotionAsync(
+                    promoCode, userId, ticketsAmount, foodsAmount, combosAmount);
+                if (!calc.Valid || calc.PromotionId == null)
                 {
-                    promotionId     = promo.PromotionId;
-                    discountPercent = promo.DiscountPercent;
+                    if (ownsTransaction) await transaction.RollbackAsync();
+                    return (false, null, calc.Error ?? "Mã giảm giá không hợp lệ.");
                 }
+                promotionId    = calc.PromotionId;
+                discountAmount = calc.DiscountAmount;
+                totalAmount    = calc.TotalAmount;
+                appliedPromotion = await _context.Promotions.AsNoTracking()
+                    .FirstAsync(p => p.PromotionId == promotionId.Value);
             }
 
-            // 4. Tính tổng tiền theo loại ghế (Thường / VIP)
-            decimal totalRaw = 0;
-            var vipMultiplier = showtime.VipMultiplier > 0 ? showtime.VipMultiplier : 1.2m;
-
-            foreach (var ss in seats)
-            {
-                var seatPrice = (ss.Seat?.SeatType == "VIP")
-                    ? Math.Round(showtime.Price * vipMultiplier, 0)
-                    : showtime.Price;
-                totalRaw += seatPrice;
-            }
-
-            // Áp dụng khuyến mãi nếu có
-            var totalAmount = discountPercent > 0
-                ? totalRaw - Math.Round(totalRaw * discountPercent / 100m, 0)
-                : totalRaw;
-            // 5. Tạo Booking
+            // 5. Tạo Booking với subtotal / discount / total đầy đủ
             var booking = new Booking
             {
-                UserId      = userId,
-                ShowtimeId  = showtimeId,
-                PromotionId = promotionId,
-                BookingDate = now,
-                TotalAmount = totalAmount,
-                Status      = "Pending"
+                UserId         = userId,
+                ShowtimeId     = showtimeId,
+                PromotionId    = promotionId,
+                BookingDate    = now,
+                SubtotalAmount = orderAmount,
+                DiscountAmount = discountAmount,
+                TotalAmount    = totalAmount,
+                Status         = "Pending"
             };
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync(); // Cần BookingId
 
-            // 6. Tạo BookingDetail cho mỗi ghế
+            // 6. Tạo BookingDetail cho mỗi ghế (giá snapshot tại thời điểm đặt)
             foreach (var seat in seats)
             {
                 _context.BookingDetails.Add(new BookingDetail
                 {
                     BookingId      = booking.BookingId,
                     ShowtimeSeatId = seat.ShowtimeSeatId,
-                    Price          = seat.Seat?.SeatType == "VIP"
-                        ? Math.Round(showtime.Price * vipMultiplier, 0)
-                        : showtime.Price
+                    Price          = SeatPrice(seat)
                 });
                 // Keep the seat held while payment is pending. The payment webhook
                 // converts it to Booked after confirming the exact transfer.
             }
 
             await _context.SaveChangesAsync();
+
+            // 7. Giữ lượt khuyến mãi (Reserved) trong cùng transaction
+            if (appliedPromotion != null)
+            {
+                await _promotionService.ReserveRedemptionAsync(
+                    booking.BookingId, userId, appliedPromotion, now.AddMinutes(15));
+            }
+
             if (ownsTransaction) await transaction.CommitAsync();
 
             return (true, booking.BookingId, null);
@@ -529,7 +611,7 @@ public class BookingService : IBookingService
             .OrderBy(s => s.SeatLabel)
             .ToList();
 
-        if ((booking.Status == "Paid" || booking.Status == "Confirmed") && string.IsNullOrEmpty(booking.TicketCode))
+        if (booking.Status == "Paid" && string.IsNullOrEmpty(booking.TicketCode))
         {
             var trackedBooking = await _context.Bookings.FindAsync(booking.BookingId);
             if (trackedBooking != null)
@@ -540,7 +622,41 @@ public class BookingService : IBookingService
             }
         }
 
-        var subTotal = seats.Sum(s => s.Price);
+        // Vé điện tử theo từng ghế (mỗi BookingDetail tối đa một Ticket).
+        var detailIds = booking.BookingDetails.Select(d => d.BookingDetailId).ToList();
+        var ticketByDetail = (await _context.Tickets
+                .AsNoTracking()
+                .Where(t => detailIds.Contains(t.BookingDetailId))
+                .ToListAsync())
+            .ToDictionary(t => t.BookingDetailId);
+
+        var tickets = booking.BookingDetails
+            .OrderBy(d => d.ShowtimeSeat.Seat.SeatRow)
+            .ThenBy(d => d.ShowtimeSeat.Seat.SeatNumber)
+            .Select(d =>
+            {
+                ticketByDetail.TryGetValue(d.BookingDetailId, out var ticket);
+                return new TicketDto
+                {
+                    TicketId = ticket?.TicketId ?? 0,
+                    BookingDetailId = d.BookingDetailId,
+                    TicketCode = ticket?.TicketCode ?? string.Empty,
+                    QrImageUrl = ticket != null ? $"/api/tickets/{ticket.TicketId}/qr" : null,
+                    Status = ticket?.Status ?? "NotIssued",
+                    StatusLabel = TicketStatusLabel(ticket?.Status),
+                    IssuedAt = ticket?.IssuedAt,
+                    CheckedInAt = ticket?.CheckedInAt,
+                    SeatLabel = $"{d.ShowtimeSeat.Seat.SeatRow}{d.ShowtimeSeat.Seat.SeatNumber}",
+                    SeatType = d.ShowtimeSeat.Seat.SeatType,
+                    Price = d.Price
+                };
+            })
+            .ToList();
+
+        var lineTotal = seats.Sum(s => s.Price)
+            + booking.BookingCombos.Sum(bc => bc.UnitPrice * bc.Quantity)
+            + booking.BookingFoods.Sum(bf => bf.UnitPrice * bf.Quantity);
+        var subTotal = booking.SubtotalAmount > 0 ? booking.SubtotalAmount : lineTotal;
 
         return new BookingDetailViewModel
         {
@@ -558,11 +674,12 @@ public class BookingService : IBookingService
             RoomName       = booking.Showtime.Room.RoomName,
             RoomType       = booking.Showtime.Room.RoomType,
             Seats          = seats,
+            Tickets        = tickets,
             Combos         = booking.BookingCombos.Select(bc => new BookingComboDetailDto
             {
                 BookingComboId = bc.BookingComboId,
                 ComboId        = bc.ComboId,
-                ComboName      = bc.Combo.Name,
+                ComboName      = bc.ComboName,
                 ImageUrl       = bc.Combo.ImageUrl,
                 Quantity       = bc.Quantity,
                 UnitPrice      = bc.UnitPrice
@@ -577,6 +694,7 @@ public class BookingService : IBookingService
             SubTotal       = subTotal,
             PromoCode      = booking.Promotion?.Code,
             DiscountPercent = booking.Promotion?.DiscountPercent ?? 0,
+            DiscountAmount = booking.DiscountAmount,
             TotalAmount    = booking.TotalAmount,
             BookingStatus  = booking.Status,
             BookingDate    = booking.BookingDate,
@@ -590,7 +708,7 @@ public class BookingService : IBookingService
     {
         var booking = await _context.Bookings.FirstOrDefaultAsync(candidate =>
             candidate.BookingId == bookingId && candidate.UserId == userId &&
-            (candidate.Status == "Paid" || candidate.Status == "Confirmed"));
+            candidate.Status == "Paid");
         if (booking == null) return null;
 
         if (string.IsNullOrEmpty(booking.TicketCode))
@@ -762,8 +880,8 @@ public class BookingService : IBookingService
         }).ToList();
 
         var discountPct  = b.Promotion?.DiscountPercent ?? 0m;
-        var subTotal     = seats.Sum(s => s.Price);
-        var discountAmt  = Math.Round(subTotal * discountPct / 100, 0);
+        var subTotal     = b.SubtotalAmount > 0 ? b.SubtotalAmount : seats.Sum(s => s.Price);
+        var discountAmt  = b.DiscountAmount > 0 ? b.DiscountAmount : Math.Round(subTotal * discountPct / 100, 0);
 
         return new AdminBookingDetailDto
         {
@@ -806,6 +924,9 @@ public class BookingService : IBookingService
 
     public async Task<(bool Success, string? Error)> CancelBookingAsync(int bookingId, int userId)
     {
+        if (!(await _systemSettings.GetAsync()).AllowOnlineCancellation)
+            return (false, "Hệ thống hiện không cho phép hủy vé trực tuyến. Vui lòng liên hệ bộ phận hỗ trợ.");
+
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
@@ -839,6 +960,7 @@ public class BookingService : IBookingService
             }
 
             _context.BookingDetails.RemoveRange(booking.BookingDetails);
+            await _promotionService.ReleaseForBookingAsync(bookingId);
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return (true, null);
@@ -889,6 +1011,8 @@ public class BookingService : IBookingService
             TotalAmount        = booking.TotalAmount,
             PromoCode          = booking.Promotion?.Code,
             DiscountPercent    = booking.Promotion?.DiscountPercent ?? 0,
+            SubtotalAmount     = booking.SubtotalAmount,
+            DiscountAmount     = booking.DiscountAmount,
             HasPreviousFailure = booking.Payments.Any(p => p.PaymentStatus == "Failed")
         };
     }
@@ -935,4 +1059,12 @@ public class BookingService : IBookingService
             PaidAt        = successPayment?.PaidAt ?? booking.BookingDate
         };
     }
+
+    private static string TicketStatusLabel(string? status) => status switch
+    {
+        "Issued" => "Chưa sử dụng",
+        "Used" => "Đã sử dụng",
+        "Cancelled" => "Đã hủy",
+        _ => "Chưa phát hành"
+    };
 }

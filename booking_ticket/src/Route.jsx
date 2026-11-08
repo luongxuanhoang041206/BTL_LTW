@@ -14,6 +14,7 @@ import { Layout } from "./pages/admin/Layout.jsx";
 import { DashBoard } from "./pages/admin/DashBoard.jsx";
 import { ListShows } from "./pages/admin/ListShows.jsx";
 import { ListBookings } from "./pages/admin/ListBookings.jsx";
+import { CheckInTickets } from "./pages/admin/CheckInTickets.jsx";
 import { ManageMovies } from "./pages/admin/ManageMovies.jsx";
 import { ManageGenres } from "./pages/admin/ManageGenres.jsx";
 import { ManageCinemas } from "./pages/admin/ManageCinemas.jsx";
@@ -143,6 +144,10 @@ export const route = createBrowserRouter([
           {
             path: "bookings",
             element: <ListBookings />,
+          },
+          {
+            path: "check-in",
+            element: <CheckInTickets />,
           },
           {
             path: "list-bookings",

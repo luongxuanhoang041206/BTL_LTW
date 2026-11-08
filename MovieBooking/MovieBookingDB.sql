@@ -17,7 +17,7 @@ CREATE TABLE Users (
     Email           VARCHAR(100) NOT NULL UNIQUE,
     PasswordHash    VARCHAR(255) NOT NULL,
     Phone           VARCHAR(15),
-    Role            VARCHAR(20) NOT NULL DEFAULT 'Customer' CHECK (Role IN ('Customer','Admin')),
+    Role            VARCHAR(20) NOT NULL DEFAULT 'Customer' CHECK (Role IN ('Customer','Admin','Staff')),
     Status          BIT NOT NULL DEFAULT 1,
     CreatedAt       DATETIME NOT NULL DEFAULT GETDATE()
 );
@@ -107,6 +107,7 @@ CREATE TABLE Showtimes (
     Price           DECIMAL(10,2) NOT NULL,
     VipMultiplier   DECIMAL(5,2) NOT NULL CONSTRAINT DF_Showtimes_VipMultiplier DEFAULT (1.20),
     Status          VARCHAR(20) NOT NULL DEFAULT 'Active' CHECK (Status IN ('Active','Cancelled','Finished')),
+    CONSTRAINT CK_Showtimes_TimeRange CHECK (EndTime > StartTime),
     FOREIGN KEY (MovieId) REFERENCES Movies(MovieId),
     FOREIGN KEY (RoomId) REFERENCES Rooms(RoomId)
 );
@@ -147,7 +148,8 @@ CREATE TABLE Promotions (
     DiscountPercent DECIMAL(5,2) NOT NULL CHECK (DiscountPercent BETWEEN 0 AND 100),
     StartDate       DATE NOT NULL,
     EndDate         DATE NOT NULL,
-    Status          BIT NOT NULL DEFAULT 1
+    Status          BIT NOT NULL DEFAULT 1,
+    CONSTRAINT CK_Promotions_DateRange CHECK (EndDate >= StartDate)
 );
 GO
 
@@ -218,7 +220,8 @@ CREATE TABLE BankTransactions (
     Content NVARCHAR(500) NULL,
     PaymentId INT NULL,
     Result NVARCHAR(50) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL
+    CreatedAt DATETIME2 NOT NULL,
+    CONSTRAINT FK_BankTransactions_Payments FOREIGN KEY (PaymentId) REFERENCES Payments(PaymentId) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX IX_BankTransactions_ProviderTransactionId
@@ -275,6 +278,7 @@ BEGIN
         BookingComboId INT IDENTITY(1,1) PRIMARY KEY,
         BookingId INT NOT NULL,
         ComboId INT NOT NULL,
+        ComboName NVARCHAR(150) NOT NULL,
         Quantity INT NOT NULL,
         UnitPrice DECIMAL(18,2) NOT NULL,
         FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE,
@@ -290,8 +294,8 @@ BEGIN
         BookingId INT NOT NULL,
         FoodItemId INT NOT NULL,
         FoodName NVARCHAR(150) NOT NULL,
-        Quantity INT NOT NULL,
-        UnitPrice DECIMAL(18,2) NOT NULL,
+        Quantity INT NOT NULL CHECK (Quantity > 0),
+        UnitPrice DECIMAL(18,2) NOT NULL CHECK (UnitPrice >= 0),
         FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE,
         FOREIGN KEY (FoodItemId) REFERENCES FoodItems(FoodItemId)
     );

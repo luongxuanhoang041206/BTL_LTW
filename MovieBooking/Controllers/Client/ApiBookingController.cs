@@ -85,7 +85,7 @@ public class ApiBookingController : ControllerBase
             return BadRequest(new { message = "Vui lòng chọn ít nhất một ghế." });
         }
 
-        var (success, error) = await _bookingService.HoldSeatsAsync(
+        var (success, error, expiresAt) = await _bookingService.HoldSeatsAsync(
             request.ShowtimeId, request.SeatIds, userId.Value);
 
         if (!success)
@@ -96,8 +96,8 @@ public class ApiBookingController : ControllerBase
         return Ok(new
         {
             success = true,
-            message = "Giữ ghế thành công (10 phút)!",
-            expiresAt = DateTime.Now.AddMinutes(10).ToString("o")
+            message = "Giữ ghế thành công!",
+            expiresAt = expiresAt?.ToString("o")
         });
     }
 

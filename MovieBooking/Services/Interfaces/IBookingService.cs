@@ -30,22 +30,25 @@ public interface IBookingService
     // --- Hold ---
 
     /// <summary>
-    /// Giữ ghế cho user. Trả về (Success, Error).
+    /// Giữ ghế cho user. Trả về (Success, Error, ExpiresAt) — ExpiresAt là thời điểm hết hạn giữ ghế thực tế.
     /// seatIds là danh sách SeatId (physical seat), không phải ShowtimeSeatId.
     /// </summary>
-    Task<(bool Success, string? Error)> HoldSeatsAsync(int showtimeId, List<int> seatIds, int userId);
+    Task<(bool Success, string? Error, DateTime? ExpiresAt)> HoldSeatsAsync(int showtimeId, List<int> seatIds, int userId);
 
     // --- Confirm booking ---
 
     /// <summary>
-    /// Tạo Booking + BookingDetails, đổi ShowtimeSeat sang Booked.
-    /// showtimeSeatIds lấy từ Session (đã được hold).
+    /// Tạo Booking + BookingDetails, giữ ghế ở trạng thái Holding chờ thanh toán.
+    /// showtimeSeatIds lấy từ checkout (đã được hold). foodsAmount/combosAmount là
+    /// tổng tiền món/combo đã được server validate, dùng để tính giảm giá toàn đơn.
     /// </summary>
     Task<(bool Success, int? BookingId, string? Error)> ConfirmBookingAsync(
         int showtimeId,
         List<int> showtimeSeatIds,
         int userId,
-        string? promoCode);
+        string? promoCode,
+        decimal foodsAmount = 0,
+        decimal combosAmount = 0);
 
     // --- Promo ---
 

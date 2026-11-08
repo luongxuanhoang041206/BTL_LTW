@@ -243,10 +243,10 @@ public class MovieService : IMovieService
             CreatedAt = DateTime.Now
         };
 
-        if (dto.GenreIds != null && dto.GenreIds.Any())
+        if (dto.ParsedGenreIds.Any())
         {
             var genres = await _context.Genres
-                .Where(g => dto.GenreIds.Contains(g.GenreId))
+                .Where(g => dto.ParsedGenreIds.Contains(g.GenreId))
                 .ToListAsync();
 
             movie.Genres = genres;
@@ -283,8 +283,8 @@ public class MovieService : IMovieService
         movie.AgeRating = dto.AgeRating;
         movie.Status = NormalizeStatus(dto.Status);
 
-        var selectedGenres = dto.GenreIds != null
-            ? await _context.Genres.Where(g => dto.GenreIds.Contains(g.GenreId)).ToListAsync()
+        var selectedGenres = dto.ParsedGenreIds.Any()
+            ? await _context.Genres.Where(g => dto.ParsedGenreIds.Contains(g.GenreId)).ToListAsync()
             : new List<Genre>();
 
         movie.Genres.Clear();

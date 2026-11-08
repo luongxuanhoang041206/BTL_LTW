@@ -8,8 +8,6 @@ namespace MovieBooking.Services;
 
 public sealed class AdminSystemService(MovieBookingContext context) : IAdminSystemService
 {
-    private static SystemSettingsDto _settings = new();
-
     public async Task<List<AdminStaffUserDto>> GetStaffUsersAsync() => await context.Users
         .Where(user => user.Role == "Admin" || user.Role == "Staff")
         .AsNoTracking()
@@ -54,13 +52,5 @@ public sealed class AdminSystemService(MovieBookingContext context) : IAdminSyst
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         await context.SaveChangesAsync();
         return true;
-    }
-
-    public SystemSettingsDto GetSystemSettings() => _settings;
-
-    public SystemSettingsDto UpdateSystemSettings(SystemSettingsDto settings)
-    {
-        _settings = settings;
-        return _settings;
     }
 }

@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Cấu hình CORS cho phép React FE (booking_ticket) gọi API
 builder.Services.AddCors(options =>
@@ -42,10 +44,15 @@ builder.Services.AddScoped<ISeatService, SeatService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IAdminReportingService, AdminReportingService>();
 builder.Services.AddScoped<IAdminSystemService, AdminSystemService>();
+builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 builder.Services.AddScoped<IBookingCheckoutService, BookingCheckoutService>();
 builder.Services.AddScoped<IEmailSenderService, SmtpEmailSenderService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+
+builder.Services.AddScoped<IEmailSenderService, SmtpEmailSenderService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<ITicketEmailService, TicketEmailService>();
+
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
@@ -84,6 +91,12 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<MovieBookingContext>();
     DataSeeder.Seed(context);
+}
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();

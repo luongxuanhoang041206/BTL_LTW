@@ -6,8 +6,9 @@ export const api = {
 
   async request(path, options = {}) {
     const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
     const headers = {
-      "Content-Type": "application/json",
+      ...(!isFormData ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
     };
 
@@ -22,7 +23,8 @@ export const api = {
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const errorMessage = data?.message || `Lỗi yêu cầu: ${response.statusText}`;
+        const validationErrors = data?.errors && Object.values(data.errors).flat().filter(Boolean).join(" ");
+        const errorMessage = data?.message || validationErrors || data?.title || `Lỗi yêu cầu: ${response.status} ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
@@ -40,14 +42,14 @@ export const api = {
   post(path, body) {
     return this.request(path, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: typeof FormData !== "undefined" && body instanceof FormData ? body : JSON.stringify(body),
     });
   },
 
   put(path, body) {
     return this.request(path, {
       method: "PUT",
-      body: JSON.stringify(body),
+      body: typeof FormData !== "undefined" && body instanceof FormData ? body : JSON.stringify(body),
     });
   },
 
@@ -60,5 +62,20 @@ export const api = {
 
   delete(path) {
     return this.request(path, { method: "DELETE" });
+  },
+
+  async upload(path, formData, options = {}) {
+    const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+      signal: options.signal,
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.message || "Không tải được ảnh lên.");
+    }
+    return data;
   },
 };

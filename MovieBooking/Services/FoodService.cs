@@ -652,13 +652,13 @@ public class FoodService : IFoodService
             {
                 BookingId = bookingId,
                 ComboId = item.ComboId,
+                ComboName = item.ComboName,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice // Lưu giá tại thời điểm đặt để bảo toàn lịch sử
             });
         }
 
-        booking.TotalAmount += validatedList.Sum(item => item.UnitPrice * item.Quantity);
-
+        // TotalAmount đã được ConfirmBookingAsync tính đủ (vé + combo + món - giảm giá).
         await _context.SaveChangesAsync();
         return (true, null);
     }
@@ -673,7 +673,7 @@ public class FoodService : IFoodService
             {
                 BookingComboId = bc.BookingComboId,
                 ComboId = bc.ComboId,
-                ComboName = bc.Combo.Name,
+                ComboName = bc.ComboName,
                 ImageUrl = bc.Combo.ImageUrl,
                 Quantity = bc.Quantity,
                 UnitPrice = bc.UnitPrice
@@ -735,7 +735,7 @@ public class FoodService : IFoodService
             });
         }
 
-        booking.TotalAmount += validation.TotalPrice;
+        // TotalAmount đã được ConfirmBookingAsync tính đủ (vé + combo + món - giảm giá).
         await _context.SaveChangesAsync();
         return (true, null);
     }

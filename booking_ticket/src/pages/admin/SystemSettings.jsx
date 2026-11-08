@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Settings, Save, AlertTriangle, ShieldCheck, Mail, Phone, Clock, DollarSign } from "lucide-react";
+import { Save, AlertTriangle, ShieldCheck, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../../lib/api";
 import { Loading } from "../../components/Loading";
@@ -19,11 +19,11 @@ export function SystemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const data = await api.get("/api/admin/system/settings");
-      if (data) {
+  useEffect(() => {
+    let active = true;
+    api.get("/api/admin/system/settings")
+      .then((data) => {
+        if (!active || !data) return;
         setSettings({
           brandName: data.brandName ?? "RoPhim Cinema",
           seatHoldMinutes: data.seatHoldMinutes ?? 10,
@@ -34,28 +34,23 @@ export function SystemSettings() {
           allowOnlineCancellation: data.allowOnlineCancellation ?? true,
           maintenanceMode: data.maintenanceMode ?? false,
         });
-      }
-    } catch (err) {
-      toast.error(err.message || "Không thể tải cấu hình");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSettings();
+      })
+      .catch((err) => { if (active) toast.error(err.message || "Không thể tải cấu hình"); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.post("/api/admin/system/settings", {
+      const response = await api.post("/api/admin/system/settings", {
         ...settings,
         seatHoldMinutes: Number(settings.seatHoldMinutes),
         defaultTicketPrice: Number(settings.defaultTicketPrice),
         vipPriceMultiplier: Number(settings.vipPriceMultiplier),
       });
+      if (response?.settings) setSettings((current) => ({ ...current, ...response.settings }));
       toast.success("Đã lưu cấu hình hệ thống thành công!");
     } catch (err) {
       toast.error(err.message || "Lỗi khi lưu cấu hình.");

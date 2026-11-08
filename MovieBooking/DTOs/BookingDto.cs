@@ -133,6 +133,8 @@ public class PaymentViewModel
     public decimal TotalAmount { get; set; }
     public string? PromoCode { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal SubtotalAmount { get; set; }
+    public decimal DiscountAmount { get; set; }
 
     /// <summary>True nếu booking này đã từng có Payment thất bại trước đó.</summary>
     public bool HasPreviousFailure { get; set; }
@@ -214,10 +216,15 @@ public class BookingDetailViewModel
     public List<BookingDetailSeatInfo> Seats { get; set; } = new();
     public List<BookingComboDetailDto> Combos { get; set; } = new();
     public List<BookingFoodDetailDto> Foods { get; set; } = new();
+
+    /// <summary>Danh sách vé điện tử theo từng ghế (mỗi vé có QR riêng).</summary>
+    public List<TicketDto> Tickets { get; set; } = new();
+
     public string? QrCodeUrl { get; set; }
     public decimal SubTotal { get; set; }
     public string? PromoCode { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
     public decimal TotalAmount { get; set; }
 
     public string BookingStatus { get; set; } = string.Empty;

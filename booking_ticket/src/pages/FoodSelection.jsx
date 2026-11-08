@@ -3,8 +3,10 @@ import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { ArrowLeft, ArrowRight, Clock3, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
+import { formatVnd } from "../lib/promotionApi";
 import { assets } from "../assets/assets";
 import { Loading } from "../components/Loading";
+import { PromoCodeBox } from "../components/PromoCodeBox";
 import { useAuth } from "../context/AuthContext";
 
 const ITEMS_PER_PAGE = 6; // số item mỗi trang
@@ -78,6 +80,7 @@ export function FoodSelection() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState(null);
 
   // Phân trang riêng cho từng section
   const [foodPage, setFoodPage] = useState(1);
@@ -204,6 +207,7 @@ export function FoodSelection() {
         showtimeId: Number(showtimeId),
         seatIds: draft.seatIds,
         paymentMethod: "SePay", // ← đã đổi từ BANK
+        promoCode: appliedPromo?.code || null,
         foods: Object.entries(foodQuantities)
           .filter(([, quantity]) => quantity > 0)
           .map(([foodItemId, quantity]) => ({
@@ -432,9 +436,33 @@ export function FoodSelection() {
                 <span className="text-gray-400">Combo</span>
                 <span>{comboTotal.toLocaleString("vi-VN")} ₫</span>
               </div>
+              <div className="flex justify-between border-t border-white/10 pt-3">
+                <span className="text-gray-400">Tạm tính</span>
+                <span>{formatVnd(total)}</span>
+              </div>
+            </div>
+
+            <PromoCodeBox
+              ticketsAmount={seatTotal}
+              foodsAmount={foodTotal}
+              combosAmount={comboTotal}
+              applied={appliedPromo}
+              onAppliedChange={setAppliedPromo}
+              enabled={!!user}
+            />
+
+            <div className="mt-4 space-y-3 text-sm">
+              {appliedPromo && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Giảm giá ({appliedPromo.code})</span>
+                  <span>−{formatVnd(appliedPromo.discountAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-white/10 pt-3 text-lg font-bold">
                 <span>Tổng cộng</span>
-                <span className="text-primary">{total.toLocaleString("vi-VN")} ₫</span>
+                <span className="text-primary">
+                  {formatVnd(appliedPromo ? appliedPromo.totalAmount : total)}
+                </span>
               </div>
             </div>
 

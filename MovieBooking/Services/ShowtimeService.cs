@@ -16,10 +16,12 @@ namespace MovieBooking.Services;
 public sealed class ShowtimeService : IShowtimeService
 {
     private readonly MovieBookingContext _context;
+    private readonly ISystemSettingsService _systemSettings;
 
-    public ShowtimeService(MovieBookingContext context)
+    public ShowtimeService(MovieBookingContext context, ISystemSettingsService systemSettings)
     {
         _context = context;
+        _systemSettings = systemSettings;
     }
 
     public async Task<List<ShowtimeListDto>> GetAdminShowtimesAsync()
@@ -129,6 +131,9 @@ public sealed class ShowtimeService : IShowtimeService
                 return (false, null, "Lịch chiếu bị trùng với suất chiếu khác trong phòng.");
             }
 
+            // Không truyền hệ số VIP thì lấy mặc định toàn cục từ cấu hình hệ thống
+            var effectiveVipMultiplier = vipMultiplier ?? (await _systemSettings.GetAsync()).VipPriceMultiplier;
+
             // 1. Tạo Showtime trước để lấy ShowtimeId
             var showtime = new Showtime
             {
@@ -138,7 +143,7 @@ public sealed class ShowtimeService : IShowtimeService
                 StartTime = parsedStartTime,
                 EndTime = endTime,
                 Price = price,
-                VipMultiplier = vipMultiplier ?? 1.2m,
+                VipMultiplier = effectiveVipMultiplier,
                 Status = "Active"
             };
 
@@ -408,7 +413,7 @@ public sealed class ShowtimeService : IShowtimeService
             if (showtime.Status != "Active") return (false, "Trạng thái hiện tại không cho phép hủy suất chiếu.");
 
             var hasPaidBookings = await _context.Bookings.AnyAsync(b => b.ShowtimeId == id &&
-                (b.Status == "Paid" || b.Status == "Confirmed" ||
+                (b.Status == "Paid" ||
                  b.Payments.Any(p => p.PaymentStatus == "Success" || p.PaymentStatus == "Completed" ||
                                      p.PaymentStatus == "PaidNeedRefund")));
             var hasBookedSeats = await _context.ShowtimeSeats
@@ -422,7 +427,7 @@ public sealed class ShowtimeService : IShowtimeService
                 .ExecuteUpdateAsync(update => update.SetProperty(p => p.PaymentStatus, "PaidNeedRefund"));
             await _context.ShowtimeSeats
                 .Where(s => s.ShowtimeId == id && s.Status == "Holding" && s.BookingDetail != null &&
-                    (s.BookingDetail.Booking.Status == "Paid" || s.BookingDetail.Booking.Status == "Confirmed" ||
+                    (s.BookingDetail.Booking.Status == "Paid" ||
                      s.BookingDetail.Booking.Payments.Any(p => p.PaymentStatus == "PaidNeedRefund")))
                 .ExecuteUpdateAsync(update => update
                     .SetProperty(s => s.Status, "Booked")
@@ -492,7 +497,7 @@ public sealed class ShowtimeService : IShowtimeService
                 .ExecuteUpdateAsync(update => update.SetProperty(p => p.PaymentStatus, "PaidNeedRefund"));
             await _context.ShowtimeSeats
                 .Where(s => s.ShowtimeId == id && s.Status == "Holding" && s.BookingDetail != null &&
-                    (s.BookingDetail.Booking.Status == "Paid" || s.BookingDetail.Booking.Status == "Confirmed" ||
+                    (s.BookingDetail.Booking.Status == "Paid" ||
                      s.BookingDetail.Booking.Payments.Any(p => p.PaymentStatus == "PaidNeedRefund")))
                 .ExecuteUpdateAsync(update => update
                     .SetProperty(s => s.Status, "Booked")
