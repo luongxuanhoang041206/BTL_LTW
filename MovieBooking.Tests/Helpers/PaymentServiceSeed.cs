@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MovieBooking.Data;
 using MovieBooking.Models;
 
@@ -16,6 +17,15 @@ public sealed record PaymentServiceSeed(
     int PaymentId,
     long ProviderTransactionId,
     string TransactionCode);
+
+public sealed record BookingScenarioSeed(
+    int UserId,
+    int CinemaId,
+    int RoomId,
+    int MovieId,
+    int ShowtimeId,
+    int SeatId,
+    int ShowtimeSeatId);
 
 public static class PaymentServiceSeedHelper
 {
@@ -126,5 +136,50 @@ public static class PaymentServiceSeedHelper
             payment.PaymentId,
             providerTransactionId,
             transactionCode);
+    }
+
+    public static async Task<BookingScenarioSeed> SeedBookingScenarioAsync(
+        MovieBookingContext db,
+        bool seatHeldByOwner)
+    {
+        var seed = await SeedAsync(db);
+
+        var details = await db.BookingDetails.Where(x => x.BookingId == seed.BookingId).ToListAsync();
+        var payments = await db.Payments.Where(x => x.BookingId == seed.BookingId).ToListAsync();
+        var booking = await db.Bookings.SingleAsync(x => x.BookingId == seed.BookingId);
+        db.BookingDetails.RemoveRange(details);
+        db.Payments.RemoveRange(payments);
+        db.Bookings.Remove(booking);
+
+        var showtimeSeat = await db.ShowtimeSeats.SingleAsync(x => x.ShowtimeSeatId == seed.ShowtimeSeatId);
+        showtimeSeat.Status = seatHeldByOwner ? "Holding" : "Available";
+        showtimeSeat.LockedByUserId = seatHeldByOwner ? seed.UserId : null;
+        showtimeSeat.HoldExpiresAt = seatHeldByOwner ? DateTime.Now.AddMinutes(30) : null;
+        await db.SaveChangesAsync();
+
+        return new BookingScenarioSeed(
+            seed.UserId,
+            seed.CinemaId,
+            seed.RoomId,
+            seed.MovieId,
+            seed.ShowtimeId,
+            seed.SeatId,
+            seed.ShowtimeSeatId);
+    }
+
+    public static async Task<int> SeedAdditionalUserAsync(MovieBookingContext db)
+    {
+        var user = new User
+        {
+            FullName = "Second Test Customer",
+            Email = $"customer-{Guid.NewGuid():N}@test.local",
+            PasswordHash = "test-hash",
+            Role = "Customer",
+            Status = true,
+            CreatedAt = DateTime.Now
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+        return user.UserId;
     }
 }
