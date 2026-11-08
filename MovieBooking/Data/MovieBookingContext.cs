@@ -22,6 +22,10 @@ public partial class MovieBookingContext : DbContext
 
     public virtual DbSet<BookingDetail> BookingDetails { get; set; }
 
+    public virtual DbSet<Ticket> Tickets { get; set; }
+
+    public virtual DbSet<TicketCheckInLog> TicketCheckInLogs { get; set; }
+
     public virtual DbSet<Cinema> Cinemas { get; set; }
 
     public virtual DbSet<Genre> Genres { get; set; }
@@ -43,6 +47,7 @@ public partial class MovieBookingContext : DbContext
     public virtual DbSet<ShowtimeSeat> ShowtimeSeats { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
     public virtual DbSet<SystemSetting> SystemSettings { get; set; }
 
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
@@ -55,6 +60,9 @@ public partial class MovieBookingContext : DbContext
 
     public virtual DbSet<BookingCombo> BookingCombos { get; set; }
     public virtual DbSet<BookingFood> BookingFoods { get; set; }
+
+    public virtual DbSet<PromotionUsage> PromotionUsages { get; set; }
+    public virtual DbSet<PromotionRedemption> PromotionRedemptions { get; set; }
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
     public DbSet<WebsiteContent> WebsiteContents => Set<WebsiteContent>();
 
@@ -93,7 +101,14 @@ public partial class MovieBookingContext : DbContext
             entity.Property(e => e.TicketCode)
                 .HasMaxLength(30)
                 .IsUnicode(false);
-            entity.Property(e => e.TotalAmount).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.SubtotalAmount)
+                .HasColumnType("decimal(18, 2)");
+
+            entity.Property(e => e.DiscountAmount)
+                .HasColumnType("decimal(18, 2)");
+
+            entity.Property(e => e.TotalAmount)
+                .HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.Promotion).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.PromotionId)
@@ -126,6 +141,106 @@ public partial class MovieBookingContext : DbContext
                 .HasForeignKey<BookingDetail>(d => d.ShowtimeSeatId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__BookingDe__Showt__19DFD96B");
+        });
+
+        // ==========================================
+        // TICKETS
+        // ==========================================
+        modelBuilder.Entity<Ticket>(entity =>
+        {
+            entity.ToTable("Tickets");
+
+            entity.HasKey(e => e.TicketId);
+
+            // Mỗi BookingDetail chỉ có tối đa một vé
+            entity.HasIndex(e => e.BookingDetailId)
+                .IsUnique()
+                .HasDatabaseName("UQ_Tickets_BookingDetailId");
+
+            entity.HasIndex(e => e.TicketCode)
+                .IsUnique()
+                .HasDatabaseName("UX_Tickets_TicketCode");
+
+            entity.HasIndex(e => e.Qrtoken)
+                .IsUnique()
+                .HasDatabaseName("UX_Tickets_QRToken");
+
+            entity.Property(e => e.TicketCode)
+                .HasMaxLength(40)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.Qrtoken)
+                .HasColumnName("QRToken")
+                .HasMaxLength(128)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue("Issued")
+                .IsRequired();
+
+            entity.Property(e => e.IssuedAt)
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("(sysdatetime())");
+
+            entity.Property(e => e.CheckedInAt)
+                .HasColumnType("datetime2");
+
+            entity.HasOne<BookingDetail>()
+                .WithMany()
+                .HasForeignKey(e => e.BookingDetailId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Tickets_BookingDetails");
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.CheckedInByUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Tickets_CheckedInByUser");
+        });
+
+
+        // ==========================================
+        // TICKET CHECK-IN LOGS
+        // ==========================================
+        modelBuilder.Entity<TicketCheckInLog>(entity =>
+        {
+            entity.ToTable("TicketCheckInLogs");
+
+            entity.HasKey(e => e.LogId);
+
+            entity.HasIndex(e => e.TicketId)
+                .HasDatabaseName("IX_TicketCheckInLogs_TicketId");
+
+            entity.HasIndex(e => e.StaffId)
+                .HasDatabaseName("IX_TicketCheckInLogs_StaffId");
+
+            entity.Property(e => e.Action)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.Message)
+                .HasMaxLength(255);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime2")
+                .HasDefaultValueSql("(sysdatetime())");
+
+            entity.HasOne(e => e.Ticket)
+                .WithMany(e => e.TicketCheckInLogs)
+                .HasForeignKey(e => e.TicketId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TicketCheckInLogs_Tickets");
+
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(e => e.StaffId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TicketCheckInLogs_Users");
         });
 
         modelBuilder.Entity<Cinema>(entity =>
@@ -224,6 +339,24 @@ public partial class MovieBookingContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Status).HasDefaultValue(true);
+            entity.Property(e => e.DiscountType)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .HasDefaultValue("percent");
+
+            entity.Property(e => e.DiscountValue)
+                .HasColumnType("decimal(18, 2)");
+
+            entity.Property(e => e.PromotionScope)
+                .HasMaxLength(30)
+                .IsUnicode(false)
+                .HasDefaultValue("all");
+
+            entity.Property(e => e.MinOrderAmount)
+                .HasColumnType("decimal(18, 2)");
+
+            entity.Property(e => e.MaxDiscountAmount)
+                .HasColumnType("decimal(18, 2)");
         });
 
         modelBuilder.Entity<Review>(entity =>
@@ -245,6 +378,8 @@ public partial class MovieBookingContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Reviews__UserId__245D67DE");
         });
+
+
 
         modelBuilder.Entity<Room>(entity =>
         {
@@ -528,6 +663,127 @@ public partial class MovieBookingContext : DbContext
             e.HasOne(t => t.User).WithMany().HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+
+        modelBuilder.Entity<PromotionUsage>(entity =>
+        {
+            entity.ToTable("PromotionUsages");
+
+            entity.HasKey(e => e.PromotionUsageId)
+                .HasName("PK_PromotionUsages");
+
+            entity.HasIndex(e => e.BookingId)
+                .IsUnique()
+                .HasDatabaseName("UQ_PromotionUsages_Booking");
+
+            entity.Property(e => e.PromotionCode)
+                .HasMaxLength(30)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.DiscountType)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.DiscountValue)
+                .HasPrecision(18, 2);
+
+            entity.Property(e => e.PromotionScope)
+                .HasMaxLength(30)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.EligibleAmount)
+                .HasPrecision(18, 2);
+
+            entity.Property(e => e.DiscountAmount)
+                .HasPrecision(18, 2);
+
+            entity.Property(e => e.RedeemedAt)
+                .HasColumnType("datetime2");
+
+            entity.HasOne(e => e.Promotion)
+                .WithMany()
+                .HasForeignKey(e => e.PromotionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PromotionUsages_Promotions");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PromotionUsages_Users");
+
+            entity.HasOne(e => e.Booking)
+                .WithMany()
+                .HasForeignKey(e => e.BookingId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PromotionUsages_Bookings");
+        });
+
+
+        modelBuilder.Entity<PromotionRedemption>(entity =>
+        {
+            entity.ToTable("PromotionRedemptions");
+
+            entity.HasKey(e => e.RedemptionId)
+                .HasName("PK_PromotionRedemptions");
+
+            entity.HasIndex(e => e.BookingId)
+                .IsUnique()
+                .HasDatabaseName("UQ_PromotionRedemptions_Booking");
+
+            entity.Property(e => e.PromotionCode)
+                .HasMaxLength(30)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false)
+                .IsRequired();
+
+            entity.Property(e => e.ReservedAt)
+                .HasColumnType("datetime2");
+
+            entity.Property(e => e.ExpiresAt)
+                .HasColumnType("datetime2");
+
+            entity.Property(e => e.RedeemedAt)
+                .HasColumnType("datetime2");
+
+            entity.Property(e => e.ReleasedAt)
+                .HasColumnType("datetime2");
+
+            entity.HasOne(e => e.Promotion)
+                .WithMany()
+                .HasForeignKey(e => e.PromotionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PromotionRedemptions_Promotions");
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PromotionRedemptions_Users");
+
+            entity.HasOne(e => e.Booking)
+                .WithMany()
+                .HasForeignKey(e => e.BookingId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PromotionRedemptions_Bookings");
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasKey(t => t.TokenId);
+            e.Property(t => t.TokenHash).HasMaxLength(64).IsUnicode(false);
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasOne(t => t.User).WithMany().HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
 
 
         OnModelCreatingPartial(modelBuilder);

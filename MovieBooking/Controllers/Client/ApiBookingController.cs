@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MovieBooking.DTOs;
 using MovieBooking.Services.Interfaces;
-using QRCoder;
+using MovieBooking.Services;
 
 namespace MovieBooking.Controllers.Client;
 
@@ -14,13 +14,17 @@ public class ApiBookingController : ControllerBase
 {
     private readonly IBookingService _bookingService;
     private readonly IBookingCheckoutService _checkoutService;
+    private readonly ITicketEmailService _ticketEmail;
 
     public ApiBookingController(
         IBookingService bookingService,
-        IBookingCheckoutService checkoutService)
+        IBookingCheckoutService checkoutService,
+        ITicketEmailService ticketEmail
+        )
     {
         _bookingService = bookingService;
         _checkoutService = checkoutService;
+        _ticketEmail = ticketEmail;
     }
 
     private int? GetCurrentUserId() => HttpContext.Session.GetInt32("UserId");
@@ -81,7 +85,7 @@ public class ApiBookingController : ControllerBase
             return BadRequest(new { message = "Vui lòng chọn ít nhất một ghế." });
         }
 
-        var (success, error) = await _bookingService.HoldSeatsAsync(
+        var (success, error, expiresAt) = await _bookingService.HoldSeatsAsync(
             request.ShowtimeId, request.SeatIds, userId.Value);
 
         if (!success)
@@ -92,8 +96,8 @@ public class ApiBookingController : ControllerBase
         return Ok(new
         {
             success = true,
-            message = "Giữ ghế thành công (10 phút)!",
-            expiresAt = DateTime.Now.AddMinutes(10).ToString("o")
+            message = "Giữ ghế thành công!",
+            expiresAt = expiresAt?.ToString("o")
         });
     }
 
@@ -184,9 +188,18 @@ public class ApiBookingController : ControllerBase
         var ticketCode = await _bookingService.GetTicketCodeAsync(bookingId, userId.Value);
         if (ticketCode == null) return NotFound(new { message = "Không tìm thấy vé hoặc vé chưa thanh toán." });
 
-        using var generator = new QRCodeGenerator();
-        using var data = generator.CreateQrCode(ticketCode, QRCodeGenerator.ECCLevel.Q);
-        var png = new PngByteQRCode(data).GetGraphic(10);
-        return File(png, "image/png");
+        return File(TicketQr.Png(ticketCode), "image/png");
+    }
+
+    [HttpPost("{bookingId:int}/send-ticket")]
+    public async Task<IActionResult> SendTicket(int bookingId)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == null) return Unauthorized(new { message = "Vui lòng đăng nhập." });
+
+        var (ok, error) = await _ticketEmail.ResendAsync(bookingId, userId.Value);
+        if (!ok) return BadRequest(new { success = false, message = error });
+
+        return Ok(new { success = true, message = "Đã gửi vé tới email đăng ký của bạn." });
     }
 }

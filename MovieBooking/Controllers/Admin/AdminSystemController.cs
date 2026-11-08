@@ -4,7 +4,7 @@ using MovieBooking.Services.Interfaces;
 
 namespace MovieBooking.Controllers.Admin;
 
-public class AdminSystemController(IAdminSystemService systemService) : AdminBaseController
+public class AdminSystemController(IAdminSystemService systemService, ISystemSettingsService settingsService) : AdminBaseController
 {
     [HttpGet("system/users")]
     public async Task<IActionResult> GetStaffUsers()
@@ -29,14 +29,15 @@ public class AdminSystemController(IAdminSystemService systemService) : AdminBas
     }
 
     [HttpGet("system/settings")]
-    public IActionResult GetSystemSettings()
-        => Ok(systemService.GetSystemSettings());
+    public async Task<IActionResult> GetSystemSettings()
+        => Ok(await settingsService.GetAsync());
 
     [HttpPost("system/settings")]
-    public IActionResult UpdateSystemSettings([FromBody] SystemSettingsDto settings)
+    public async Task<IActionResult> UpdateSystemSettings([FromBody] SystemSettingsDto settings)
     {
-        if (settings == null) return BadRequest();
-        var updated = systemService.UpdateSystemSettings(settings);
+        if (settings == null) return BadRequest(new { message = "Dữ liệu cấu hình không hợp lệ." });
+        var (updated, error) = await settingsService.UpdateAsync(settings, HttpContext.Session.GetInt32("UserId"));
+        if (error != null) return BadRequest(new { message = error });
         return Ok(new { success = true, message = "Đã lưu cấu hình hệ thống thành công!", settings = updated });
     }
 }

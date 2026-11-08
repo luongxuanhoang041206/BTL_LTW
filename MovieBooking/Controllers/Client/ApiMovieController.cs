@@ -311,7 +311,7 @@ public class ApiMovieController : ControllerBase
     [HttpPost("reviews/images")]
     [RequestSizeLimit(6 * 1024 * 1024)]
     public async Task<IActionResult> UploadReviewImage(
-        [FromForm] IFormFile file,
+        IFormFile file,
         [FromServices] IWebHostEnvironment environment)
     {
         if (HttpContext.Session.GetInt32("UserId") == null)

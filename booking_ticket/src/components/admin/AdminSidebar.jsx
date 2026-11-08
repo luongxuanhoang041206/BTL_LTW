@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Utensils,
   PanelsTopLeft,
+  ScanLine,
   X,
 } from "lucide-react";
 import { NavLink } from "react-router";
@@ -47,6 +48,7 @@ export function AdminSideBar({ isOpen, onNavigate, onClose }) {
       items: [
         { name: "Lịch chiếu", path: "/admin/shows", icon: Calendar },
         { name: "Đặt vé", path: "/admin/bookings", icon: Ticket },
+        { name: "Soát vé / Check-in", path: "/admin/check-in", icon: ScanLine },
         { name: "Thanh toán", path: "/admin/payments", icon: CreditCard },
         { name: "Khuyến mãi", path: "/admin/promotions", icon: Zap },
       ],

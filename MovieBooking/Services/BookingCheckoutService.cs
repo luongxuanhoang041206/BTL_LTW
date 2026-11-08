@@ -15,16 +15,19 @@ public sealed class BookingCheckoutService(
     {
         await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
+        decimal combosAmount = 0;
         if (request.Combos is { Count: > 0 })
         {
-            var (valid, _, _, error) = await foodService.ValidateAndCalculateCombosAsync(request.Combos);
+            var (valid, total, _, error) = await foodService.ValidateAndCalculateCombosAsync(request.Combos);
             if (!valid)
                 return new BookingCheckoutResult(false, null, error ?? "Combo bắp nước không hợp lệ.", true);
+            combosAmount = total;
         }
 
         var foodValidation = await foodService.ValidateAndCalculateFoodsAsync(request.Foods);
         if (!foodValidation.Success)
             return new BookingCheckoutResult(false, null, foodValidation.Error, true);
+        var foodsAmount = foodValidation.TotalPrice;
 
         var seatMap = await bookingService.GetSeatMapAsync(request.ShowtimeId, userId);
         if (seatMap == null)
@@ -44,7 +47,7 @@ public sealed class BookingCheckoutService(
             return new BookingCheckoutResult(false, null, "Không tìm thấy thông tin ghế đã chọn.", false);
 
         var (confirmSuccess, bookingId, confirmError) = await bookingService.ConfirmBookingAsync(
-            request.ShowtimeId, showtimeSeatIds, userId, request.PromoCode);
+            request.ShowtimeId, showtimeSeatIds, userId, request.PromoCode, foodsAmount, combosAmount);
         if (!confirmSuccess || bookingId == null)
             return new BookingCheckoutResult(false, null, confirmError ?? "Đặt vé thất bại.", true);
 

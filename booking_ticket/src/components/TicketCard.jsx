@@ -16,49 +16,69 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+// Trạng thái vé điện tử -> nhãn hiển thị + màu.
+const TICKET_STATUS = {
+  Issued: { label: "Chưa sử dụng", className: "border-green-500/40 bg-green-500/15 text-green-400" },
+  Used: { label: "Đã sử dụng", className: "border-gray-500/40 bg-gray-500/15 text-gray-300" },
+  Cancelled: { label: "Đã hủy", className: "border-red-500/40 bg-red-500/15 text-red-400" },
+};
+
+const statusMeta = (status) => TICKET_STATUS[status] || { label: "Chưa phát hành", className: "border-white/20 bg-white/10 text-gray-300" };
+
 export function TicketCard({ ticket }) {
-  const [copied, setCopied] = useState(false);
-  const [qrLoaded, setQrLoaded] = useState(false);
-  const [qrError, setQrError] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
 
   if (!ticket) return null;
 
   const ticketCode = ticket.ticketCode || `MB-${ticket.bookingId.toString().padStart(6, "0")}`;
-  const qrEndpoint = `/api/booking/${ticket.bookingId}/ticket-qr`;
+  const bookingQrEndpoint = `/api/booking/${ticket.bookingId}/ticket-qr`;
   const fallbackQr = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(ticketCode)}`;
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(ticketCode);
-    setCopied(true);
+  // Danh sách vé điện tử theo từng ghế (nếu backend đã phát hành).
+  const tickets = Array.isArray(ticket.tickets)
+    ? ticket.tickets.filter((t) => t && t.qrImageUrl)
+    : [];
+
+  const handleCopyCode = (code, id) => {
+    navigator.clipboard.writeText(code);
+    setCopiedId(id);
     toast.success("Đã sao chép mã vé!");
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleDownloadQR = async () => {
+  const downloadQr = async (endpoint, name) => {
     try {
-      const response = await fetch(qrEndpoint, { credentials: "include" });
+      const response = await fetch(endpoint, { credentials: "include" });
+      if (!response.ok) throw new Error("QR not available");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `QR-Ticket-${ticketCode}.png`;
+      a.download = `QR-${name}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
       toast.success("Đã tải mã QR về thiết bị!");
     } catch {
-      // Fallback tải qua QR server
       const a = document.createElement("a");
       a.href = fallbackQr;
-      a.download = `QR-Ticket-${ticketCode}.png`;
+      a.download = `QR-${name}.png`;
       a.target = "_blank";
       a.click();
     }
+  };
+
+  const handleDownloadQR = () => {
+    if (tickets.length > 0) {
+      downloadQr(tickets[0].qrImageUrl, tickets[0].ticketCode || tickets[0].seatLabel);
+      return;
+    }
+    downloadQr(bookingQrEndpoint, ticketCode);
   };
 
   return (
@@ -248,53 +268,136 @@ export function TicketCard({ ticket }) {
           </div>
 
           {/* CỘT PHẢI (Cuống vé & QR check-in) */}
-          <div className="relative flex flex-col items-center justify-between border-t md:border-t-0 md:border-l border-dashed border-white/20 bg-gradient-to-b from-gray-950 to-black p-6 md:col-span-5 lg:col-span-4 text-center">
+          <div className="relative flex flex-col justify-between border-t md:border-t-0 md:border-l border-dashed border-white/20 bg-gradient-to-b from-gray-950 to-black p-6 md:col-span-5 lg:col-span-4">
             
             {/* Hiệu ứng khuyết notch vé rạp (Ticket Notch Cutouts) */}
             <div className="hidden md:block absolute -left-3 -top-3 h-6 w-6 rounded-full bg-gray-900 border border-primary/20" />
             <div className="hidden md:block absolute -left-3 -bottom-3 h-6 w-6 rounded-full bg-gray-900 border border-primary/20" />
 
-            <div className="w-full flex flex-col items-center">
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+            <div className="w-full">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
                 <QrCode className="h-4 w-4" />
                 MÃ SOÁT VÉ CHECK-IN
               </div>
-              <p className="mt-1 text-[11px] text-gray-400">
-                Xuất trình mã này cho nhân viên tại cửa rạp
+              <p className="mt-1 text-center text-[11px] text-gray-400">
+                {tickets.length > 1
+                  ? "Mỗi ghế có một mã QR riêng — xuất trình tương ứng tại cửa rạp"
+                  : "Xuất trình mã này cho nhân viên tại cửa rạp"}
               </p>
 
-              {/* KHUNG MÃ QR VÉ */}
-              <div className="mt-4 rounded-2xl bg-white p-3 shadow-xl shadow-black/60 relative group">
-                <img
-                  src={qrError ? fallbackQr : qrEndpoint}
-                  alt={`QR Code ${ticketCode}`}
-                  className="aspect-square w-48 max-w-full rounded-lg object-contain transition group-hover:scale-105 duration-300"
-                  onError={() => setQrError(true)}
-                  onLoad={() => setQrLoaded(true)}
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition rounded-2xl">
-                  <span className="text-[11px] font-bold text-white bg-black/80 px-2.5 py-1 rounded-full shadow">
-                    Quét tại cửa rạp
-                  </span>
-                </div>
-              </div>
+              {tickets.length > 0 ? (
+                /* DANH SÁCH VÉ ĐIỆN TỬ THEO TỪNG GHẾ */
+                <div className="mt-4 space-y-4">
+                  {tickets.map((t) => {
+                    const meta = statusMeta(t.status);
+                    return (
+                      <div
+                        key={t.ticketId}
+                        className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-2.5 py-1 font-mono text-xs font-extrabold text-primary">
+                            {t.seatLabel || "Ghế"}
+                            {t.seatType && t.seatType !== "Normal" && (
+                              <span className="text-[10px] font-normal text-gray-400 uppercase">
+                                ({t.seatType})
+                              </span>
+                            )}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${meta.className}`}
+                          >
+                            {meta.label}
+                          </span>
+                        </div>
 
-              {/* TICKET CODE DẠNG VĂN BẢN */}
-              <div className="mt-4 w-full">
-                <span className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
-                  MÃ SỐ VÉ (TICKET CODE)
-                </span>
-                <div className="mt-1 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-sm font-black text-primary select-all">
-                  <span>{ticketCode}</span>
-                  <button
-                    onClick={handleCopyCode}
-                    title="Sao chép mã"
-                    className="p-1 hover:text-white transition cursor-pointer"
-                  >
-                    {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
-                  </button>
+                        <div className="mt-3 flex justify-center">
+                          <div className="group relative rounded-2xl bg-white p-2.5 shadow-xl shadow-black/60">
+                            <img
+                              src={t.qrImageUrl}
+                              alt={`QR Code ${t.ticketCode}`}
+                              className="aspect-square w-40 max-w-full rounded-lg object-contain transition duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                e.target.src = fallbackQr;
+                              }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition group-hover:opacity-100">
+                              <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold text-white shadow">
+                                Quét tại cửa rạp
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+                            Mã số vé
+                          </span>
+                          <div className="mt-1 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs font-black text-primary select-all">
+                            <span className="truncate">{t.ticketCode}</span>
+                            <button
+                              onClick={() => handleCopyCode(t.ticketCode, t.ticketId)}
+                              title="Sao chép mã"
+                              className="shrink-0 cursor-pointer p-1 transition hover:text-white"
+                            >
+                              {copiedId === t.ticketId ? (
+                                <Check className="h-4 w-4 text-green-400" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {t.checkedInAt && (
+                          <p className="mt-2 text-center text-[10px] text-gray-400">
+                            Đã check-in: {new Date(t.checkedInAt).toLocaleString("vi-VN")}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
+              ) : (
+                /* FALLBACK: CHƯA PHÁT HÀNH VÉ -> DÙNG QR THEO BOOKING */
+                <div className="flex flex-col items-center">
+                  <div className="group relative mt-4 rounded-2xl bg-white p-3 shadow-xl shadow-black/60">
+                    <img
+                      src={bookingQrEndpoint}
+                      alt={`QR Code ${ticketCode}`}
+                      className="aspect-square w-48 max-w-full rounded-lg object-contain transition duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        e.target.src = fallbackQr;
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 transition group-hover:opacity-100">
+                      <span className="rounded-full bg-black/80 px-2.5 py-1 text-[11px] font-bold text-white shadow">
+                        Quét tại cửa rạp
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 w-full">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                      MÃ SỐ VÉ (TICKET CODE)
+                    </span>
+                    <div className="mt-1 flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-sm font-black text-primary select-all">
+                      <span>{ticketCode}</span>
+                      <button
+                        onClick={() => handleCopyCode(ticketCode, "booking")}
+                        title="Sao chép mã"
+                        className="cursor-pointer p-1 transition hover:text-white"
+                      >
+                        {copiedId === "booking" ? (
+                          <Check className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* CÁC NÚT TÁC VỤ IN / TẢI VÉ */}

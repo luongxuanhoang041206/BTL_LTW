@@ -16,6 +16,20 @@ public class AdminPromotionController(IPromotionService promotionService) : Admi
     public async Task<IActionResult> GetSummary()
         => Ok(await promotionService.GetPromotionSummaryAsync());
 
+    /// <summary>GET /api/admin/promotions/{id} — detail + stats + history.</summary>
+    [HttpGet("promotions/{id:int}")]
+    public async Task<IActionResult> GetPromotion(int id)
+    {
+        var detail = await promotionService.GetPromotionByIdAsync(id);
+        if (detail == null) return NotFound(new { message = "Không tìm thấy mã khuyến mãi." });
+        return Ok(detail);
+    }
+
+    /// <summary>GET /api/admin/promotions/{id}/usage — lịch sử giữ / sử dụng.</summary>
+    [HttpGet("promotions/{id:int}/usage")]
+    public async Task<IActionResult> GetUsage(int id)
+        => Ok(await promotionService.GetPromotionUsageAsync(id));
+
     /// <summary>POST /api/admin/promotions</summary>
     [HttpPost("promotions")]
     public async Task<IActionResult> CreatePromotion([FromBody] PromotionFormDto request)

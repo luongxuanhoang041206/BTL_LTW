@@ -164,6 +164,7 @@ CREATE TABLE Bookings (
     BookingDate     DATETIME NOT NULL DEFAULT GETDATE(),
     TotalAmount     DECIMAL(10,2) NOT NULL,
     TicketCode VARCHAR(30) NULL,
+    TicketEmailSentAt DATETIME2 NULL,
     Status          VARCHAR(20) NOT NULL DEFAULT 'Pending'
                     CHECK (Status IN ('Pending','Paid','Cancelled')),
     FOREIGN KEY (UserId) REFERENCES Users(UserId),
