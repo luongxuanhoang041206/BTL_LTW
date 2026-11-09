@@ -775,6 +775,15 @@ public partial class MovieBookingContext : DbContext
                 .HasConstraintName("FK_PromotionRedemptions_Bookings");
         });
 
+        modelBuilder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasKey(t => t.TokenId);
+            e.Property(t => t.TokenHash).HasMaxLength(64).IsUnicode(false);
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasOne(t => t.User).WithMany().HasForeignKey(t => t.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
 
 
         OnModelCreatingPartial(modelBuilder);
