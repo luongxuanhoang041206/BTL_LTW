@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { XIcon, LockIcon, MailIcon, UserIcon, PhoneIcon } from "lucide-react";
 
@@ -12,6 +13,7 @@ export function AuthModal() {
     login,
     register,
   } = useAuth();
+  const { t } = useTranslation();
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -37,7 +39,7 @@ export function AuthModal() {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     if (regPassword !== regConfirmPassword) {
-      alert("Mật khẩu xác nhận không khớp!");
+      alert(t("auth.passwordMismatch"));
       return;
     }
     setIsSubmitting(true);
@@ -69,12 +71,12 @@ export function AuthModal() {
         {/* Modal Title & Tabs */}
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-red-400 bg-clip-text text-transparent">
-            {authModalMode === "login" ? "Chào mừng trở lại!" : "Tạo tài khoản mới"}
+            {authModalMode === "login" ? t("auth.welcomeBack") : t("auth.createAccount")}
           </h2>
           <p className="text-sm text-gray-400 mt-1">
             {authModalMode === "login"
-              ? "Đăng nhập để đặt vé và nhận ưu đãi độc quyền"
-              : "Đăng ký thành viên RoPhim để trải nghiệm xem phim đỉnh cao"}
+              ? t("auth.loginSubtitle")
+              : t("auth.registerSubtitle")}
           </p>
         </div>
 
@@ -89,7 +91,7 @@ export function AuthModal() {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Đăng nhập
+            {t("auth.loginTab")}
           </button>
           <button
             type="button"
@@ -100,7 +102,7 @@ export function AuthModal() {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Đăng ký
+            {t("auth.registerTab")}
           </button>
         </div>
 
@@ -109,7 +111,7 @@ export function AuthModal() {
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-300 mb-1">
-                Email
+                {t("auth.email")}
               </label>
               <div className="relative flex items-center">
                 <MailIcon className="absolute left-3 w-4 h-4 text-gray-400" />
@@ -126,7 +128,7 @@ export function AuthModal() {
 
             <div>
               <label className="block text-xs font-medium text-gray-300 mb-1">
-                Mật khẩu
+                {t("auth.password")}
               </label>
               <div className="relative flex items-center">
                 <LockIcon className="absolute left-3 w-4 h-4 text-gray-400" />
@@ -146,7 +148,7 @@ export function AuthModal() {
               disabled={isSubmitting}
               className="w-full mt-2 bg-primary hover:bg-primary-dull text-white py-2.5 rounded-lg font-medium text-sm transition cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting ? "Đang xử lý..." : "Đăng nhập ngay"}
+              {isSubmitting ? t("auth.loggingIn") : t("auth.loginNow")}
             </button>
 
             <div className="text-right text-sm">
@@ -155,18 +157,18 @@ export function AuthModal() {
                 onClick={closeAuthModal}
                 className="text-primary transition hover:text-red-400"
               >
-                Quên mật khẩu?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
 
             <div className="text-center text-xs text-gray-400 mt-3">
-              Tài khoản mẫu:{" "}
+              {t("auth.demoAccount")}{" "}
               <span className="text-primary font-mono cursor-pointer" onClick={() => { setLoginEmail("admin@moviebooking.com"); setLoginPassword("Admin@123"); }}>
-                Admin (click để điền)
+                Admin {t("auth.clickToFill")}
               </span>{" "}
               |{" "}
               <span className="text-primary font-mono cursor-pointer" onClick={() => { setLoginEmail("user@moviebooking.com"); setLoginPassword("User@123"); }}>
-                User (click)
+                User {t("auth.click")}
               </span>
             </div>
           </form>
@@ -175,7 +177,7 @@ export function AuthModal() {
           <form onSubmit={handleRegisterSubmit} className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-300 mb-1">
-                Họ và tên
+                {t("auth.fullName")}
               </label>
               <div className="relative flex items-center">
                 <UserIcon className="absolute left-3 w-4 h-4 text-gray-400" />
@@ -192,7 +194,7 @@ export function AuthModal() {
 
             <div>
               <label className="block text-xs font-medium text-gray-300 mb-1">
-                Email
+                {t("auth.email")}
               </label>
               <div className="relative flex items-center">
                 <MailIcon className="absolute left-3 w-4 h-4 text-gray-400" />
@@ -209,7 +211,7 @@ export function AuthModal() {
 
             <div>
               <label className="block text-xs font-medium text-gray-300 mb-1">
-                Số điện thoại
+                {t("auth.phone")}
               </label>
               <div className="relative flex items-center">
                 <PhoneIcon className="absolute left-3 w-4 h-4 text-gray-400" />
@@ -226,7 +228,7 @@ export function AuthModal() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1">
-                  Mật khẩu
+                  {t("auth.password")}
                 </label>
                 <div className="relative flex items-center">
                   <LockIcon className="absolute left-2.5 w-3.5 h-3.5 text-gray-400" />
@@ -242,7 +244,7 @@ export function AuthModal() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1">
-                  Xác nhận MK
+                  {t("auth.confirmPassword")}
                 </label>
                 <div className="relative flex items-center">
                   <LockIcon className="absolute left-2.5 w-3.5 h-3.5 text-gray-400" />
@@ -263,7 +265,7 @@ export function AuthModal() {
               disabled={isSubmitting}
               className="w-full mt-2 bg-primary hover:bg-primary-dull text-white py-2.5 rounded-lg font-medium text-sm transition cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting ? "Đang tạo tài khoản..." : "Đăng ký thành viên"}
+              {isSubmitting ? t("auth.registering") : t("auth.registerNow")}
             </button>
           </form>
         )}

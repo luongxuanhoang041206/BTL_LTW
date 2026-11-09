@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
+import { useTranslation } from "react-i18next";
 import "./CinemaSeatMap.css";
 
 /**
@@ -16,6 +17,7 @@ import "./CinemaSeatMap.css";
  * - onSelectionChange(selectedSeats): bắn ra khi danh sách ghế chọn thay đổi (optional)
  */
 export default function CinemaSeatMap({ rows, activeSeatKey, maxSeats, onSelectionChange }) {
+  const { t } = useTranslation();
   const mountRef = useRef(null);
   const controllerRef = useRef({});
 
@@ -522,14 +524,14 @@ export default function CinemaSeatMap({ rows, activeSeatKey, maxSeats, onSelecti
 
       <div className={`cinema-screen-preview${activeSeatKey ? " to-popup" : ""}`}>
         <div className="screen-glow-bar" />
-        <span className="screen-label">MÀN HÌNH CHIẾU</span>
+        <span className="screen-label">{t("seatMap.screenLabel")}</span>
       </div>
 
       <div className="ui cinema-legend">
-        <div className="legend-row"><span className="swatch available" />Ghế trống</div>
-        <div className="legend-row"><span className="swatch booked" />Đã đặt</div>
-        <div className="legend-row"><span className="swatch vip" />Ghế VIP</div>
-        <div className="legend-row"><span className="swatch selected" />Đang chọn</div>
+        <div className="legend-row"><span className="swatch available" />{t("seatMap.legendAvailable")}</div>
+        <div className="legend-row"><span className="swatch booked" />{t("seatMap.legendBooked")}</div>
+        <div className="legend-row"><span className="swatch vip" />{t("seatMap.legendVip")}</div>
+        <div className="legend-row"><span className="swatch selected" />{t("seatMap.legendSelected")}</div>
       </div>
 
       <div className={"ui cinema-panel" + (panelOpen && mode === "overview" ? " show" : "")}>
@@ -537,31 +539,31 @@ export default function CinemaSeatMap({ rows, activeSeatKey, maxSeats, onSelecti
           <>
             <div className="row1">
               <div className="seat-code">{previewSeat.code}</div>
-              <div className="seat-type">{previewSeat.isVip ? "GHẾ VIP" : "GHẾ THƯỜNG"}</div>
+              <div className="seat-type">{previewSeat.isVip ? t("seatMap.seatTypeVip") : t("seatMap.seatTypeNormal")}</div>
             </div>
             <div className="stats">
-              <div className="stat"><div className="num">{previewSeat.dist.toFixed(1)} m</div><div className="lbl">khoảng cách đến màn hình</div></div>
-              <div className="stat"><div className="num">{Math.abs(previewSeat.hAngle).toFixed(0)}°</div><div className="lbl">lệch ngang</div></div>
-              <div className="stat"><div className="num">{previewSeat.vAngle.toFixed(0)}°</div><div className="lbl">góc ngước lên</div></div>
+              <div className="stat"><div className="num">{previewSeat.dist.toFixed(1)} m</div><div className="lbl">{t("seatMap.distanceToScreen")}</div></div>
+              <div className="stat"><div className="num">{Math.abs(previewSeat.hAngle).toFixed(0)}°</div><div className="lbl">{t("seatMap.horizontalOffset")}</div></div>
+              <div className="stat"><div className="num">{previewSeat.vAngle.toFixed(0)}°</div><div className="lbl">{t("seatMap.upwardAngle")}</div></div>
             </div>
             <div className="actions">
               <button className="primary" onClick={() => controllerRef.current.viewSeat?.(previewSeat.key)}>
-                Xem thử góc nhìn từ ghế này
+                {t("seatMap.viewFromThisSeat")}
               </button>
-              <button onClick={() => handleClearOne(previewSeat.key)}>Bỏ chọn ghế này</button>
+              <button onClick={() => handleClearOne(previewSeat.key)}>{t("seatMap.deselectThisSeat")}</button>
             </div>
           </>
         )}
         {totalSelected > 0 && (
-          <div className="selected-summary">Đang chọn {totalSelected} ghế{maxSeats ? ` / tối đa ${maxSeats}` : ""}</div>
+          <div className="selected-summary">{t("seatMap.selectedCount", { count: totalSelected })}{maxSeats ? t("seatMap.selectedMaxSuffix", { max: maxSeats }) : ""}</div>
         )}
       </div>
 
       <div className={"ui cinema-hud-top" + (mode === "seatview" ? " show" : "")}>
-        Đang xem từ ghế <b>{hud.code}</b> · {hud.dist} · lệch {hud.angle}
+        {t("seatMap.viewingFromSeat")} <b>{hud.code}</b> · {hud.dist} · {t("seatMap.hudSkew")} {hud.angle}
       </div>
       <div className={"ui cinema-exit-btn" + (mode === "seatview" ? " show" : "")}>
-        <button className="primary" onClick={() => controllerRef.current.exitView?.()}>Quay lại sơ đồ ghế</button>
+        <button className="primary" onClick={() => controllerRef.current.exitView?.()}>{t("seatMap.backToSeatMap")}</button>
       </div>
     </div>
   );

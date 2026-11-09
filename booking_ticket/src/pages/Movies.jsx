@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { dummyShowsData } from "../assets/assets";
 import { BlurCicle } from "../components/BlurCircle";
 import { MovieCard } from "../components/MovieCard";
@@ -7,6 +8,7 @@ import { api } from "../lib/api";
 import { SearchIcon, FilterIcon } from "lucide-react";
 
 export function Movies() {
+  const { t } = useTranslation();
   const [movies, setMovies] = useState([]);
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState("all");
@@ -66,8 +68,8 @@ export function Movies() {
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 my-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Danh Sách Phim</h1>
-          <p className="text-gray-400 text-sm mt-1">Lựa chọn bộ phim yêu thích và đặt vé ngay hôm nay</p>
+          <h1 className="text-3xl font-bold text-white">{t("movies.pageTitle")}</h1>
+          <p className="text-gray-400 text-sm mt-1">{t("movies.pageSubtitle")}</p>
         </div>
 
         {/* Search Bar */}
@@ -77,17 +79,17 @@ export function Movies() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm tên phim..."
+            placeholder={t("movies.searchPlaceholder")}
             className="w-full bg-gray-900 border border-gray-700 rounded-full pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-primary transition"
           />
         </div>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2" aria-label="Lọc trạng thái phim">
+      <div className="mb-5 flex flex-wrap gap-2" aria-label={t("movies.statusFilterLabel")}>
         {[
-          ["all", "Tất cả phim"],
-          ["now", "Đang chiếu"],
-          ["coming", "Sắp chiếu"],
+          ["all", t("movies.statusAll")],
+          ["now", t("movies.statusNow")],
+          ["coming", t("movies.statusComing")],
         ].map(([value, label]) => (
           <button
             key={value}
@@ -109,7 +111,7 @@ export function Movies() {
               : "bg-gray-800/80 text-gray-400 hover:text-white border border-white/5"
           }`}
         >
-          Tất cả thể loại
+          {t("movies.allGenres")}
         </button>
         {genres.map((genre) => (
           <button
@@ -137,12 +139,12 @@ export function Movies() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-xl text-gray-400">Không tìm thấy phim phù hợp.</p>
+          <p className="text-xl text-gray-400">{t("movies.emptyTitle")}</p>
           <button
             onClick={() => { setSelectedGenre("all"); setMovieStatus("all"); setSearchTerm(""); }}
             className="mt-4 px-4 py-2 text-sm text-primary hover:underline cursor-pointer"
           >
-            Đặt lại bộ lọc
+            {t("movies.resetFilter")}
           </button>
         </div>
       )}

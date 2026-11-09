@@ -7,12 +7,21 @@ import { BlurCicle } from "../components/BlurCircle";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { useTranslation } from "react-i18next";
 import CinemaSeatMap from "./CinemaSeatMap";
+
+const SEAT_TYPE_LABEL_KEYS = {
+  VIP: "seat.typeVip",
+  Normal: "seat.typeNormal",
+  Regular: "seat.typeRegular",
+  Couple: "seat.typeCouple",
+};
 
 export function SeatLayout() {
   const { id, date, showtimeId } = useParams();
   const { user, openLogin } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [seatMap, setSeatMap] = useState(null);
   const [selectedSeatIds, setSelectedSeatIds] = useState([]);     // List of SeatId (int)
@@ -188,10 +197,10 @@ export function SeatLayout() {
 
   const handleSeatClick = (seat) => {
     if (seat.status === "Booked") {
-      return toast.error("Ghế này đã có người đặt!");
+      return toast.error(t("seat.seatBookedToast"));
     }
     if (seat.status === "Holding" && !seat.isHeldByCurrentUser) {
-      return toast.error("Ghế này đang được người khác giữ chỗ!");
+      return toast.error(t("seat.seatHoldingToast"));
     }
 
     const seatCode = `${seat.seatRow}${seat.seatNumber}`;
@@ -199,7 +208,7 @@ export function SeatLayout() {
     const seatKey = String(seat.showtimeSeatId ?? seat.seatId);
 
     if (!isSelected && selectedSeatIds.length >= 5) {
-      return toast.error("Bạn chỉ có thể chọn tối đa 5 ghế trong một lần đặt.");
+      return toast.error(t("seat.maxSeatsToast"));
     }
 
     if (isSelected) {
@@ -237,11 +246,11 @@ export function SeatLayout() {
 
   const handleProceedCheckout = async () => {
     if (selectedSeatIds.length === 0) {
-      return toast.error("Vui lòng chọn ít nhất một ghế!");
+      return toast.error(t("seat.selectAtLeastOneToast"));
     }
 
     if (!user) {
-      toast("Vui lòng đăng nhập để hoàn tất đặt vé.");
+      toast(t("seat.loginToBook"));
       return openLogin();
     }
 
@@ -254,7 +263,7 @@ export function SeatLayout() {
       });
 
       if (!holdRes?.success) {
-        toast.error(holdRes?.message || "Không thể giữ ghế, vui lòng thử lại.");
+        toast.error(holdRes?.message || t("seat.holdFailed"));
         return;
       }
 
@@ -266,10 +275,10 @@ export function SeatLayout() {
         expiresAt: holdRes.expiresAt,
       };
       sessionStorage.setItem(`booking:draft:${seatMap.showtimeId}`, JSON.stringify(draft));
-      toast.success("Đã giữ ghế. Chọn đồ ăn và combo trước khi hết giờ giữ ghế.");
+      toast.success(t("seat.holdSuccess"));
       navigate(`/foods/${seatMap.showtimeId}`, { state: draft });
     } catch (err) {
-      toast.error(err.message || "Đặt vé thất bại.");
+      toast.error(err.message || t("seat.bookingFailed"));
     } finally {
       setIsBooking(false);
     }
@@ -295,6 +304,11 @@ export function SeatLayout() {
     seat.seatType === "VIP"
       ? Math.round(basePrice * vipMultiplier)
       : basePrice;
+
+  const getSeatTypeLabel = (seatType) => {
+    const key = SEAT_TYPE_LABEL_KEYS[seatType];
+    return key ? t(key) : seatType || t("seat.typeNormal");
+  };
 
   // Tổng tiền tính theo giá từng ghế (VIP và thường có thể khác nhau)
   const selectedSeatsList = seatMap.rows
@@ -343,10 +357,10 @@ export function SeatLayout() {
         </div>
 
         <div className="text-right max-md:text-center">
-          <p className="text-xs text-gray-400">Giá vé từ</p>
+          <p className="text-xs text-gray-400">{t("seat.priceFrom")}</p>
           <p className="text-xl font-bold text-primary">
             {Number(basePrice).toLocaleString("vi-VN")} ₫
-            <span className="text-xs text-gray-400 font-normal"> /ghế</span>
+            <span className="text-xs text-gray-400 font-normal"> {t("seat.perSeat")}</span>
           </p>
         </div>
       </div>
@@ -360,11 +374,11 @@ export function SeatLayout() {
         <div className="w-full max-w-xl flex flex-col items-center mb-8">
           <img
             src={assets.screenImage}
-            alt="Màn hình rạp"
+            alt={t("seat.screenLabel")}
             className="w-full opacity-80"
           />
           <p className="text-xs text-gray-400 font-semibold tracking-widest mt-2 uppercase">
-            MÀN HÌNH CHIẾU
+            {t("seat.screenText")}
           </p>
         </div>
 
@@ -372,23 +386,23 @@ export function SeatLayout() {
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-gray-300 mb-8 p-3 rounded-xl bg-black/40 border border-white/5">
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded border border-primary/50 bg-black/40" />
-            <span>Ghế thường</span>
+            <span>{t("seat.legendRegular")}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded border border-amber-400/70 bg-amber-950/20" />
-            <span>Ghế VIP</span>
+            <span>{t("seat.legendVip")}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded bg-primary border border-primary" />
-            <span>Đang chọn</span>
+            <span>{t("seat.legendSelected")}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded bg-amber-600/60 border border-amber-500" />
-            <span>Đang giữ chỗ</span>
+            <span>{t("seat.legendHolding")}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-5 h-5 rounded bg-gray-700 border border-gray-600 opacity-60" />
-            <span>Đã bán</span>
+            <span>{t("seat.legendSold")}</span>
           </div>
         </div>
 
@@ -434,7 +448,11 @@ export function SeatLayout() {
                       disabled={isBooked || isHolding}
                       onClick={() => handleSeatClick(seat)}
                       className={`relative w-8 h-8 rounded-lg text-xs transition duration-200 cursor-pointer flex items-center justify-center font-medium ${seatStyle}`}
-                      title={`${seat.seatRow}${seat.seatNumber} (${seat.seatType || "Thường"}) - ${Number(seatPrice).toLocaleString("vi-VN")} ₫`}
+                      title={t("seat.seatTooltip", {
+                        code: `${seat.seatRow}${seat.seatNumber}`,
+                        type: getSeatTypeLabel(seat.seatType),
+                        price: Number(seatPrice).toLocaleString("vi-VN"),
+                      })}
                     >
                       {seat.seatNumber}
                       {isVip && !isBooked && !isSelected && (
@@ -457,11 +475,11 @@ export function SeatLayout() {
         <div className="sticky bottom-6 w-full max-w-2xl mt-10 p-4 md:p-6 bg-gray-900/95 border border-primary/40 rounded-2xl shadow-2xl backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <p className="text-xs text-gray-400">
-              Ghế đang chọn:{" "}
+              {t("seat.selectedSeats")}{" "}
               <span className="text-white font-bold">
                 {selectedSeatLabels.length > 0
                   ? selectedSeatLabels.join(", ")
-                  : "Chưa chọn"}
+                  : t("seat.notSelected")}
               </span>
             </p>
             <p className="text-xl font-extrabold text-primary mt-0.5">
@@ -474,7 +492,7 @@ export function SeatLayout() {
             disabled={isBooking || selectedSeatIds.length === 0}
             className="w-full sm:w-auto px-8 py-3 bg-primary hover:bg-primary-dull disabled:opacity-50 text-white font-bold rounded-xl transition cursor-pointer shadow-lg shadow-primary/30 active:scale-95 flex items-center justify-center gap-2"
           >
-            {isBooking ? "Đang giữ ghế..." : "Tiếp tục chọn đồ ăn & combo"}
+            {isBooking ? t("seat.holdingSeats") : t("seat.continueToFood")}
             <ArrowRightIcon className="w-4 h-4" />
           </button>
         </div>
@@ -491,11 +509,10 @@ export function SeatLayout() {
           <div>
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
               <span className="w-2.5 h-6 bg-primary rounded-full inline-block" />
-              Trải Nghiệm Góc Nhìn 3D Từ Ghế Ngồi
+              {t("seat.view3dTitle")}
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              Chọn ghế ở trên → 3D tự động trỏ tới ghế đó. Hoặc bấm vào sơ đồ
-              nhỏ bên phải để đổi góc nhìn!
+              {t("seat.view3dDesc")}
             </p>
           </div>
 
@@ -504,13 +521,13 @@ export function SeatLayout() {
               onClick={() => setViewingSeatKey(null)}
               className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold rounded-xl border border-gray-600 transition self-start md:self-auto cursor-pointer"
             >
-              Quay lại góc nhìn toàn rạp
+              {t("seat.backToFullView")}
             </button>
           )}
         </div>
 
         {/* Container 3D full-width */}
-        <div className="relative w-full h-[700px] overflow-hidden border-y border-white/10 bg-slate-950 shadow-2xl">
+        <div className="relative w-full h-[60vh] min-h-[380px] md:h-[700px] overflow-hidden border-y border-white/10 bg-slate-950 shadow-2xl">
           {/* Màn hình 3D nền */}
           <div className="w-full h-full">
             {seatMap.rows && seatMap.rows.length > 0 && (
@@ -525,12 +542,12 @@ export function SeatLayout() {
           <div className="absolute top-4 right-4 z-20 w-72 bg-gray-900/90 backdrop-blur-md p-4 rounded-xl border border-white/15 shadow-2xl transition-all duration-300">
             <div className="flex items-center justify-between pb-2 mb-3 border-b border-white/10">
               <span className="text-xs font-bold text-gray-200 uppercase tracking-wide">
-                Bản đồ vị trí
+                {t("seat.seatMapTitle")}
               </span>
               <span className="text-xs text-primary font-bold">
                 {viewingSeatKey
-                  ? `Ghế đang xem: #${viewingSeatKey}`
-                  : "Chọn 1 ghế"}
+                  ? t("seat.viewingSeat", { key: viewingSeatKey })
+                  : t("seat.selectOneSeat")}
               </span>
             </div>
 
@@ -560,7 +577,9 @@ export function SeatLayout() {
                           key={key}
                           disabled={isBooked}
                           onClick={() => setViewingSeatKey(key)}
-                          title={`Ghế ${row.rowLabel}${seat.seatNumber}`}
+                          title={t("seat.seatLabel", {
+                            code: `${row.rowLabel}${seat.seatNumber}`,
+                          })}
                           className={`w-5 h-5 rounded text-[9px] font-semibold transition-all flex items-center justify-center cursor-pointer
                             ${
                               isBooked

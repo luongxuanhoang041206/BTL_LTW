@@ -3,10 +3,12 @@ import { BlurCicle } from "./BlurCircle";
 import { Fragment, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
 
 export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // -------------------------------------------------------------------------
   // Cinemas state
@@ -62,7 +64,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
           setCinemas([]);
           setAvailableDates([]);
           setSelectedDate(null);
-          setShowtimesError("Không thể tải lịch chiếu. Vui lòng thử lại.");
+          setShowtimesError(t("seat.cinemasLoadError"));
         }
       })
       .finally(() => { if (!controller.signal.aborted) setCinemasLoading(false); });
@@ -95,7 +97,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
       .catch((error) => {
         if (error.name === "AbortError") return;
         setCurrentDayGroups([]);
-        setShowtimesError("Không thể tải suất chiếu. Vui lòng thử lại.");
+        setShowtimesError(t("seat.showtimesLoadError"));
       })
       .finally(() => { if (!controller.signal.aborted) setShowtimesLoading(false); });
     return () => controller.abort();
@@ -120,7 +122,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
     !hasApiGroups && selectedDate ? dateTime[selectedDate] ?? [] : [];
 
   const handleLegacyBook = () => {
-    if (!selectedDate) return toast.error("Vui lòng chọn ngày chiếu");
+    if (!selectedDate) return toast.error(t("seat.selectDateToast"));
     navigate(`/movies/${id}/${selectedDate}`);
     scrollTo(0, 0);
   };
@@ -134,7 +136,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
         <BlurCicle top="-100px" left="-100px" />
         <BlurCicle top="100px" right="0" />
 
-        <h2 className="text-xl font-bold text-white mb-6">Đặt Vé</h2>
+        <h2 className="text-xl font-bold text-white mb-6">{t("seat.bookingTitle")}</h2>
 
         {/* ==================================================================
             BƯỚC 1: CHỌN RẠP
@@ -144,7 +146,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
             <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">
               1
             </span>
-            Chọn Rạp Chiếu Phim
+            {t("seat.selectCinema")}
           </p>
 
           {cinemasLoading ? (
@@ -183,7 +185,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
                       {cinema.address}
                     </span>
                     <span className="text-[11px] text-primary/80 mt-0.5">
-                      {cinema.showtimeCount} suất chiếu
+                      {t("seat.showtimeCount", { count: cinema.showtimeCount })}
                     </span>
                   </button>
                 );
@@ -191,7 +193,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
             </div>
           ) : (
             <p className="text-sm text-gray-400">
-              Hiện chưa có rạp nào chiếu phim này.
+              {t("seat.noCinemas")}
             </p>
           )}
         </div>
@@ -205,7 +207,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
               <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">
                 2
               </span>
-              Chọn Ngày Chiếu
+              {t("seat.selectDate")}
             </p>
 
             {showtimesLoading ? (
@@ -249,7 +251,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
               </div>
             ) : (
               <p className="text-sm text-gray-400">
-                Rạp này không có suất chiếu nào trong thời gian tới.
+                {t("seat.noShowtimesForCinema")}
               </p>
             )}
           </div>
@@ -264,24 +266,25 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
               <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">
                 3
               </span>
-              Chọn Suất Chiếu —{" "}
-              {new Date(selectedDate).toLocaleDateString("vi-VN", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
+              {t("seat.selectShowtime", {
+                date: new Date(selectedDate).toLocaleDateString("vi-VN", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                }),
               })}
             </p>
 
             <div className="flex flex-wrap gap-3 mb-5">
-              <label className="text-xs text-gray-400 flex items-center gap-2">Thành phố
+              <label className="text-xs text-gray-400 flex items-center gap-2">{t("seat.city")}
                 <select value={city} onChange={(event) => setCity(event.target.value)} className="rounded-lg bg-black/50 border border-gray-700 px-3 py-2 text-white">
-                  <option value="">Tất cả</option>
+                  <option value="">{t("seat.all")}</option>
                   {[...new Set(cinemas.map((cinema) => cinema.city).filter(Boolean))].map((name) => <option key={name} value={name}>{name}</option>)}
                 </select>
               </label>
-              <label className="text-xs text-gray-400 flex items-center gap-2">Định dạng
+              <label className="text-xs text-gray-400 flex items-center gap-2">{t("seat.format")}
                 <select value={roomType} onChange={(event) => setRoomType(event.target.value)} className="rounded-lg bg-black/50 border border-gray-700 px-3 py-2 text-white">
-                  <option value="">Tất cả</option>
+                  <option value="">{t("seat.all")}</option>
                   {roomTypes.map((type) => <option key={type} value={type}>{type}</option>)}
                 </select>
               </label>
@@ -330,7 +333,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
 
                     <div className="mt-4 pt-3 border-t border-gray-800/80 flex items-center justify-between text-xs">
                       <span className="text-gray-400">
-                        {st.availableSeats ?? 50} ghế trống
+                        {t("seat.availableSeats", { count: st.availableSeats ?? 50 })}
                       </span>
                       <span className="font-bold text-primary">
                         {st.price
@@ -344,7 +347,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
               </div>
             ) : (
               <p className="text-sm text-gray-400">
-                {selectedDate ? "Không có suất chiếu phù hợp với bộ lọc đã chọn." : "Phim hiện chưa có suất chiếu hợp lệ."}
+                {selectedDate ? t("seat.noMatchingShowtimes") : t("seat.noValidShowtimes")}
               </p>
             )}
           </div>
@@ -356,7 +359,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
         {!selectedCinemaId && cinemas.length === 0 && !cinemasLoading && (
           <div className="mt-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Chọn Ngày &amp; Giờ Chiếu
+              {t("seat.selectDateAndTime")}
             </p>
             {legacyDates.length > 0 ? (
               <>
@@ -405,7 +408,7 @@ export function DateSelect({ dayGroups = [], dateTime = {}, id }) {
               </>
             ) : (
               <p className="text-sm text-gray-400">
-                Hiện chưa có lịch chiếu cho phim này.
+                {t("seat.noShowtimes")}
               </p>
             )}
           </div>

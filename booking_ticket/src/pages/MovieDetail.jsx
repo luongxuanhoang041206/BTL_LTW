@@ -11,6 +11,7 @@ import { api } from "../lib/api";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { ReviewContent, ReviewEditor } from "../components/ReviewEditor";
+import { useTranslation } from "react-i18next";
 
 export function MovieDetails() {
   const { id } = useParams();
@@ -22,6 +23,7 @@ export function MovieDetails() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const { user, openLogin } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -44,10 +46,10 @@ export function MovieDetails() {
         rating: reviewRating,
         comment,
       });
-      toast.success(result.message || "Đã gửi đánh giá.");
+      toast.success(result.message || t("movieDetail.reviewSubmitted"));
       await fetchReviews();
     } catch (error) {
-      toast.error(error.message || "Không thể gửi đánh giá.");
+      toast.error(error.message || t("movieDetail.reviewSubmitFailed"));
     } finally {
       setReviewSubmitting(false);
     }
@@ -97,12 +99,12 @@ export function MovieDetails() {
   if (!movie) {
     return (
       <div className="flex flex-col items-center justify-center h-[70vh] text-center">
-        <h2 className="text-2xl font-bold text-white mb-4">Không tìm thấy thông tin phim</h2>
+        <h2 className="text-2xl font-bold text-white mb-4">{t("movieDetail.notFoundTitle")}</h2>
         <button
           onClick={() => navigate("/movies")}
           className="px-6 py-2 bg-primary text-white rounded-full font-medium"
         >
-          Quay lại danh sách phim
+          {t("movieDetail.backToMovies")}
         </button>
       </div>
     );
@@ -112,7 +114,7 @@ export function MovieDetails() {
   const duration = movie.duration || movie.runtime || 120;
   const genresStr = Array.isArray(movie.genres)
     ? movie.genres.map((g) => (typeof g === "string" ? g : g.name)).join(", ")
-    : "Hành động, Phiêu lưu";
+    : t("movieDetail.fallbackGenres");
   const releaseYear = movie.releaseDate
     ? new Date(movie.releaseDate).getFullYear()
     : "2025";
@@ -160,7 +162,7 @@ export function MovieDetails() {
         <div className="relative flex flex-col justify-center gap-4">
           <BlurCicle top="-100px" left="-100px" />
           <span className="text-primary text-xs tracking-widest font-bold uppercase">
-            Phim Đang Chiếu Rạp
+            {t("movieDetail.nowShowingBadge")}
           </span>
 
           <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight">
@@ -185,14 +187,14 @@ export function MovieDetails() {
           </div>
 
           <p className="text-gray-300 text-sm leading-relaxed max-w-xl">
-            {movie.description || movie.overview || "Bộ phim điện ảnh đặc sắc mang lại cho bạn những trải nghiệm cảm xúc bùng nổ tại rạp."}
+            {movie.description || movie.overview || t("movieDetail.fallbackDescription")}
           </p>
 
           <div className="text-sm text-gray-400 space-y-1">
-            <p><strong className="text-gray-200">Thể loại:</strong> {genresStr}</p>
-            {movie.director && <p><strong className="text-gray-200">Đạo diễn:</strong> {movie.director}</p>}
-            {movie.actors && <p><strong className="text-gray-200">Diễn viên:</strong> {movie.actors}</p>}
-            {movie.language && <p><strong className="text-gray-200">Ngôn ngữ:</strong> {movie.language}</p>}
+            <p><strong className="text-gray-200">{t("movieDetail.genre")}</strong> {genresStr}</p>
+            {movie.director && <p><strong className="text-gray-200">{t("movieDetail.director")}</strong> {movie.director}</p>}
+            {movie.actors && <p><strong className="text-gray-200">{t("movieDetail.cast")}</strong> {movie.actors}</p>}
+            {movie.language && <p><strong className="text-gray-200">{t("movieDetail.language")}</strong> {movie.language}</p>}
           </div>
 
           <div className="flex items-center flex-wrap gap-4 mt-4">
@@ -201,16 +203,16 @@ export function MovieDetails() {
               className="flex items-center gap-2 px-6 py-3 text-sm bg-gray-800 hover:bg-gray-700 text-white transition rounded-xl font-medium cursor-pointer active:scale-95 border border-white/10"
             >
               <PlayCircleIcon className="w-5 h-5 text-primary" />
-              Xem Trailer
+              {t("movieDetail.watchTrailer")}
             </button>
             <a
               href="#dateSelect"
               className="px-8 py-3 text-sm bg-primary hover:bg-primary-dull text-white transition rounded-xl font-semibold cursor-pointer shadow-lg shadow-primary/30 active:scale-95"
             >
-              Đặt Vé Ngay
+              {t("movieDetail.bookNow")}
             </a>
             <button
-              onClick={() => toast.success("Đã thêm vào danh sách yêu thích!")}
+              onClick={() => toast.success(t("movieDetail.addedToFavorites"))}
               className="bg-gray-800/80 hover:bg-gray-700 p-3 rounded-xl transition cursor-pointer text-gray-400 hover:text-red-500 border border-white/10"
             >
               <Heart className="w-5 h-5" />
@@ -227,11 +229,11 @@ export function MovieDetails() {
       <section className="max-w-6xl mx-auto mt-16" aria-labelledby="reviews-heading">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
-            <h2 id="reviews-heading" className="text-2xl font-bold text-white">Đánh giá phim</h2>
+            <h2 id="reviews-heading" className="text-2xl font-bold text-white">{t("movieDetail.reviewsTitle")}</h2>
             <p className="text-sm text-gray-400 mt-1">
               {reviewData.reviewCount > 0
-                ? `${reviewData.averageRating.toFixed(1)} / 10 · ${reviewData.reviewCount} đánh giá`
-                : "Chưa có đánh giá nào."}
+                ? t("movieDetail.reviewSummary", { rating: reviewData.averageRating.toFixed(1), total: reviewData.reviewCount })
+                : t("movieDetail.noReviews")}
             </p>
           </div>
         </div>
@@ -244,11 +246,11 @@ export function MovieDetails() {
             submitting={reviewSubmitting}
           />
         ) : reviewData.hasReviewed ? (
-          <p className="text-sm text-green-400 mb-6">Bạn đã gửi đánh giá cho phim này rồi. Cảm ơn bạn!</p>
+          <p className="text-sm text-green-400 mb-6">{t("movieDetail.alreadyReviewed")}</p>
         ) : !reviewData.isAuthenticated ? (
-          <p className="text-sm text-gray-400 mb-6">Bạn cần đăng nhập và có vé đã thanh toán cho suất chiếu đã kết thúc mới có thể đánh giá phim.</p>
+          <p className="text-sm text-gray-400 mb-6">{t("movieDetail.needLoginToReview")}</p>
         ) : (
-          <p className="text-sm text-gray-400 mb-6">Bạn có thể đánh giá sau khi xem xong một suất phim đã thanh toán.</p>
+          <p className="text-sm text-gray-400 mb-6">{t("movieDetail.canReviewAfterWatching")}</p>
         )}
 
         <div className="space-y-4">
@@ -274,7 +276,7 @@ export function MovieDetails() {
                   {new Date(review.createdAt).toLocaleDateString("vi-VN")}
                 </time>
               </div>
-              <div className="flex items-center gap-0.5 my-2" aria-label={`${review.rating} trên 10 điểm`}>
+              <div className="flex items-center gap-0.5 my-2" aria-label={t("movieDetail.ratingAria", { rating: review.rating })}>
                 {Array.from({ length: 10 }, (_, index) => index + 1).map((rating) => (
                   <StarIcon key={rating} className={`w-3.5 h-3.5 ${rating <= review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-700"}`} />
                 ))}
@@ -288,7 +290,7 @@ export function MovieDetails() {
 
       {/* Similar Movies */}
       <div className="my-24">
-        <p className="text-2xl font-bold text-white mb-8">Có thể bạn sẽ thích</p>
+        <p className="text-2xl font-bold text-white mb-8">{t("movieDetail.similarMovies")}</p>
         <div className="flex flex-wrap max-sm:justify-center gap-8">
           {dummyShowsData.slice(0, 4).map((m) => (
             <MovieCard key={m._id} movie={m} />

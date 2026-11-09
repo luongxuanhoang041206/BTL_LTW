@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, Clock3, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
@@ -25,6 +26,7 @@ function readDraft(showtimeId, routeState) {
 // Component phân trang nhỏ tái sử dụng
 // ---------------------------------------------------------------------------
 function Pagination({ page, totalPages, onPageChange }) {
+  const { t } = useTranslation();
   if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-center gap-2 mt-6">
@@ -32,7 +34,7 @@ function Pagination({ page, totalPages, onPageChange }) {
         onClick={() => onPageChange(page - 1)}
         disabled={page === 1}
         className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/30 disabled:opacity-30 disabled:cursor-not-allowed transition"
-        aria-label="Trang trước"
+        aria-label={t("food.prevPage")}
       >
         <ChevronLeftIcon className="w-4 h-4" />
       </button>
@@ -55,7 +57,7 @@ function Pagination({ page, totalPages, onPageChange }) {
         onClick={() => onPageChange(page + 1)}
         disabled={page === totalPages}
         className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/30 disabled:opacity-30 disabled:cursor-not-allowed transition"
-        aria-label="Trang sau"
+        aria-label={t("food.nextPage")}
       >
         <ChevronRightIcon className="w-4 h-4" />
       </button>
@@ -67,6 +69,7 @@ function Pagination({ page, totalPages, onPageChange }) {
 // Main component
 // ---------------------------------------------------------------------------
 export function FoodSelection() {
+  const { t } = useTranslation();
   const { showtimeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -104,7 +107,7 @@ export function FoodSelection() {
         setMenu({ foods: menuData.foods || [], combos: menuData.combos || [] });
         setSeatMap(mapData);
       })
-      .catch((err) => toast.error(err.message || "Không thể tải thông tin đặt vé."))
+      .catch((err) => toast.error(err.message || t("food.loadError")))
       .finally(() => setLoading(false));
   }, [showtimeId, location.state]);
 
@@ -197,9 +200,9 @@ export function FoodSelection() {
   const handleCheckout = async () => {
     if (!user) return openLogin();
     if (!draft?.seatIds?.length)
-      return toast.error("Không tìm thấy ghế đang giữ. Vui lòng chọn ghế lại.");
+      return toast.error(t("food.toastSeatsNotFound"));
     if (secondsLeft <= 0)
-      return toast.error("Thời gian giữ ghế đã hết. Vui lòng chọn ghế lại.");
+      return toast.error(t("food.toastHoldExpired"));
 
     setSubmitting(true);
     try {
@@ -225,10 +228,10 @@ export function FoodSelection() {
       sessionStorage.removeItem(
         `booking:selected-seats:${draft.movieId}:${showtimeId}`
       );
-      toast.success("Đã tạo đơn. Tiếp tục thanh toán để xác nhận vé.");
+      toast.success(t("food.toastOrderCreated"));
       navigate(`/payment/${result.bookingId}`);
     } catch (err) {
-      toast.error(err.message || "Không thể tạo đơn đặt vé.");
+      toast.error(err.message || t("food.toastOrderFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -276,7 +279,7 @@ export function FoodSelection() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => changeQuantity(setter, id, -1)}
-                aria-label={`Giảm ${item.name}`}
+                aria-label={t("food.decrease", { name: item.name })}
                 className="h-8 w-8 rounded-full bg-gray-700 hover:bg-gray-600 transition text-white font-bold flex items-center justify-center"
               >
                 −
@@ -284,7 +287,7 @@ export function FoodSelection() {
               <span className="w-6 text-center font-semibold text-white">{qty}</span>
               <button
                 onClick={() => changeQuantity(setter, id, 1)}
-                aria-label={`Thêm ${item.name}`}
+                aria-label={t("food.increase", { name: item.name })}
                 className="h-8 w-8 rounded-full bg-primary hover:bg-primary-dull transition text-white font-bold flex items-center justify-center"
               >
                 +
@@ -304,10 +307,10 @@ export function FoodSelection() {
   if (!draft?.seatIds?.length) {
     return (
       <main className="flex min-h-[70vh] flex-col items-center justify-center gap-4 px-4 pt-28 text-center text-white">
-        <h1 className="text-2xl font-bold">Không tìm thấy ghế đang giữ</h1>
-        <p className="text-gray-400">Vui lòng chọn ghế trước khi chọn đồ ăn.</p>
+        <h1 className="text-2xl font-bold">{t("food.noHeldSeats")}</h1>
+        <p className="text-gray-400">{t("food.selectSeatsFirst")}</p>
         <Link to="/movies" className="rounded-lg bg-primary px-5 py-3 font-semibold">
-          Chọn phim
+          {t("food.chooseMovie")}
         </Link>
       </main>
     );
@@ -324,17 +327,17 @@ export function FoodSelection() {
         <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-amber-400/30 bg-amber-950/30 p-5 sm:flex-row sm:items-center">
           <div>
             <p className="text-sm text-gray-300">
-              Ghế đã giữ:{" "}
+              {t("food.heldSeats")}{" "}
               <strong className="text-white">
-                {draft.seatLabels?.join(", ") || `${draft.seatIds.length} ghế`}
+                {draft.seatLabels?.join(", ") || t("food.seatsCount", { count: draft.seatIds.length })}
               </strong>
             </p>
-            <h1 className="mt-1 text-2xl font-bold">Chọn bắp nước &amp; combo</h1>
+            <h1 className="mt-1 text-2xl font-bold">{t("food.selectTitle")}</h1>
           </div>
           <div className="flex items-center gap-3 text-right">
             <Clock3 className="h-6 w-6 text-amber-300" />
             <div>
-              <p className="text-xs text-gray-400">Thời gian giữ ghế còn</p>
+              <p className="text-xs text-gray-400">{t("food.holdTimeLeft")}</p>
               <p
                 className={`font-mono text-2xl font-bold ${
                   secondsLeft < 60 ? "text-red-400" : "text-amber-300"
@@ -349,7 +352,7 @@ export function FoodSelection() {
         {/* Cảnh báo hết giờ */}
         {secondsLeft === 0 && (
           <div className="mb-5 rounded-xl border border-red-500/30 bg-red-950/30 p-4 text-sm text-red-200">
-            Thời gian giữ ghế đã hết. Hãy quay lại chọn ghế và bắt đầu lại.
+            {t("food.holdExpired")}
           </div>
         )}
 
@@ -363,10 +366,10 @@ export function FoodSelection() {
             {/* Món lẻ */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Món lẻ</h2>
+                <h2 className="text-xl font-bold">{t("food.singleItems")}</h2>
                 {foodTotalPages > 1 && (
                   <span className="text-xs text-gray-400">
-                    Trang {foodPage}/{foodTotalPages} · {menu.foods.length} món
+                    {t("food.pageIndicator", { page: foodPage, total: foodTotalPages })} · {t("food.itemsCount", { count: menu.foods.length })}
                   </span>
                 )}
               </div>
@@ -382,17 +385,17 @@ export function FoodSelection() {
                   />
                 </>
               ) : (
-                <p className="text-sm text-gray-400">Chưa có món lẻ.</p>
+                <p className="text-sm text-gray-400">{t("food.noFoods")}</p>
               )}
             </section>
 
             {/* Combo */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Combo</h2>
+                <h2 className="text-xl font-bold">{t("food.combos")}</h2>
                 {comboTotalPages > 1 && (
                   <span className="text-xs text-gray-400">
-                    Trang {comboPage}/{comboTotalPages} · {menu.combos.length} combo
+                    {t("food.pageIndicator", { page: comboPage, total: comboTotalPages })} · {t("food.combosCount", { count: menu.combos.length })}
                   </span>
                 )}
               </div>
@@ -408,7 +411,7 @@ export function FoodSelection() {
                   />
                 </>
               ) : (
-                <p className="text-sm text-gray-400">Chưa có combo.</p>
+                <p className="text-sm text-gray-400">{t("food.noCombos")}</p>
               )}
             </section>
           </div>
@@ -417,27 +420,27 @@ export function FoodSelection() {
               Sidebar tóm tắt đơn
           ---------------------------------------------------------------- */}
           <aside className="h-fit rounded-2xl border border-primary/20 bg-gray-900/90 p-5 lg:sticky lg:top-28">
-            <h2 className="text-lg font-bold">Tóm tắt đơn</h2>
-            <p className="mt-2 text-sm text-gray-400">{seatMap?.movieTitle || "Phim"}</p>
+            <h2 className="text-lg font-bold">{t("food.orderSummary")}</h2>
+            <p className="mt-2 text-sm text-gray-400">{seatMap?.movieTitle || t("food.movie")}</p>
             <p className="mt-1 text-xs text-gray-500">
-              Ghế: {draft.seatLabels?.join(", ")}
+              {t("food.seatsLabel")} {draft.seatLabels?.join(", ")}
             </p>
 
             <div className="mt-5 space-y-3 border-t border-white/10 pt-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Vé</span>
+                <span className="text-gray-400">{t("food.tickets")}</span>
                 <span>{seatTotal.toLocaleString("vi-VN")} ₫</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Món lẻ</span>
+                <span className="text-gray-400">{t("food.foods")}</span>
                 <span>{foodTotal.toLocaleString("vi-VN")} ₫</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Combo</span>
+                <span className="text-gray-400">{t("food.combos")}</span>
                 <span>{comboTotal.toLocaleString("vi-VN")} ₫</span>
               </div>
               <div className="flex justify-between border-t border-white/10 pt-3">
-                <span className="text-gray-400">Tạm tính</span>
+                <span className="text-gray-400">{t("food.subtotal")}</span>
                 <span>{formatVnd(total)}</span>
               </div>
             </div>
@@ -454,12 +457,12 @@ export function FoodSelection() {
             <div className="mt-4 space-y-3 text-sm">
               {appliedPromo && (
                 <div className="flex justify-between text-emerald-400">
-                  <span>Giảm giá ({appliedPromo.code})</span>
+                  <span>{t("food.discount", { code: appliedPromo.code })}</span>
                   <span>−{formatVnd(appliedPromo.discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-white/10 pt-3 text-lg font-bold">
-                <span>Tổng cộng</span>
+                <span>{t("food.total")}</span>
                 <span className="text-primary">
                   {formatVnd(appliedPromo ? appliedPromo.totalAmount : total)}
                 </span>
@@ -472,7 +475,7 @@ export function FoodSelection() {
               disabled={submitting || secondsLeft <= 0}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 font-bold disabled:cursor-not-allowed disabled:opacity-50 hover:bg-primary-dull transition"
             >
-              {submitting ? "Đang tạo đơn…" : "Thanh toán qua SePay"}
+              {submitting ? t("food.creatingOrder") : t("food.payWithSePay")}
               <ArrowRight className="h-4 w-4" />
             </button>
 
@@ -483,7 +486,7 @@ export function FoodSelection() {
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm text-gray-300 hover:text-white hover:border-white/30 transition"
             >
               <ArrowLeft className="h-4 w-4" />
-              Quay lại chọn ghế
+              {t("food.backToSeats")}
             </button>
           </aside>
         </div>

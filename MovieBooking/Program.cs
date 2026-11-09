@@ -46,8 +46,8 @@ builder.Services.AddScoped<IAdminReportingService, AdminReportingService>();
 builder.Services.AddScoped<IAdminSystemService, AdminSystemService>();
 builder.Services.AddScoped<ISystemSettingsService, SystemSettingsService>();
 builder.Services.AddScoped<IBookingCheckoutService, BookingCheckoutService>();
-builder.Services.AddScoped<IEmailSenderService, SmtpEmailSenderService>();
-builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+
+builder.Services.AddScoped<ITicketService, TicketService>();
 
 builder.Services.AddScoped<IEmailSenderService, SmtpEmailSenderService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();

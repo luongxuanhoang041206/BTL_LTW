@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Eye, EyeOff, KeyRound } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
 export function ResetPassword() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { openLogin } = useAuth();
@@ -27,15 +29,15 @@ export function ResetPassword() {
     event.preventDefault();
 
     if (!newPassword || !confirmPassword) {
-      setError("Vui lòng nhập đầy đủ mật khẩu.");
+      setError(t("resetPassword.errRequired"));
       return;
     }
     if (newPassword.length < 6) {
-      setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      setError(t("resetPassword.errMinLength"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
+      setError(t("resetPassword.errMismatch"));
       return;
     }
 
@@ -48,11 +50,11 @@ export function ResetPassword() {
         newPassword,
         confirmPassword,
       });
-      toast.success(response?.message || "Đặt lại mật khẩu thành công. Vui lòng đăng nhập.");
+      toast.success(response?.message || t("resetPassword.success"));
       navigate("/", { replace: true });
       openLogin();
     } catch (requestError) {
-      setError(requestError.message || "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+      setError(requestError.message || t("resetPassword.failed"));
     } finally {
       setLoading(false);
     }
@@ -65,15 +67,15 @@ export function ResetPassword() {
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
             <KeyRound className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold">Liên kết không hợp lệ</h1>
-          <p className="mt-2 text-sm text-gray-400">Liên kết đặt lại mật khẩu không hợp lệ hoặc không đầy đủ.</p>
+          <h1 className="text-2xl font-bold">{t("resetPassword.invalidTitle")}</h1>
+          <p className="mt-2 text-sm text-gray-400">{t("resetPassword.invalidDesc")}</p>
           <button
             type="button"
             onClick={() => navigate("/forgot-password")}
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-dull"
           >
             <ArrowLeft className="h-4 w-4" />
-            Quay lại
+            {t("resetPassword.back")}
           </button>
         </section>
       </main>
@@ -86,13 +88,13 @@ export function ResetPassword() {
         <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
           <KeyRound className="h-7 w-7" />
         </div>
-        <h1 className="text-2xl font-bold md:text-3xl">Đặt lại mật khẩu</h1>
-        <p className="mt-2 text-sm text-gray-400">Tạo mật khẩu mới để tiếp tục sử dụng tài khoản.</p>
+        <h1 className="text-2xl font-bold md:text-3xl">{t("resetPassword.title")}</h1>
+        <p className="mt-2 text-sm text-gray-400">{t("resetPassword.subtitle")}</p>
 
         <form onSubmit={handleSubmit} className="mt-7 space-y-4">
           <div>
             <label htmlFor="new-password" className="mb-2 block text-sm font-medium text-gray-300">
-              Mật khẩu mới
+              {t("resetPassword.newPassword")}
             </label>
             <div className="relative">
               <input
@@ -111,7 +113,7 @@ export function ResetPassword() {
               <button
                 type="button"
                 onClick={() => setShowNewPassword((shown) => !shown)}
-                aria-label={showNewPassword ? "Ẩn mật khẩu mới" : "Hiện mật khẩu mới"}
+                aria-label={showNewPassword ? t("resetPassword.hideNew") : t("resetPassword.showNew")}
                 aria-pressed={showNewPassword}
                 className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 transition hover:text-white"
               >
@@ -122,7 +124,7 @@ export function ResetPassword() {
 
           <div>
             <label htmlFor="confirm-password" className="mb-2 block text-sm font-medium text-gray-300">
-              Xác nhận mật khẩu
+              {t("resetPassword.confirmPassword")}
             </label>
             <div className="relative">
               <input
@@ -141,7 +143,7 @@ export function ResetPassword() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword((shown) => !shown)}
-                aria-label={showConfirmPassword ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"}
+                aria-label={showConfirmPassword ? t("resetPassword.hideConfirm") : t("resetPassword.showConfirm")}
                 aria-pressed={showConfirmPassword}
                 className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 transition hover:text-white"
               >
@@ -157,7 +159,7 @@ export function ResetPassword() {
             disabled={loading}
             className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dull disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Đang cập nhật..." : "Đặt lại mật khẩu"}
+            {loading ? t("resetPassword.updating") : t("resetPassword.submit")}
           </button>
         </form>
       </section>
